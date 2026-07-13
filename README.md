@@ -16,29 +16,29 @@ a serverless backend hands out the daily seed and keeps the community leaderboar
 **Goal:** score as many points as you can before the run ends — then get on the community
 leaderboard.
 
-1. **Place gems.** On every turn you hold one visible gem (*NOW PLACING*). Place it to
-   **cover a gem** already on the board (that gem joins your hand) or to **fill an empty
-   gap**. A placement is only legal if it forms or extends a combo.
-2. **Build combos.** One placement **activates** a whole combo by absorbing the connected
-   matching gems around it — matched sets (a pair of 2s or 6s, three/four/five/six of a
-   kind) or straights of consecutive values (four, five or all six). Activated combos glow
-   and stay in play; you can build several.
+1. **Place gems.** On every turn you hold one visible gem (*NOW PLACING*). Replace a gem
+   on the board with it (the replaced gem joins your hand) or place it in an empty spot.
+   A placement is only legal if it forms or extends a combo.
+2. **Build combos.** Any eligible combo of connected gems is claimed and **activated** —
+   matched sets (a pair of 2s or 6s, three/four/five/six of a kind) or straights of
+   consecutive values (four, five or all six). Activated combos glow and stay in play;
+   you can build several.
 3. **Bank at six.** When a connected glowing cluster reaches **6+ gems it banks
    automatically** — and the gem your finishing placement covered becomes the
    **multiplier** (finish on a 6 for ×6; finish into a gap for no multiplier). Chaining
    combos into the bank adds bonus points. A timed **BANK** button also lets you bank a
    small cluster early, three times per game, at base value.
-4. **Don't bust.** If your gem can't form or extend any combo, you **bust**: everything
-   glowing is lost unbanked and you spend one of three lives. Three busts end the run.
+4. **Don't bust.** If a placement doesn't create an eligible combo, you **bust**: you
+   lose a life and every activated combo you hadn't banked yet. Three busts end the run.
 5. **The Abyss collapses — twice.** As the board empties it contracts to a smaller
    hexagon, then contracts again into **GLINT RUSH**: the final round where ANY completed
    combo banks instantly, your whole hand is revealed, and you may **CASH OUT** at any
    moment to convert unspent lives, free banks and hand gems into points.
-6. **Specials.** Dross is a booby-trap that can only be placed as a bust — isolate it to
-   clear it. The Nebulite pays +500 when covered, acts as a joker, and is also the
-   **currency**: banked Nebulite fills your wallet (doubled if you clear the board) and
-   buys board themes and music in the Shop. Bank 7+ of the same gem and the overflow
-   returns to your hand — every six overflow gems **refine into a new Nebulite**.
+6. **Special tiles.** Dross is a worthless tile that forms an obstacle on the board —
+   and could end up in your hand, which could lead to a bust. Overflow (banking 7+ of the
+   same gem) refines into **Nebulite** — a shape-shifting wild card that is also the main
+   currency for the Shop (+500 when covered, doubled into your wallet if you clear the
+   board). Sweeping either tile off the board earns you the gem that sits underneath it.
 
 The in-game **How to play** (the ? in the header) and the interactive tutorial teach the
 full ruleset.
@@ -86,9 +86,11 @@ npm run deploy     # typecheck + devvit upload
 
 ## Provenance
 
-Glint's solo engine predates this hackathon; this Reddit app is a substantial rework created
-during the submission period: the Devvit Web port (client/server split, splash + expanded
-entrypoints), the Community Daily with the shared-seed board and Redis leaderboard, and a
-slimmed build (the experimental 3D scenery from the web version was removed entirely for the
-Reddit bundle). The engine also received major gameplay updates during the period — collapse
-animation guarantees, per-element settings, and the sticker/puzzle identity system.
+Glint's development began right around the opening of the submission window, and the game
+took its current shape during it: the core experience grew from prototype to the full game,
+and this Reddit app was created as its community-native form — the Devvit Web port
+(client/server split, splash + expanded entrypoints), the Community Daily with the
+shared-seed board and Redis leaderboard, and a slimmed build (the experimental 3D scenery
+from the web version was left out of the Reddit bundle). The engine also received major
+gameplay updates throughout the period — collapse animation guarantees, per-element
+settings, and the sticker/puzzle identity system.
