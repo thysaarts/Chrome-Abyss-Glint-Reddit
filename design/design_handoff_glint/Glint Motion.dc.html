@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#08090f;color:#e7e9ef;font-family:'Saira',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .hexwell{background:radial-gradient(circle at 50% 42%, rgba(124,90,224,0.16), #0b0d16 70%);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .gemw{position:absolute;display:flex;align-items:center;justify-content:center}
+  @keyframes gDrop{0%{transform:translateY(-66px) scale(.5);opacity:0}12%{opacity:1}18%{transform:translateY(8px) scale(1.08)}25%{transform:translateY(0) scale(1)}86%{transform:translateY(0) scale(1);opacity:1}93%{opacity:0}100%{opacity:0}}
+  @keyframes ringPop{0%,30%{opacity:0;transform:scale(1.3)}38%{opacity:1;transform:scale(1)}60%{opacity:.85;transform:scale(1.05)}86%{opacity:1;transform:scale(1)}94%{opacity:0}100%{opacity:0}}
+  @keyframes flyUp{0%,42%{transform:translate(0,0) scale(1);opacity:1}95%{transform:translate(var(--dx,0px),-118px) scale(.42);opacity:0}100%{opacity:0;transform:translate(var(--dx,0px),-118px) scale(.42)}}
+  @keyframes goldRing{0%,30%{opacity:0;transform:scale(1.25)}40%{opacity:1;transform:scale(1)}100%{opacity:1;transform:scale(1)}}
+  @keyframes scorePop{0%,48%{transform:scale(1);color:#e8b53f}64%{transform:scale(1.2);color:#ffe6a8}82%{transform:scale(1);color:#e8b53f}100%{transform:scale(1)}}
+  @keyframes plusRise{0%,44%{opacity:0;transform:translateY(26px)}58%{opacity:1;transform:translateY(2px)}80%{opacity:1;transform:translateY(-8px)}92%{opacity:0;transform:translateY(-22px)}100%{opacity:0}}
+  @keyframes rays{0%,42%{opacity:0;transform:scale(.4) rotate(0)}60%{opacity:.7;transform:scale(1.15) rotate(20deg)}80%{opacity:0;transform:scale(1.5) rotate(40deg)}100%{opacity:0}}
+  @keyframes clShake{0%,28%{transform:translate(0,0)}31%{transform:translate(-4px,2px)}34%{transform:translate(4px,-2px)}37%{transform:translate(-3px,0)}40%{transform:translate(3px,1px)}43%{transform:translate(0,0)}100%{transform:translate(0,0)}}
+  @keyframes shatter{0%,44%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--sx,0px),var(--sy,46px)) rotate(var(--sr,20deg));opacity:0}}
+  @keyframes crack{0%,44%{opacity:0}52%{opacity:.85}74%{opacity:.4}100%{opacity:0}}
+  @keyframes stampRed{0%,42%{opacity:0;transform:scale(2.3);filter:blur(7px)}52%{opacity:1;transform:scale(1);filter:blur(0)}57%{transform:scale(1.05)}62%{transform:scale(1)}88%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @keyframes pipDrain{0%,46%{opacity:1;transform:scale(1)}56%{opacity:.28;transform:scale(.82)}100%{opacity:.28;transform:scale(.82)}}
+  @keyframes sweepBanner{0%{transform:translateX(-130%);opacity:0}16%{opacity:1}28%{transform:translateX(0)}72%{transform:translateX(0);opacity:1}88%{transform:translateX(130%);opacity:0}100%{opacity:0}}
+  @keyframes tileSpin{0%,18%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.82)}82%,100%{transform:rotate(360deg) scale(1)}}
+  @keyframes ringDrain{0%{stroke-dashoffset:0}82%{stroke-dashoffset:163}100%{stroke-dashoffset:163}}
+  @keyframes barDrain{0%{width:100%}82%{width:0%}100%{width:0%}}
+  @keyframes d3{0%,0%{opacity:1}27%,100%{opacity:0}}
+  @keyframes d2{0%,27%{opacity:0}28%,54%{opacity:1}55%,100%{opacity:0}}
+  @keyframes d1{0%,54%{opacity:0}55%,80%{opacity:1}82%,100%{opacity:0}}
+  @keyframes promptPulse{0%,100%{box-shadow:0 0 0 rgba(232,181,63,0);border-color:rgba(232,181,63,.4)}50%{box-shadow:0 0 26px rgba(232,181,63,.4);border-color:rgba(232,181,63,.75)}}
+  @keyframes boardShake{0%,16%{transform:scale(1) translate(0,0)}19%{transform:scale(1) translate(-5px,2px)}22%{transform:scale(1) translate(5px,-2px)}25%{transform:scale(1) translate(-5px,1px)}28%{transform:scale(1) translate(4px,2px)}31%{transform:scale(1) translate(-2px,0)}34%{transform:scale(1) translate(0,0)}68%{transform:scale(1)}84%{transform:scale(.84)}100%{transform:scale(.84)}}
+  @keyframes collapseWord{0%,28%{opacity:0;transform:scale(2.7);filter:blur(9px)}40%{opacity:1;transform:scale(1);filter:blur(0)}44%{transform:scale(1.05)}50%{transform:scale(1)}80%{opacity:1;transform:scale(1)}90%{opacity:0;transform:scale(.92)}100%{opacity:0}}
+  @keyframes shockwave{0%,30%{opacity:0;transform:scale(.3)}40%{opacity:.7}72%{opacity:0;transform:scale(1.9)}100%{opacity:0}}
+  @keyframes vigPulse{0%,30%{opacity:0}42%{opacity:.55}60%{opacity:.2}80%{opacity:.5}92%{opacity:0}100%{opacity:0}}
+</style>
+</helmet>
+
+<div style="position:relative;min-height:100vh;overflow-x:hidden">
+<div style="position:fixed;inset:0;pointer-events:none;background:radial-gradient(1100px 640px at 50% -8%, rgba(124,90,224,0.16), transparent 60%), radial-gradient(800px 600px at 92% 20%, rgba(64,200,224,0.06), transparent 60%)"></div>
+<div style="position:relative;max-width:1320px;margin:0 auto;padding:44px 44px 90px">
+
+<!-- HEADER -->
+<header style="border-bottom:1px solid #1c1f2a;padding-bottom:28px;margin-bottom:36px">
+  <div style="font:400 12px/1 'Share Tech Mono',monospace;letter-spacing:.34em;color:#c084fc;text-transform:uppercase">Chrome Abyss · Glint</div>
+  <h1 style="margin:14px 0 0;font:700 60px/0.9 'Chakra Petch',sans-serif;background:linear-gradient(104deg,#dbe6ee,#9d7bff 46%,#e08bff 72%,#7fe9f5);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 22px rgba(157,123,255,0.3))">MOTION</h1>
+  <p style="margin:14px 0 0;font:400 15px/1.6 system-ui;color:#a09bbd;max-width:720px">The real beats, looping continuously. Each card shows the animation as it plays in-game, with its timing and easing called out for the build. <a href="Glint.dc.html" style="color:#7fe9f5;text-decoration:none;border-bottom:1px solid rgba(127,233,242,.4)">← back to the design board</a></p>
+</header>
+
+<!-- COLLAPSE (hero) -->
+<div style="border:1px solid #3a2342;border-radius:20px;background:#0a0b12;overflow:hidden;margin-bottom:22px">
+  <div style="position:relative;height:430px;overflow:hidden;background:#0a0711;display:flex;align-items:center;justify-content:center">
+    <div style="position:absolute;inset:0;background:radial-gradient(640px 440px at 50% 46%, rgba(255,90,118,0.14), transparent 58%), radial-gradient(760px 520px at 50% 130%, rgba(157,123,255,0.18), transparent 60%)"></div>
+    <div style="position:absolute;inset:0;background:radial-gradient(closest-side, transparent 50%, rgba(255,90,118,0.28) 100%);animation:vigPulse 4.6s ease-in-out infinite"></div>
+    <svg viewBox="0 0 600 430" preserveAspectRatio="xMidYMid meet" style="position:absolute;width:560px;height:400px"><polygon points="300,150 410,213 410,217 300,280 190,217 190,213" fill="none" stroke="#ffd0d8" stroke-width="3" opacity="0.5" style="transform-box:fill-box;transform-origin:center;animation:shockwave 4.6s ease-out infinite"></polygon></svg>
+    <div style="position:absolute;width:300px;height:270px;animation:boardShake 4.6s ease-in-out infinite;opacity:0.5"><dc-import name="Board" dir="b" size="small" hint-size="300px,270px" style="display:block;transform:scale(0.82);transform-origin:center"></dc-import></div>
+    <div style="position:relative;text-align:center;pointer-events:none;animation:collapseWord 4.6s ease-out infinite">
+      <div style="font:400 13px 'Share Tech Mono';letter-spacing:.42em;color:#ff8a9c">THE ABYSS COLLAPSES</div>
+      <div style="font:700 118px/0.9 'Chakra Petch';letter-spacing:.02em;background:linear-gradient(100deg,#ffd0d8,#9d7bff 48%,#7fe9f5 90%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 30px rgba(157,123,255,0.55));margin:6px 0 2px">COLLAPSE</div>
+      <div style="display:inline-flex;align-items:center;gap:12px;font:700 16px 'Chakra Petch';letter-spacing:.08em"><span style="color:#c8ccd6">91</span><span style="font-size:20px;color:#ff8a9c">→</span><span style="color:#7fe9f5">61</span><span style="font:400 11px 'Share Tech Mono';letter-spacing:.2em;color:#9b95bd">CELLS</span></div>
+    </div>
+  </div>
+  <div style="padding:18px 22px;border-top:1px solid #181b2a;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+    <div><div style="font:700 16px 'Chakra Petch';color:#eef0f5">The abyss collapses · board shrink</div><div style="font:400 13px/1.5 system-ui;color:#8b91a0;margin-top:4px;max-width:680px">Triggers at 30 tiles left. Board shakes (~350ms), &ldquo;COLLAPSE&rdquo; slams in from 2.6× + blur, a shockwave ring fires, the danger vignette flares, then the grid contracts 91 → 61. The one true &ldquo;wow&rdquo;.</div></div>
+    <div style="font:400 11px 'Share Tech Mono';color:#6b6690;letter-spacing:.08em;white-space:nowrap;text-align:right">~1.8s total<br>shake · slam · contract</div>
+  </div>
+</div>
+
+<!-- GRID of smaller moments -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+
+  <!-- PLACE & ACTIVATE -->
+  <div style="border:1px solid #20233a;border-radius:18px;background:#0a0b12;overflow:hidden">
+    <div style="position:relative;height:250px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(420px 240px at 50% 50%, rgba(95,230,242,0.06), transparent 65%)">
+      <div style="position:relative;width:210px;height:80px">
+        <div style="position:absolute;left:0;top:9px;width:54px;height:62px" class="hexwell"></div>
+        <div style="position:absolute;left:78px;top:9px;width:54px;height:62px" class="hexwell"></div>
+        <div style="position:absolute;left:156px;top:9px;width:54px;height:62px" class="hexwell"></div>
+        <div class="gemw" style="left:9px;top:18px;width:36px;height:44px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="36px,36px" style="width:100%;height:100%"></dc-import></div>
+        <div class="gemw" style="left:165px;top:18px;width:36px;height:44px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="36px,36px" style="width:100%;height:100%"></dc-import></div>
+        <div class="gemw" style="left:87px;top:18px;width:36px;height:44px;animation:gDrop 3.4s ease-in-out infinite"><dc-import name="Gem" type="nuracite" dir="a" hint-size="36px,36px" style="width:100%;height:100%"></dc-import></div>
+        <svg viewBox="0 0 54 62" style="position:absolute;left:0;top:9px;width:54px;height:62px;overflow:visible;animation:ringPop 3.4s ease-out infinite;animation-delay:.1s"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#fff" stroke-width="3"></polygon></svg>
+        <svg viewBox="0 0 54 62" style="position:absolute;left:78px;top:9px;width:54px;height:62px;overflow:visible;animation:ringPop 3.4s ease-out infinite;animation-delay:.25s"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#fff" stroke-width="3"></polygon></svg>
+        <svg viewBox="0 0 54 62" style="position:absolute;left:156px;top:9px;width:54px;height:62px;overflow:visible;animation:ringPop 3.4s ease-out infinite;animation-delay:.18s"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#fff" stroke-width="3"></polygon></svg>
+      </div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #181b2a"><div style="font:700 15px 'Chakra Petch';color:#eef0f5">Place &amp; activate</div><div style="font:400 12.5px/1.5 system-ui;color:#8b91a0;margin-top:4px">Tile drops with an overshoot bounce; matching neighbours light a white hex glow, staggered ~80ms. <span style="color:#6b6690;font-family:'Share Tech Mono';font-size:11px">drop 250ms ease-out · glow 200ms</span></div></div>
+  </div>
+
+  <!-- BANK -->
+  <div style="border:1px solid #36301a;border-radius:18px;background:#0a0b12;overflow:hidden">
+    <div style="position:relative;height:250px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;background:radial-gradient(380px 230px at 50% 10%, rgba(232,181,63,0.13), transparent 62%)">
+      <div style="position:absolute;top:22px;left:50%;transform:translateX(-50%);text-align:center">
+        <div style="position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:120px;height:60px;background:radial-gradient(circle,rgba(255,214,128,0.5),transparent 70%);animation:rays 3.6s ease-out infinite"></div>
+        <div style="font:400 8px 'Share Tech Mono';letter-spacing:.2em;color:#6b6690;position:relative">SCORE</div>
+        <div style="font:700 30px/1 'Chakra Petch';position:relative;animation:scorePop 3.6s ease-in-out infinite">16,400</div>
+        <div style="font:700 18px 'Chakra Petch';color:#ffd980;position:absolute;left:50%;top:34px;transform:translateX(-50%);animation:plusRise 3.6s ease-out infinite">+3,300</div>
+      </div>
+      <div style="position:relative;width:200px;height:120px;margin-bottom:26px">
+        <div style="position:absolute;left:14px;bottom:0;width:40px;height:48px;--dx:38px;animation:flyUp 3.6s ease-in infinite">
+          <svg viewBox="0 0 54 62" style="position:absolute;inset:-7px;width:54px;height:62px;overflow:visible;animation:goldRing 3.6s ease-out infinite"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#ffd980" stroke-width="3"></polygon></svg>
+          <div style="width:40px;height:48px"><dc-import name="Gem" type="verdite" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        </div>
+        <div style="position:absolute;left:80px;bottom:0;width:40px;height:48px;--dx:0px;animation:flyUp 3.6s ease-in infinite;animation-delay:.08s">
+          <svg viewBox="0 0 54 62" style="position:absolute;inset:-7px;width:54px;height:62px;overflow:visible;animation:goldRing 3.6s ease-out infinite;animation-delay:.08s"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#ffd980" stroke-width="3"></polygon></svg>
+          <div style="width:40px;height:48px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        </div>
+        <div style="position:absolute;left:146px;bottom:0;width:40px;height:48px;--dx:-38px;animation:flyUp 3.6s ease-in infinite;animation-delay:.16s">
+          <svg viewBox="0 0 54 62" style="position:absolute;inset:-7px;width:54px;height:62px;overflow:visible;animation:goldRing 3.6s ease-out infinite;animation-delay:.16s"><polygon points="27,2 51,16 51,46 27,60 3,46 3,16" fill="none" stroke="#ffd980" stroke-width="3"></polygon></svg>
+          <div style="width:40px;height:48px"><dc-import name="Gem" type="umbrite" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #181b2a"><div style="font:700 15px 'Chakra Petch';color:#ffd980">Banking</div><div style="font:400 12.5px/1.5 system-ui;color:#8b91a0;margin-top:4px">Rings flash white → gold, tiles arc to the score and shrink out; the score pops and the &ldquo;+3,300&rdquo; counts up. Weighty, gold. <span style="color:#6b6690;font-family:'Share Tech Mono';font-size:11px">~700ms · ease-in</span></div></div>
+  </div>
+
+  <!-- BUST -->
+  <div style="border:1px solid #3a1c24;border-radius:18px;background:#0a0b12;overflow:hidden">
+    <div style="position:relative;height:250px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(360px 240px at 50% 50%, rgba(255,90,118,0.13), transparent 62%)">
+      <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:7px">
+        <svg width="17" height="16" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg>
+        <svg width="17" height="16" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg>
+        <svg width="17" height="16" viewBox="0 0 14 13" style="animation:pipDrain 3.4s ease-in-out infinite"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg>
+      </div>
+      <div style="position:relative;width:170px;height:60px;animation:clShake 3.4s ease-in-out infinite">
+        <div style="position:absolute;left:0;width:40px;height:48px;--sx:-30px;--sy:50px;--sr:-28deg;animation:shatter 3.4s ease-in infinite"><dc-import name="Gem" type="umbrite" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;left:65px;width:40px;height:48px;--sx:6px;--sy:56px;--sr:18deg;animation:shatter 3.4s ease-in infinite"><dc-import name="Gem" type="dross" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;left:130px;width:40px;height:48px;--sx:32px;--sy:48px;--sr:30deg;animation:shatter 3.4s ease-in infinite"><dc-import name="Gem" type="chromite" dir="a" hint-size="40px,40px" style="width:100%;height:100%"></dc-import></div>
+        <svg viewBox="0 0 170 60" style="position:absolute;inset:0;width:170px;height:60px;overflow:visible;animation:crack 3.4s ease-out infinite"><g stroke="#ff5a76" stroke-width="1.6" stroke-linecap="round" opacity="0.8"><line x1="85" y1="30" x2="20" y2="2"></line><line x1="85" y1="30" x2="150" y2="6"></line><line x1="85" y1="30" x2="30" y2="58"></line><line x1="85" y1="30" x2="150" y2="56"></line></g></svg>
+      </div>
+      <div style="position:absolute;font:700 56px 'Chakra Petch';color:#ff5a76;letter-spacing:.04em;text-shadow:0 0 30px rgba(255,90,118,0.6);animation:stampRed 3.4s ease-out infinite">BUST</div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #181b2a"><div style="font:700 15px 'Chakra Petch';color:#ff5a76">Busting</div><div style="font:400 12.5px/1.5 system-ui;color:#8b91a0;margin-top:4px">Group shakes, red cracks fire, tiles scatter and fade as &ldquo;BUST&rdquo; stamps in; a life drains. Sharp, not punitive. <span style="color:#6b6690;font-family:'Share Tech Mono';font-size:11px">~600ms · ease-in</span></div></div>
+  </div>
+
+  <!-- TIMED BANK PROMPT -->
+  <div style="border:1px solid #36301a;border-radius:18px;background:#0a0b12;overflow:hidden">
+    <div style="position:relative;height:250px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(360px 230px at 50% 50%, rgba(232,181,63,0.1), transparent 62%)">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 22px;border-radius:18px;border:1px solid;background:linear-gradient(180deg,rgba(232,181,63,0.2),rgba(232,181,63,0.08));animation:promptPulse 1s ease-in-out infinite">
+        <div style="position:relative;width:42px;height:42px;display:flex;align-items:center;justify-content:center">
+          <svg width="42" height="42" viewBox="0 0 42 42" style="position:absolute;transform:rotate(-90deg)"><circle cx="21" cy="21" r="17.5" fill="none" stroke="rgba(232,181,63,0.22)" stroke-width="3"></circle><circle cx="21" cy="21" r="17.5" fill="none" stroke="#e8b53f" stroke-width="3" stroke-linecap="round" stroke-dasharray="110" style="animation:ringDrain 3.7s linear infinite"></circle></svg>
+          <span style="position:absolute;font:700 19px 'Chakra Petch';color:#ffd980;width:42px;height:42px;display:flex;align-items:center;justify-content:center;animation:d3 3.7s steps(1) infinite">3</span>
+          <span style="position:absolute;font:700 19px 'Chakra Petch';color:#ffd980;width:42px;height:42px;display:flex;align-items:center;justify-content:center;animation:d2 3.7s steps(1) infinite">2</span>
+          <span style="position:absolute;font:700 19px 'Chakra Petch';color:#ffd980;width:42px;height:42px;display:flex;align-items:center;justify-content:center;animation:d1 3.7s steps(1) infinite">1</span>
+        </div>
+        <div>
+          <div style="font:700 20px 'Chakra Petch';color:#e8b53f;letter-spacing:.08em">BANK NOW</div>
+          <div style="margin-top:7px;width:150px;height:5px;border-radius:3px;background:rgba(232,181,63,0.18);overflow:hidden"><div style="height:100%;background:#e8b53f;border-radius:3px;animation:barDrain 3.7s linear infinite"></div></div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #181b2a"><div style="font:700 15px 'Chakra Petch';color:#e8b53f">Timed bank prompt</div><div style="font:400 12.5px/1.5 system-ui;color:#8b91a0;margin-top:4px">After a combo: a ~3s window to bank early. The ring + bar drain together, digits step 3·2·1, the card pulses. Urgent, not stressful. <span style="color:#6b6690;font-family:'Share Tech Mono';font-size:11px">3s · linear</span></div></div>
+  </div>
+
+  <!-- RESHUFFLE (full width) -->
+  <div style="border:1px solid #2a2842;border-radius:18px;background:#0a0b12;overflow:hidden;grid-column:1 / -1">
+    <div style="position:relative;height:210px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(520px 240px at 50% 50%, rgba(157,123,255,0.12), transparent 62%)">
+      <div style="display:flex;gap:30px">
+        <div style="width:42px;height:50px;animation:tileSpin 3.2s ease-in-out infinite"><dc-import name="Gem" type="verdite" dir="a" hint-size="42px,42px" style="width:100%;height:100%"></dc-import></div>
+        <div style="width:42px;height:50px;animation:tileSpin 3.2s ease-in-out infinite;animation-delay:.12s"><dc-import name="Gem" type="umbrite" dir="a" hint-size="42px,42px" style="width:100%;height:100%"></dc-import></div>
+        <div style="width:42px;height:50px;animation:tileSpin 3.2s ease-in-out infinite;animation-delay:.24s"><dc-import name="Gem" type="nuracite" dir="a" hint-size="42px,42px" style="width:100%;height:100%"></dc-import></div>
+        <div style="width:42px;height:50px;animation:tileSpin 3.2s ease-in-out infinite;animation-delay:.36s"><dc-import name="Gem" type="chromite" dir="a" hint-size="42px,42px" style="width:100%;height:100%"></dc-import></div>
+      </div>
+      <div style="position:absolute;left:0;right:0;display:flex;justify-content:center;animation:sweepBanner 3.2s ease-in-out infinite"><div style="font:700 34px 'Chakra Petch';letter-spacing:.14em;color:#c8c2e8;background:rgba(157,123,255,0.14);border:1px solid rgba(157,123,255,0.4);padding:10px 28px;border-radius:12px;backdrop-filter:blur(2px)">RESHUFFLE</div></div>
+    </div>
+    <div style="padding:16px 18px;border-top:1px solid #181b2a"><div style="font:700 15px 'Chakra Petch';color:#c8c2e8">Reshuffle</div><div style="font:400 12.5px/1.5 system-ui;color:#8b91a0;margin-top:4px">After a bust or a Dross: the stack reshuffles — a violet banner sweeps across while the remaining tiles spin in place. Lighter than a bust. <span style="color:#6b6690;font-family:'Share Tech Mono';font-size:11px">~900ms · ease-in-out</span></div></div>
+  </div>
+
+</div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

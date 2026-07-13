@@ -1,0 +1,2135 @@
+{
+  "levels": [
+    {
+      "title": "Tutorial",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "",
+      "unlockRule": {
+        "type": "always"
+      },
+      "params": {
+        "side": 4,
+        "nebulites": 0,
+        "dross": 0,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Academy",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Complete tutorial to unlock",
+      "unlockRule": {
+        "type": "always"
+      },
+      "params": {
+        "side": 4,
+        "nebulites": 1,
+        "dross": 0,
+        "collapseAt1": 30,
+        "collapseAt2": 18,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Outpost",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 5,
+        "nebulites": 1,
+        "dross": 2,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Neon Bazaar",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Bank 3 times to unlock",
+      "unlockRule": {
+        "type": "coreBanked"
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 2,
+        "dross": 2,
+        "collapseAt1": 36,
+        "collapseAt2": 18,
+        "obstacles": 0,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Iron Tide",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Sweep 2 Dross in one game to unlock",
+      "unlockRule": {
+        "type": "drossCleared",
+        "value": 2
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 2,
+        "dross": 4,
+        "collapseAt1": 32,
+        "collapseAt2": 16,
+        "obstacles": 6,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Syndicate of Spires",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Refine 1 Nebulite to unlock",
+      "unlockRule": {
+        "type": "nebuliteAcquired",
+        "value": 1
+      },
+      "params": {
+        "side": 6,
+        "dross": 2,
+        "nebulites": 3,
+        "collapseAt1": 29,
+        "collapseAt2": 15,
+        "obstacles": 0,
+        "extraTiles": 0,
+        "boardShape": "tr-bl",
+        "singularityAt": 45
+      },
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl11.webp",
+      "puzzleId": "pz-syndicate-of-spires"
+    },
+    {
+      "title": "The Cyber Realm",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 5,
+        "nebulites": 1,
+        "dross": 2,
+        "collapseAt1": 30,
+        "collapseAt2": 16,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Ghost Network",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 15,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 15000
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 1,
+        "dross": 3,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "boardShape": "hexagon",
+        "singularityAt": 45,
+        "obstacles": 5,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Abyss",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 25,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 25000
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 2,
+        "dross": 2,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "obstacles": 12,
+        "boardShape": "hexagon",
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Tower of Truth",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 20,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 20000
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 2,
+        "dross": 3,
+        "collapseAt1": 36,
+        "collapseAt2": 18,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 15,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Fortress",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Earn 30,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 30000
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 1,
+        "dross": 4,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "boardShape": "tr-bl",
+        "singularityAt": 50,
+        "obstacles": 0,
+        "gaps": 0,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Prime Helix",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 1,
+        "dross": 3,
+        "collapseAt1": 30,
+        "collapseAt2": 13,
+        "boardShape": "tl-br",
+        "singularityAt": 40,
+        "gaps": 3,
+        "obstacles": 9,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Anvil Pit",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Sweep 3 Dross in one game to unlock",
+      "unlockRule": {
+        "type": "drossCleared",
+        "value": 3
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 29,
+        "collapseAt2": 14,
+        "boardShape": "hexagon",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebula Grid",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Earn 30,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 30000
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 1,
+        "collapseAt1": 29,
+        "collapseAt2": 13,
+        "boardShape": "square",
+        "singularityAt": 40,
+        "obstacles": 15,
+        "gaps": 0,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Oracle Cloister",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 30,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 30500
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 29,
+        "collapseAt2": 13,
+        "boardShape": "tl",
+        "singularityAt": 50,
+        "gaps": 5,
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Medusae",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Refine 1 Nebulite to unlock",
+      "unlockRule": {
+        "type": "nebuliteAcquired",
+        "value": 1
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 28,
+        "collapseAt2": 12,
+        "obstacles": 0,
+        "gaps": 0,
+        "boardShape": "bl",
+        "singularityAt": 40,
+        "extraTiles": 0
+      },
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl21.webp",
+      "puzzleFocalX": 50,
+      "puzzleFocalY": 32,
+      "puzzleId": "pz-medusae"
+    },
+    {
+      "title": "Cipher Tunnels",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 2,
+        "collapseAt1": 29,
+        "collapseAt2": 12,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 10,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Smuggler Bazaar",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Earn 31,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 31500
+      },
+      "params": {
+        "side": 6,
+        "dross": 2,
+        "nebulites": 3,
+        "collapseAt1": 28,
+        "collapseAt2": 14,
+        "boardShape": "br",
+        "singularityAt": 40,
+        "obstacles": 4,
+        "gaps": 4,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Dusk Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 32,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 32000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 28,
+        "collapseAt2": 14,
+        "boardShape": "tl-br",
+        "singularityAt": 40,
+        "obstacles": 8,
+        "gaps": 4,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Redline Barracks",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 28,
+        "collapseAt2": 13,
+        "gaps": 3,
+        "boardShape": "hexagon",
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Velvet Exchange",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 32,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 32500
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 28,
+        "collapseAt2": 13,
+        "boardShape": "tr",
+        "singularityAt": 40,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Ember Mill",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Bank 9 times in one game to unlock",
+      "unlockRule": {
+        "type": "banks",
+        "value": 9
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 28,
+        "collapseAt2": 12,
+        "boardShape": "bl",
+        "singularityAt": 40,
+        "obstacles": 3,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Sentinel Barracks",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 3,
+        "collapseAt1": 27,
+        "collapseAt2": 14,
+        "gaps": 0,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Monolith Exchange",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Earn 32,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 32500
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 27,
+        "collapseAt2": 13,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Ledger Vault",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Earn 33,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 33000
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 27,
+        "collapseAt2": 12,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Aurel Choir",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 33,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 33500
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 27,
+        "collapseAt2": 12,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Whisper Hideout",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 34,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 27,
+        "collapseAt2": 11,
+        "obstacles": 3,
+        "gaps": 2,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Copper Stalls",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 3,
+        "collapseAt1": 27,
+        "collapseAt2": 11,
+        "boardShape": "square",
+        "singularityAt": 40,
+        "obstacles": 5,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Piston Yard",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 34,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 4,
+        "collapseAt1": 26,
+        "collapseAt2": 13,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 15,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Shroud Den",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 34,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34500
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 1,
+        "collapseAt1": 26,
+        "collapseAt2": 13,
+        "obstacles": 3,
+        "gaps": 3,
+        "boardShape": "tr",
+        "singularityAt": 45,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Scrapyard",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 34,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34500
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 26,
+        "collapseAt2": 12,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 5,
+        "gaps": 5,
+        "extraTiles": 0
+      },
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl31.webp",
+      "puzzleId": "pz-scrapyard"
+    },
+    {
+      "title": "Chrome Helix",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 3,
+        "collapseAt1": 26,
+        "collapseAt2": 11,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebula Haven",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Sweep all 3 Dross to unlock",
+      "unlockRule": {
+        "type": "drossCleared",
+        "value": 3
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 26,
+        "collapseAt2": 12,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 4,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Grace Gardens",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 35,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35000
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 2,
+        "collapseAt1": 25,
+        "collapseAt2": 12,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Phase Core",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Bank all 3 Nebulite to unlock",
+      "unlockRule": {
+        "type": "coreBanked"
+      },
+      "params": {
+        "side": 5,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 26,
+        "collapseAt2": 11,
+        "boardShape": "hexagon",
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Whisper Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 25,
+        "collapseAt2": 13,
+        "gaps": 4,
+        "obstacles": 6,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cog Foundry",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 35,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 25,
+        "collapseAt2": 11,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Oracle Chapel",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 25,
+        "collapseAt2": 10,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Quantum Loop",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Earn 32,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 32500
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 25,
+        "collapseAt2": 11,
+        "gaps": 6,
+        "boardShape": "hexagon",
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Radiant Enclave",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 33,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 33000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 24,
+        "collapseAt2": 12,
+        "gaps": 4,
+        "obstacles": 6,
+        "boardShape": "br",
+        "singularityAt": 40,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Sector 05 Outpost",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 33,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 33500
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 24,
+        "collapseAt2": 12,
+        "boardShape": "hexagon",
+        "singularityAt": 45,
+        "gaps": 10,
+        "obstacles": 2,
+        "extraTiles": 0
+      },
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl41.webp",
+      "puzzleId": "pz-sector-05-outpost"
+    },
+    {
+      "title": "Vanguard Stronghold",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 3,
+        "collapseAt1": 25,
+        "collapseAt2": 12,
+        "boardShape": "square",
+        "singularityAt": 40,
+        "gaps": 3,
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebula Cave",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 34,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 24,
+        "collapseAt2": 11,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 9,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Phantom Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 34,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 34500
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 24,
+        "collapseAt2": 12,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 4,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Grace Reliquary",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 35,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 24,
+        "collapseAt2": 10,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Trinket Court",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 24,
+        "collapseAt2": 10,
+        "boardShape": "hexagon",
+        "singularityAt": 45,
+        "gaps": 7,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Chrome Tower",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Bank 9 times in one game to unlock",
+      "unlockRule": {
+        "type": "banks",
+        "value": 9
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 23,
+        "collapseAt2": 12,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Echo Loop",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Earn 35,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35000
+      },
+      "params": {
+        "side": 6,
+        "dross": 0,
+        "nebulites": 5,
+        "collapseAt1": 23,
+        "collapseAt2": 11,
+        "boardShape": "hexagon",
+        "gaps": 6,
+        "extraTiles": 0,
+        "obstacles": 6
+      }
+    },
+    {
+      "title": "Whisper Warren",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Bank all 6 Nebulite to unlock",
+      "unlockRule": {
+        "type": "coreBanked"
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 23,
+        "collapseAt2": 10,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 4,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Hollow Passage",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 23,
+        "collapseAt2": 10,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "gaps": 10,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Smuggler Arcade",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Earn 35,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 23,
+        "collapseAt2": 9,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Buzz Node",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Bank 10 times in one game to unlock",
+      "unlockRule": {
+        "type": "banks",
+        "value": 10
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 22,
+        "collapseAt2": 11,
+        "boardShape": "hexagon",
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Shroud Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 36,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 36000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 22,
+        "collapseAt2": 10,
+        "boardShape": "tr",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Trinket Bazaar",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 22,
+        "collapseAt2": 10,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Shroud Underpass",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 36,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 36500
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 22,
+        "collapseAt2": 9,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 15,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Syndicate Outpost",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Earn 35,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 35500
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 23,
+        "collapseAt2": 9,
+        "extraTiles": 0,
+        "boardShape": "tl-br",
+        "singularityAt": 45
+      },
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl51.webp",
+      "puzzleFocalX": 49,
+      "puzzleFocalY": 55,
+      "puzzleId": "pz-syndicate-outpost"
+    },
+    {
+      "title": "Tarnish Wharf",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 22,
+        "collapseAt2": 11,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cinder Assembly",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 37,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 37000
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 22,
+        "collapseAt2": 9,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Chrome Yard",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 37,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 37500
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 21,
+        "collapseAt2": 11,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 15,
+        "gaps": 4,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Umbral Warren",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 21,
+        "collapseAt2": 10,
+        "boardShape": "hexagon",
+        "obstacles": 5,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Meridian Terrace",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Earn 37,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 37500
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 21,
+        "collapseAt2": 10,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 10,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Trinket Exchange",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Bank 12 times in one game to unlock",
+      "unlockRule": {
+        "type": "banks",
+        "value": 12
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 21,
+        "collapseAt2": 9,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Ironside Garrison",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Earn 37,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 37500
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 21,
+        "collapseAt2": 9,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 10,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Iron Assembly",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 21,
+        "collapseAt2": 8,
+        "boardShape": "hexagon",
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Veiled Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 38,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 38000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 2,
+        "collapseAt1": 20,
+        "collapseAt2": 11,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Sentinel Bunker",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 20,
+        "collapseAt2": 10,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Votive Reliquary",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 38,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 38500
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 20,
+        "collapseAt2": 10,
+        "boardShape": "bl",
+        "singularityAt": 50,
+        "obstacles": 3,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Trinket Arcade",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 20,
+        "collapseAt2": 9,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 7,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cog Assembly",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 39,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 39000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 20,
+        "collapseAt2": 9,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "gaps": 3,
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Vanguard Barracks",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Earn 39,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 39500
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 20,
+        "collapseAt2": 8,
+        "gaps": 3,
+        "boardShape": "hexagon",
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Breaker Trench",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 19,
+        "collapseAt2": 10,
+        "boardShape": "br",
+        "singularityAt": 40,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Umbral Passage",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 19,
+        "collapseAt2": 9,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "gaps": 12,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Vantage Exchange",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 0,
+        "collapseAt1": 19,
+        "collapseAt2": 9,
+        "gaps": 0,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Bulwark Stronghold",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Sweep all 6 Dross to unlock",
+      "unlockRule": {
+        "type": "drossCleared",
+        "value": 6
+      },
+      "params": {
+        "side": 6,
+        "dross": 8,
+        "nebulites": 1,
+        "collapseAt1": 19,
+        "collapseAt2": 9,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebula Loop",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 19,
+        "collapseAt2": 8,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cog Yard",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 19,
+        "collapseAt2": 8,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 12,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Quantum Sprawl",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 18,
+        "collapseAt2": 10,
+        "boardShape": "tl",
+        "singularityAt": 50,
+        "gaps": 3,
+        "obstacles": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebulite Assembly",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 3,
+        "collapseAt1": 18,
+        "collapseAt2": 9,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Javelin Trench",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Refine 2 Nebulite to unlock",
+      "unlockRule": {
+        "type": "nebuliteAcquired",
+        "value": 2
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 18,
+        "collapseAt2": 9,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 4,
+        "gaps": 4,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cinder Foundry",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 18,
+        "collapseAt2": 8,
+        "boardShape": "square",
+        "singularityAt": 32,
+        "obstacles": 12,
+        "gaps": 8,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Grace Spire",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 2,
+        "collapseAt1": 18,
+        "collapseAt2": 8,
+        "boardShape": "tr-bl",
+        "singularityAt": 36,
+        "obstacles": 5,
+        "gaps": 2,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebula Core",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 40,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 40000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 3,
+        "collapseAt1": 18,
+        "collapseAt2": 8,
+        "gaps": 6,
+        "extraTiles": 0,
+        "obstacles": 6,
+        "boardShape": "hexagon"
+      }
+    },
+    {
+      "title": "Buzz Sprawl",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Sweep all 6 Dross to unlock",
+      "unlockRule": {
+        "type": "drossCleared",
+        "value": 6
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 17,
+        "collapseAt2": 10,
+        "boardShape": "br",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Zenith Sanctum",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 41,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 41000
+      },
+      "params": {
+        "side": 5,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 17,
+        "collapseAt2": 9,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Slag Line",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 17,
+        "collapseAt2": 9,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "gaps": 8,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Smuggler Court",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Earn 42,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 42000
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 17,
+        "collapseAt2": 8,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "obstacles": 10,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Hollow Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 43,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 43000
+      },
+      "params": {
+        "side": 6,
+        "dross": 7,
+        "nebulites": 1,
+        "collapseAt1": 17,
+        "collapseAt2": 8,
+        "boardShape": "bl",
+        "singularityAt": 45,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Cyber Node",
+      "region": "Digital Nexus",
+      "theme": "regions",
+      "unlockText": "Earn 44,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 44000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 17,
+        "collapseAt2": 7,
+        "boardShape": "hexagon",
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Nebulite Citadel",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Earn 45,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 45000
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 16,
+        "collapseAt2": 10,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 5,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Prime Plaza",
+      "region": "Corporate Spire",
+      "theme": "regions",
+      "unlockText": "Bank 15 times in one game to unlock",
+      "unlockRule": {
+        "type": "banks",
+        "value": 15
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 16,
+        "collapseAt2": 9,
+        "boardShape": "square",
+        "singularityAt": 45,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Copper Alley",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Earn 45,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 45000
+      },
+      "params": {
+        "side": 6,
+        "dross": 4,
+        "nebulites": 1,
+        "collapseAt1": 16,
+        "collapseAt2": 9,
+        "boardShape": "tr-bl",
+        "singularityAt": 45,
+        "obstacles": 6,
+        "gaps": 6,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Warden Bunker",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Earn 46,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 46000
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 16,
+        "collapseAt2": 8,
+        "boardShape": "tr",
+        "singularityAt": 45,
+        "gaps": 3,
+        "obstacles": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Oracle Shrine",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 2,
+        "collapseAt1": 16,
+        "collapseAt2": 8,
+        "gaps": 5,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Slag Yard",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 47,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 47000
+      },
+      "params": {
+        "side": 6,
+        "dross": 8,
+        "nebulites": 1,
+        "collapseAt1": 16,
+        "collapseAt2": 7,
+        "boardShape": "tl-br",
+        "singularityAt": 45,
+        "obstacles": 4,
+        "gaps": 4,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Iron Line",
+      "region": "Machina Forge",
+      "theme": "regions",
+      "unlockText": "Earn 48,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 48000
+      },
+      "params": {
+        "side": 6,
+        "dross": 5,
+        "nebulites": 1,
+        "collapseAt1": 15,
+        "collapseAt2": 9,
+        "boardShape": "square",
+        "singularityAt": 36,
+        "obstacles": 15,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Warden Trench",
+      "region": "Military Bastion",
+      "theme": "regions",
+      "unlockText": "Earn 49,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 49000
+      },
+      "params": {
+        "side": 6,
+        "dross": 3,
+        "nebulites": 1,
+        "collapseAt1": 15,
+        "collapseAt2": 9,
+        "gaps": 8,
+        "boardShape": "tl-br",
+        "singularityAt": 40,
+        "obstacles": 8,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Gilded Row",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 2,
+        "collapseAt1": 15,
+        "collapseAt2": 8,
+        "boardShape": "hexagon",
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Trinket Quarter",
+      "region": "Fringe Market",
+      "theme": "regions",
+      "unlockText": "Earn 50,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 50000
+      },
+      "params": {
+        "side": 6,
+        "dross": 6,
+        "nebulites": 1,
+        "collapseAt1": 15,
+        "collapseAt2": 8,
+        "boardShape": "br",
+        "singularityAt": 36,
+        "gaps": 3,
+        "obstacles": 2,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Wraith Cellar",
+      "region": "Shadow Sector",
+      "theme": "regions",
+      "unlockText": "Earn 52,500 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 52500
+      },
+      "params": {
+        "side": 6,
+        "dross": 8,
+        "nebulites": 1,
+        "collapseAt1": 15,
+        "collapseAt2": 10,
+        "boardShape": "tr-bl",
+        "singularityAt": 30,
+        "obstacles": 3,
+        "gaps": 3,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "Lumen Basilica",
+      "region": "Divinity Enclave",
+      "theme": "regions",
+      "unlockText": "Earn 55,000 points to unlock",
+      "unlockRule": {
+        "type": "score",
+        "value": 55000
+      },
+      "params": {
+        "side": 6,
+        "dross": 2,
+        "nebulites": 1,
+        "collapseAt1": 15,
+        "collapseAt2": 6,
+        "gaps": 0,
+        "obstacles": 0,
+        "extraTiles": 0
+      }
+    },
+    {
+      "title": "The Master Core",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Clear the board to unlock",
+      "unlockRule": {
+        "type": "boardCleared"
+      },
+      "params": {
+        "side": 6,
+        "nebulites": 0,
+        "dross": 9,
+        "collapseAt1": 14,
+        "collapseAt2": 7,
+        "boardShape": "square",
+        "singularityAt": 32,
+        "obstacles": 3,
+        "gaps": 7,
+        "extraTiles": 0
+      },
+      "boss": true,
+      "puzzleBoard": false,
+      "puzzleImage": "/puzzles/lvl100.webp"
+    }
+  ]
+}

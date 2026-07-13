@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:visible">
+
+<sc-if value="{{ isDuneglass }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<circle cx="50" cy="51" r="47" fill="#C8D2E1" opacity="0.05"></circle>
+<circle cx="50" cy="51" r="43" fill="#C8D2E1" opacity="0.09"></circle>
+<circle cx="50" cy="50" r="40" fill="#AEB6C2"></circle>
+<circle cx="48" cy="46" r="33" fill="#C2C9D5" opacity="0.92"></circle>
+<circle cx="46" cy="43" r="22" fill="#E2E7EF" opacity="0.85"></circle>
+<circle cx="50" cy="50" r="30" fill="none" stroke="#EFF3F8" stroke-width="0.7" opacity="0.22"></circle>
+<ellipse cx="42" cy="37" rx="9" ry="5.4" fill="#ffffff" opacity="0.78" transform="rotate(-32 42 37)"></ellipse>
+<circle cx="50" cy="50" r="40" fill="none" stroke="#EAEEF4" stroke-width="1.1" opacity="0.35"></circle>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><circle cx="50" cy="50" r="40" fill="none" stroke="#F4F8FF" stroke-width="1.6" opacity="0.6"></circle></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isVigilite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<path d="M50,3 Q80,50 50,97 Q20,50 50,3 Z" fill="#F2C97A" opacity="0.07"></path>
+<path d="M50,8 Q74,50 50,92 Q26,50 50,8 Z" fill="#C8922F"></path>
+<path d="M50,8 Q74,50 50,92 L50,8 Z" fill="#6E4E18" opacity="0.6"></path>
+<path d="M50,15 Q60,50 50,85 Q40,50 50,15 Z" fill="#F6D789" opacity="0.85"></path>
+<path d="M50,18 Q55,50 50,82 Q46,50 50,18 Z" fill="#FFF0C8" opacity="0.7"></path>
+<ellipse cx="47" cy="26" rx="3.4" ry="7" fill="#ffffff" opacity="0.6" transform="rotate(-14 47 26)"></ellipse>
+<path d="M50,8 Q74,50 50,92 Q26,50 50,8 Z" fill="none" stroke="#F6D789" stroke-width="1" opacity="0.4"></path>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><path d="M50,8 Q74,50 50,92 Q26,50 50,8 Z" fill="none" stroke="#FFE9B0" stroke-width="1.5" opacity="0.6"></path></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isChromite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<polygon points="50,2 94,77 6,77" fill="#E2E8F0" opacity="0.06"></polygon>
+<polygon points="50,7 90,74 10,74" fill="#C2CAD6"></polygon>
+<polygon points="50,7 90,74 50,74" fill="#8A93A3" opacity="0.55"></polygon>
+<polygon points="50,25 71,65 29,65" fill="#FFFFFF" opacity="0.9"></polygon>
+<polygon points="50,25 71,65 50,65" fill="#C8CFDA" opacity="0.7"></polygon>
+<line x1="50" y1="7" x2="50" y2="74" stroke="#8A93A3" stroke-width="0.8" opacity="0.4"></line>
+<polygon points="50,18 39,40 47,42" fill="#ffffff" opacity="0.75"></polygon>
+<polygon points="50,7 90,74 10,74" fill="none" stroke="#EDF1F6" stroke-width="1" opacity="0.4"></polygon>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><polygon points="50,7 90,74 10,74" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.6"></polygon></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isVerdite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<polygon points="50,1 89,50 50,99 11,50" fill="#5FF0A6" opacity="0.07"></polygon>
+<polygon points="50,5 85,50 50,95 15,50" fill="#2FD27C"></polygon>
+<polygon points="15,50 50,95 85,50 66,50 50,72 34,50" fill="#138A4E" opacity="0.6"></polygon>
+<polygon points="50,28 66,50 50,72 34,50" fill="#9CFFC8" opacity="0.9"></polygon>
+<polygon points="50,28 66,50 50,50 34,50" fill="#C8FFE2" opacity="0.7"></polygon>
+<g stroke="#138A4E" stroke-width="0.8" opacity="0.4"><line x1="50" y1="28" x2="50" y2="5"></line><line x1="66" y1="50" x2="85" y2="50"></line><line x1="50" y1="72" x2="50" y2="95"></line><line x1="34" y1="50" x2="15" y2="50"></line></g>
+<polygon points="50,30 37,49 44,50 50,40" fill="#ffffff" opacity="0.7"></polygon>
+<polygon points="50,5 85,50 50,95 15,50" fill="none" stroke="#7BFFB8" stroke-width="1" opacity="0.4"></polygon>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><polygon points="50,5 85,50 50,95 15,50" fill="none" stroke="#B6FFD6" stroke-width="1.5" opacity="0.6"></polygon></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isUmbrite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<polygon points="50,1 95.5,34.4 78,89 22,89 4.5,34.4" fill="#C68BFF" opacity="0.07"></polygon>
+<polygon points="50,6 91.8,36.4 75.9,85.6 24.1,85.6 8.2,36.4" fill="#A24DF0"></polygon>
+<polygon points="24.1,85.6 75.9,85.6 61.2,65.4 38.8,65.4" fill="#6A24A8" opacity="0.6"></polygon>
+<polygon points="50,31 68.1,44.1 61.2,65.4 38.8,65.4 31.9,44.1" fill="#D6A6FF" opacity="0.9"></polygon>
+<polygon points="50,31 31.9,44.1 45,52 50,40" fill="#EBD4FF" opacity="0.7"></polygon>
+<g stroke="#6A24A8" stroke-width="0.8" opacity="0.4"><line x1="50" y1="31" x2="50" y2="6"></line><line x1="68.1" y1="44.1" x2="91.8" y2="36.4"></line><line x1="61.2" y1="65.4" x2="75.9" y2="85.6"></line><line x1="38.8" y1="65.4" x2="24.1" y2="85.6"></line><line x1="31.9" y1="44.1" x2="8.2" y2="36.4"></line></g>
+<polygon points="50,31 31.9,44.1 40,47 50,37" fill="#ffffff" opacity="0.6"></polygon>
+<polygon points="50,6 91.8,36.4 75.9,85.6 24.1,85.6 8.2,36.4" fill="none" stroke="#D08BFF" stroke-width="1" opacity="0.4"></polygon>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><polygon points="50,6 91.8,36.4 75.9,85.6 24.1,85.6 8.2,36.4" fill="none" stroke="#E2BBFF" stroke-width="1.5" opacity="0.6"></polygon></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isNuracite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<polygon points="50,2 92.4,26 92.4,74 50,98 7.6,74 7.6,26" fill="#7FEAF5" opacity="0.08"></polygon>
+<polygon points="50,8 86.4,29 86.4,71 50,92 13.6,71 13.6,29" fill="#3FD3E6"></polygon>
+<polygon points="13.6,71 50,92 86.4,71 66.5,59.5 50,69 33.5,59.5" fill="#1E8E9E" opacity="0.6"></polygon>
+<polygon points="50,31 66.5,40.5 66.5,59.5 50,69 33.5,59.5 33.5,40.5" fill="#C5FBFF" opacity="0.92"></polygon>
+<polygon points="50,31 66.5,40.5 50,50 33.5,40.5" fill="#E8FEFF" opacity="0.7"></polygon>
+<g stroke="#1E8E9E" stroke-width="0.8" opacity="0.4"><line x1="50" y1="31" x2="50" y2="8"></line><line x1="66.5" y1="40.5" x2="86.4" y2="29"></line><line x1="66.5" y1="59.5" x2="86.4" y2="71"></line><line x1="50" y1="69" x2="50" y2="92"></line><line x1="33.5" y1="59.5" x2="13.6" y2="71"></line><line x1="33.5" y1="40.5" x2="13.6" y2="29"></line></g>
+<polygon points="50,31 33.5,40.5 41,44 50,37" fill="#ffffff" opacity="0.72"></polygon>
+<polygon points="50,8 86.4,29 86.4,71 50,92 13.6,71 13.6,29" fill="none" stroke="#C5FBFF" stroke-width="1" opacity="0.45"></polygon>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><polygon points="50,8 86.4,29 86.4,71 50,92 13.6,71 13.6,29" fill="none" stroke="#E0FDFF" stroke-width="1.6" opacity="0.65"></polygon></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isDross }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<polygon points="67.2,2 97,30 97,70 67.2,98 32.8,98 3,70 3,30 32.8,2" fill="#FFD24A" opacity="0.14"></polygon>
+<polygon points="67.2,5 92.5,30 92.5,70 67.2,95 32.8,95 7.5,70 7.5,30 32.8,5" fill="#FFCB3A" opacity="0.12"></polygon>
+<polygon points="67.2,8.4 91.6,32.8 91.6,67.2 67.2,91.6 32.8,91.6 8.4,67.2 8.4,32.8 32.8,8.4" fill="#E2B440"></polygon>
+<polygon points="8.4,67.2 32.8,91.6 67.2,91.6 91.6,67.2 70.8,58.6 58.6,70.8 41.4,70.8 29.2,58.6" fill="#A8801E" opacity="0.5"></polygon>
+<polygon points="63.76,16.72 83.28,36.24 83.28,63.76 63.76,83.28 36.24,83.28 16.72,63.76 16.72,36.24 36.24,16.72" fill="#EFC94E"></polygon>
+<polygon points="36.24,16.72 63.76,16.72 58.6,29.2 41.4,29.2" fill="#FDEDB0" opacity="0.92"></polygon>
+<polygon points="58.6,29.2 70.8,41.4 70.8,58.6 58.6,70.8 41.4,70.8 29.2,58.6 29.2,41.4 41.4,29.2" fill="#F8DC82"></polygon>
+<polygon points="58.6,29.2 70.8,41.4 50,50 41.4,29.2" fill="#FFF4CC" opacity="0.66"></polygon>
+<path d="M43,33 L45,40.5 L52.5,42.5 L45,44.5 L43,52 L41,44.5 L33.5,42.5 L41,40.5 Z" fill="#ffffff" opacity="0.92"></path>
+<path d="M55,33 L60,47 L56,60" fill="none" stroke="#7A5A12" stroke-width="1.1" opacity="0.45" stroke-linejoin="round" stroke-linecap="round"></path>
+<polygon points="61,61 70.8,58.6 64,72 56,67" fill="#8F8458" opacity="0.34"></polygon>
+<polygon points="29.2,52 40,66 33,70 29.2,59" fill="#9FC24A" opacity="0.17"></polygon>
+<polygon points="67.2,8.4 91.6,32.8 91.6,67.2 67.2,91.6 32.8,91.6 8.4,67.2 8.4,32.8 32.8,8.4" fill="none" stroke="#FFD24A" stroke-width="1.1" opacity="0.55"></polygon>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><polygon points="67.2,8.4 91.6,32.8 91.6,67.2 67.2,91.6 32.8,91.6 8.4,67.2 8.4,32.8 32.8,8.4" fill="none" stroke="#FFE680" stroke-width="1.5" opacity="0.6"></polygon></sc-if>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isNebulite }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 100 100" width="100%" height="100%" style="overflow:visible;display:block">
+<rect x="6" y="6" width="88" height="88" rx="26" fill="#C99CFF" opacity="0.10"></rect>
+<rect x="12" y="12" width="76" height="76" rx="22" fill="#B36BF5"></rect>
+<rect x="12" y="50" width="76" height="38" rx="0" fill="#7E3FD0" opacity="0.5"></rect>
+<polygon points="50,20 80,50 50,80 20,50" fill="#E9CCFF" opacity="0.88"></polygon>
+<polygon points="50,20 80,50 50,50 20,50" fill="#F4E6FF" opacity="0.65"></polygon>
+<circle cx="50" cy="50" r="11" fill="#FBF2FF" opacity="0.85"></circle>
+<circle cx="50" cy="50" r="5" fill="#ffffff"></circle>
+<rect x="12" y="12" width="76" height="76" rx="22" fill="none" stroke="#E0BBFF" stroke-width="1.6" opacity="0.6"></rect>
+<rect x="7" y="7" width="86" height="86" rx="26" fill="none" stroke="#C99CFF" stroke-width="1.4" opacity="0.5"></rect>
+<circle cx="50" cy="8" r="2.2" fill="#F4E6FF" opacity="0.9"></circle>
+<circle cx="92" cy="50" r="2.2" fill="#F4E6FF" opacity="0.7"></circle>
+<circle cx="50" cy="92" r="2.2" fill="#F4E6FF" opacity="0.5"></circle>
+<circle cx="8" cy="50" r="2.2" fill="#F4E6FF" opacity="0.7"></circle>
+</svg>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:120,&quot;height&quot;:120},&quot;type&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;nuracite&quot;,&quot;options&quot;:[&quot;duneglass&quot;,&quot;vigilite&quot;,&quot;chromite&quot;,&quot;verdite&quot;,&quot;umbrite&quot;,&quot;nuracite&quot;,&quot;dross&quot;,&quot;nebulite&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;dir&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;a&quot;,&quot;options&quot;:[&quot;a&quot;,&quot;b&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.type || 'duneglass';
+    const dir = this.props.dir || 'a';
+    return {
+      isDuneglass: t === 'duneglass',
+      isVigilite: t === 'vigilite',
+      isChromite: t === 'chromite',
+      isVerdite: t === 'verdite',
+      isUmbrite: t === 'umbrite',
+      isNuracite: t === 'nuracite',
+      isDross: t === 'dross',
+      isNebulite: t === 'nebulite',
+      dirB: dir === 'b'
+    };
+  }
+}
+</script>
+</body>
+</html>

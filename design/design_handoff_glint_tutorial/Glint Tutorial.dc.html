@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#0a0b12;color:#e7e9ef;font-family:'Saira',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:30px 0}
+  .hw{clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:radial-gradient(circle at 50% 40%, rgba(124,90,224,0.18), #0b0d16 72%)}
+  .ghost::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+
+<div style="width:392px;flex:none;background:#0a0a0f;border-radius:46px;padding:10px;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), inset 0 0 0 1.5px #1c1e28">
+<div style="position:relative;background:#07080f;border-radius:38px;overflow:hidden;height:812px;font-family:'Saira',system-ui">
+
+<!-- dim game backdrop -->
+<div style="position:absolute;inset:0;background:radial-gradient(440px 320px at 50% 8%, rgba(157,123,255,0.16), transparent 60%), radial-gradient(380px 340px at 0% 90%, rgba(224,139,255,0.08), transparent 62%)"></div>
+<div style="position:absolute;top:120px;left:0;right:0;display:flex;justify-content:center;opacity:0.18;filter:blur(1px)"><div style="transform:scale(0.92)"><dc-import name="Board" dir="b" size="large" hint-size="366px,330px" style="display:block"></dc-import></div></div>
+<div style="position:absolute;inset:0;background:rgba(6,7,14,0.7)"></div>
+
+<!-- DISMISSED state -->
+<sc-if value="{{ dismissed }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:0 40px">
+<div style="font:400 11px 'Share Tech Mono';letter-spacing:.3em;color:#c084fc">CHROME ABYSS</div>
+<div style="font:700 40px 'Chakra Petch';background:linear-gradient(100deg,#7fe9f5,#9d7bff 50%,#e08bff 82%);-webkit-background-clip:text;background-clip:text;color:transparent">GLINT</div>
+<div style="font:400 14px/1.5 system-ui;color:#9b95bd;max-width:240px">Tutorial dismissed — the game would start here.</div>
+<button onClick="{{ replay }}" style="margin-top:6px;padding:12px 22px;border-radius:13px;border:1px solid #2a2748;background:#14121d;color:#d8c8f5;font:600 13px 'Saira';cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v5h-5"></path></svg>Replay tutorial</button>
+</div>
+</sc-if>
+
+<!-- MODAL -->
+<sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;inset:14px;border-radius:30px;background:linear-gradient(180deg,#101320,#0b0d16);border:1px solid #262344;box-shadow:0 40px 80px -20px rgba(0,0,0,0.7);display:flex;flex-direction:column;overflow:hidden">
+
+<!-- top: progress + skip -->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 6px">
+<div style="font:400 10px 'Share Tech Mono';letter-spacing:.2em;color:#6b6690">HOW TO PLAY</div>
+<button onClick="{{ skip }}" style="background:none;border:none;color:#857fab;font:600 12px 'Saira';cursor:pointer;padding:4px 6px">Skip</button>
+</div>
+
+<!-- viewport -->
+<div onPointerDown="{{ down }}" onPointerUp="{{ up }}" style="flex:1;overflow:hidden;position:relative;touch-action:pan-y">
+<div style="display:flex;height:100%;transition:transform .38s cubic-bezier(.4,0,.2,1);transform:{{ trackTransform }}">
+
+<!-- SLIDE 1 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;align-items:center;justify-content:center">
+<div style="transform:scale(0.62)"><dc-import name="Board" dir="b" size="small" hint-size="366px,330px" style="display:block"></dc-import></div>
+<div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px">
+<span style="font:600 11px 'Saira';color:#e9d6ff;background:rgba(192,132,252,0.16);border:1px solid rgba(192,132,252,0.5);padding:6px 13px;border-radius:999px;backdrop-filter:blur(3px)">Clear all of these</span>
+<div style="width:1.5px;height:14px;background:linear-gradient(#c084fc,transparent)"></div>
+</div>
+</div>
+<div style="font:700 24px 'Chakra Petch';color:#f1f0f8;margin-top:22px">Clear the board</div>
+<div style="font:400 14px/1.55 system-ui;color:#9b95bd;margin-top:8px">Your goal: clear the whole board of mineral gems — by building combos and banking them for points.</div>
+</div>
+
+<!-- SLIDE 2 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:34px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+<div style="font:700 9px 'Share Tech Mono';letter-spacing:.22em;color:#c084fc">NOW PLACING</div>
+<div style="width:84px;height:84px;border-radius:21px;background:radial-gradient(circle at 50% 34%, rgba(192,132,252,0.2), #15182a 72%);border:1.5px solid rgba(192,132,252,0.55);box-shadow:0 0 28px rgba(192,132,252,0.32);display:flex;align-items:center;justify-content:center"><div style="width:62px;height:62px"><dc-import name="Gem" type="verdite" dir="a" hint-size="62px,62px" style="width:100%;height:100%"></dc-import></div></div>
+<span style="font:600 10px 'Saira';color:#7af0b4;background:rgba(52,217,139,0.12);border:1px solid rgba(52,217,139,0.3);padding:4px 10px;border-radius:999px">place this</span>
+</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+<div style="font:400 8px 'Share Tech Mono';letter-spacing:.16em;color:#6b6690">UP NEXT</div>
+<div style="position:relative;width:62px;height:66px">
+<svg viewBox="0 0 60 64" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><polygon points="38,7 54,16 54,36 38,45 22,36 22,16" fill="#15182a" opacity="0.45" stroke="#262344" stroke-width="1.2"></polygon><polygon points="34,11 50,20 50,40 34,49 18,40 18,20" fill="#15182a" opacity="0.72" stroke="#262344" stroke-width="1.2"></polygon><polygon points="30,15 46,24 46,44 30,53 14,44 14,24" fill="#15182a" stroke="rgba(192,132,252,0.5)" stroke-width="1.5"></polygon></svg>
+<span style="position:absolute;left:0;right:0;top:16px;height:38px;display:flex;align-items:center;justify-content:center;font:700 22px 'Chakra Petch';color:#c084fc">8</span>
+</div>
+<span style="font:600 10px 'Saira';color:#c8c2e8;background:rgba(157,123,255,0.14);border:1px solid rgba(157,123,255,0.4);padding:4px 10px;border-radius:999px">hidden</span>
+</div>
+</div>
+<div style="font:700 24px 'Chakra Petch';color:#f1f0f8;margin-top:22px">Your tiles: now &amp; next</div>
+<div style="font:400 14px/1.55 system-ui;color:#9b95bd;margin-top:8px">You place one gem at a time. UP NEXT counts your tiles — but their values stay hidden. Not knowing what&rsquo;s coming is the gamble.</div>
+</div>
+
+<!-- SLIDE 3 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;align-items:center;justify-content:center">
+<div style="position:relative;display:flex;gap:0">
+<div style="position:relative;width:60px;height:68px"><div class="hw" style="position:absolute;inset:0"></div><div style="position:absolute;inset:12px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div><svg viewBox="0 0 60 68" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><polygon points="30,2 56,16 56,52 30,66 4,52 4,16" fill="none" stroke="#fff" stroke-width="2.6"></polygon></svg></div>
+<div style="position:relative;width:60px;height:68px"><div class="hw" style="position:absolute;inset:0"></div><div style="position:absolute;inset:12px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div><svg viewBox="0 0 60 68" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><polygon points="30,2 56,16 56,52 30,66 4,52 4,16" fill="none" stroke="#fff" stroke-width="2.6"></polygon></svg></div>
+<div style="position:relative;width:60px;height:68px"><div class="hw" style="position:absolute;inset:0"></div><div style="position:absolute;inset:12px"><dc-import name="Gem" type="nuracite" dir="a" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div><svg viewBox="0 0 60 68" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><polygon points="30,2 56,16 56,52 30,66 4,52 4,16" fill="none" stroke="#fff" stroke-width="2.6"></polygon></svg></div>
+<span style="position:absolute;top:-14px;right:-10px;font:700 13px 'Chakra Petch';color:#fff;background:rgba(127,233,242,0.18);border:1px solid rgba(127,233,242,0.6);padding:4px 11px;border-radius:999px">Trips!</span>
+</div>
+<button onClick="{{ toggleCombos }}" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:rgba(192,132,252,0.14);border:1px solid rgba(192,132,252,0.45);color:#e2bbff;font:600 11px 'Saira';cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16.5"></line><circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"></circle></svg>See all combos</button>
+<sc-if value="{{ showCombos }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:rgba(8,10,18,0.97);padding:16px 18px;overflow-y:auto" class="ghost">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font:700 13px 'Chakra Petch';color:#eef0f5">Combos · bank 6+ tiles</div><button onClick="{{ toggleCombos }}" style="background:none;border:none;color:#857fab;font:700 16px 'Saira';cursor:pointer;line-height:1">×</button></div>
+<sc-for list="{{ combos }}" as="c" hint-placeholder-count="7"><div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #181b2a"><div style="width:64px;font:700 12px 'Chakra Petch';color:#c79bf5">{{ c.name }}</div><div style="flex:1;font:400 10.5px 'Saira';color:#857fab">{{ c.desc }}</div><div style="font:700 12px 'Chakra Petch';color:#e8b53f">{{ c.pts }}</div></div></sc-for>
+<div style="font:400 10px/1.4 'Saira';color:#7fe9f5;margin-top:8px">CHAINS — two combos in one bank, summed after the ×multiplier.</div>
+</div>
+</sc-if>
+</div>
+<div style="font:700 24px 'Chakra Petch';color:#f1f0f8;margin-top:22px">Build a combo</div>
+<div style="font:400 14px/1.55 system-ui;color:#9b95bd;margin-top:8px">A gem&rsquo;s shape is its value. Place one next to matching gems to activate a combo — it lights up. Tap <b style="color:#e2bbff;font-weight:600">ⓘ</b> any time for the full list.</div>
+</div>
+
+<!-- SLIDE 4 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+<div style="text-align:center"><div style="font:400 8px 'Share Tech Mono';letter-spacing:.2em;color:#6b6690">SCORE</div><div style="font:700 30px 'Chakra Petch';color:#ffd980;text-shadow:0 0 22px rgba(232,181,63,0.5)">16,400</div></div>
+<div style="position:relative;display:flex;gap:8px;margin-top:6px">
+<div style="width:40px;height:46px"><dc-import name="Cell" type="verdite" dir="b" state="banked" hint-size="40px,46px" style="width:40px;height:46px"></dc-import></div>
+<div style="width:40px;height:46px"><dc-import name="Cell" type="nuracite" dir="b" state="banked" hint-size="40px,46px" style="width:40px;height:46px"></dc-import></div>
+<div style="position:relative;width:40px;height:46px"><dc-import name="Cell" type="umbrite" dir="b" state="banked" hint-size="40px,46px" style="width:40px;height:46px"></dc-import><span style="position:absolute;right:-22px;bottom:-3px;font:700 13px 'Chakra Petch';color:#1a0b2e;background:linear-gradient(135deg,#ffe6a8,#e8b53f);padding:3px 8px;border-radius:8px">×6</span></div>
+</div>
+<span style="font:600 10px 'Saira';color:#7af0b4;background:rgba(52,217,139,0.12);border:1px solid rgba(52,217,139,0.3);padding:4px 11px;border-radius:999px;margin-top:8px">6 connected = bank!</span>
+</div>
+<div style="font:700 24px 'Chakra Petch';color:#f1f0f8;margin-top:22px">Bank for points</div>
+<div style="font:400 14px/1.55 system-ui;color:#9b95bd;margin-top:8px">When a glowing group reaches 6 connected tiles it banks — you score and they clear. Finish on a high-value gem for a bigger <b style="color:#e8cf8f;font-weight:600">×multiplier</b>.</div>
+</div>
+
+<!-- SLIDE 5 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:16px;border:1px solid rgba(232,181,63,0.55);background:linear-gradient(180deg,rgba(232,181,63,0.2),rgba(232,181,63,0.08))">
+<div style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center"><svg width="34" height="34" viewBox="0 0 34 34" style="position:absolute;transform:rotate(-90deg)"><circle cx="17" cy="17" r="14" fill="none" stroke="rgba(232,181,63,0.25)" stroke-width="2.6"></circle><circle cx="17" cy="17" r="14" fill="none" stroke="#e8b53f" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="88" stroke-dashoffset="30"></circle></svg><span style="font:700 15px 'Chakra Petch';color:#ffd980">2</span></div>
+<div style="font:700 17px 'Chakra Petch';color:#e8b53f;letter-spacing:.06em">BANK NOW</div>
+</div>
+<div style="display:flex;gap:26px">
+<div style="text-align:center"><div style="font:400 8px 'Share Tech Mono';letter-spacing:.16em;color:#6b6690;margin-bottom:7px">BANKS</div><div style="display:flex;gap:6px;justify-content:center"><span style="width:13px;height:13px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#f4d885,#e8b53f);box-shadow:0 0 8px rgba(232,181,63,0.5)"></span><span style="width:13px;height:13px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#f4d885,#e8b53f);box-shadow:0 0 8px rgba(232,181,63,0.5)"></span><span style="width:13px;height:13px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#f4d885,#e8b53f);box-shadow:0 0 8px rgba(232,181,63,0.5)"></span></div></div>
+<div style="text-align:center"><div style="font:400 8px 'Share Tech Mono';letter-spacing:.16em;color:#6b6690;margin-bottom:7px">BUSTS</div><div style="display:flex;gap:6px;justify-content:center"><svg width="15" height="14" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg><svg width="15" height="14" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg><svg width="15" height="14" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg></div></div>
+</div>
+</div>
+<div style="font:700 24px 'Chakra Petch';color:#f1f0f8;margin-top:22px">Push your luck</div>
+<div style="font:400 14px/1.55 system-ui;color:#9b95bd;margin-top:8px">Push for a bigger combo — but place a gem that can&rsquo;t combo and you <b style="color:#ff8a9c;font-weight:600">bust</b>, losing the group. 3 lives, 3 free banks. Tap BANK to lock safe points first.</div>
+</div>
+
+<!-- SLIDE 6 -->
+<div style="flex:0 0 100%;padding:8px 24px 18px;display:flex;flex-direction:column">
+<div style="position:relative;height:236px;border-radius:18px;border:1px solid #232645;background:#080a12;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px">
+<div style="display:flex;gap:24px">
+<div style="text-align:center"><div style="width:46px;height:52px;margin:0 auto"><dc-import name="Gem" type="dross" dir="a" hint-size="46px,46px" style="width:100%;height:100%"></dc-import></div><div style="font:600 9px 'Saira';color:#ff9aac;margin-top:5px">trap — busts</div></div>
+<div style="text-align:center"><div style="width:46px;height:52px;margin:0 auto"><dc-import name="Gem" type="nebulite" dir="a" hint-size="46px,46px" style="width:100%;height:100%"></dc-import></div><div style="font:600 9px 'Saira';color:#d8c8f5;margin-top:5px">+500 · joker</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 16px 'Chakra Petch';letter-spacing:.06em;background:linear-gradient(100deg,#ffd0d8,#9d7bff,#7fe9f5);-webkit-background-clip:text;background-clip:text;color:transparent">COLLAPSE</span><span style="font:600 10px 'Saira';color:#9b95bd">91→61</span></div>
+<div style="font:700 15px 'Chakra Petch';color:#34d98b;background:rgba(52,217,139,0.1);border:1px solid rgba(52,217,139,0.3);padding:7px 16px;border-radius:12px">BOARD CLEARED</div>
+</div>
+<div style="font:700 23px 'Chakra Petch';color:#f1f0f8;margin-top:18px">Traps, treasure &amp; the collapse</div>
+<div style="font:400 13.5px/1.5 system-ui;color:#9b95bd;margin-top:8px"><b style="color:#e8cf8f;font-weight:600">Dross</b> is worthless gold — it always busts. <b style="color:#d8c8f5;font-weight:600">Nebulite</b> copies neighbours, pays +500. Midway the Abyss collapses and the board shrinks. Clear it to win!</div>
+</div>
+
+</div>
+</div>
+
+<!-- dots + nav -->
+<div style="padding:6px 22px 20px">
+<div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">
+<sc-for list="{{ dots }}" as="d" hint-placeholder-count="6"><button onClick="{{ d.tap }}" style="width:{{ d.w }};height:7px;border-radius:4px;border:none;cursor:pointer;background:{{ d.bg }};transition:all .25s"></button></sc-for>
+</div>
+<div style="display:flex;gap:10px;align-items:center">
+<sc-if value="{{ notFirst }}" hint-placeholder-val="{{ false }}"><button onClick="{{ prev }}" style="padding:13px 18px;border-radius:13px;border:1px solid #2a2748;background:#14121d;color:#cdd3e0;font:600 13px 'Saira';cursor:pointer">Back</button></sc-if>
+<sc-if value="{{ notLast }}" hint-placeholder-val="{{ true }}"><button onClick="{{ next }}" style="flex:1;padding:14px;border-radius:13px;border:none;background:linear-gradient(180deg,#cda6ff,#b06bf5);color:#1a0b2e;font:700 14px 'Chakra Petch';letter-spacing:.02em;cursor:pointer">Next</button></sc-if>
+<sc-if value="{{ isLast }}" hint-placeholder-val="{{ false }}"><button onClick="{{ skip }}" style="flex:1;padding:14px;border-radius:13px;border:none;background:linear-gradient(180deg,#7af0b4,#34d98b);color:#04130c;font:700 14px 'Chakra Petch';letter-spacing:.02em;cursor:pointer">Got it — Play</button></sc-if>
+</div>
+</div>
+
+</div>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:840}}">
+class Component extends DCLogic {
+  state = { slide: 0, showCombos: false, dismissed: false };
+  go(i) { this.setState({ slide: Math.max(0, Math.min(5, i)), showCombos: false }); }
+  next() { this.go(this.state.slide + 1); }
+  prev() { this.go(this.state.slide - 1); }
+  down(e) { this._sx = e.clientX; }
+  up(e) { if (this._sx == null) return; const dx = e.clientX - this._sx; this._sx = null; if (dx < -45) this.next(); else if (dx > 45) this.prev(); }
+  toggleCombos() { this.setState((s) => ({ showCombos: !s.showCombos })); }
+  dismiss() { this.setState({ dismissed: true }); }
+  replay() { this.setState({ dismissed: false, slide: 0, showCombos: false }); }
+  renderVals() {
+    const slide = this.state.slide;
+    const combos = [
+      { name: 'Echo', desc: 'Pair of 2s or 6s', pts: '300' },
+      { name: 'Trips', desc: '3 of a kind', pts: '300' },
+      { name: 'Quad', desc: '4 of a kind', pts: '400' },
+      { name: 'Pentad', desc: '5 of a kind', pts: '500' },
+      { name: 'Hex', desc: '6 of a kind — alone', pts: '600' },
+      { name: 'Drift', desc: '4 in a run', pts: '400' },
+      { name: 'Full Drift', desc: '6 in a run — alone', pts: '800' }
+    ];
+    const dots = [0, 1, 2, 3, 4, 5].map((i) => ({
+      w: i === slide ? '22px' : '7px',
+      bg: i === slide ? '#c084fc' : '#2c2950',
+      tap: () => this.go(i)
+    }));
+    return {
+      slide,
+      open: !this.state.dismissed,
+      dismissed: this.state.dismissed,
+      showCombos: this.state.showCombos,
+      trackTransform: `translateX(-${slide * 100}%)`,
+      notFirst: slide > 0,
+      notLast: slide < 5,
+      isLast: slide === 5,
+      combos,
+      dots,
+      next: () => this.next(),
+      prev: () => this.prev(),
+      skip: () => this.dismiss(),
+      replay: () => this.replay(),
+      toggleCombos: () => this.toggleCombos(),
+      down: (e) => this.down(e),
+      up: (e) => this.up(e)
+    };
+  }
+}
+</script>
+</body>
+</html>

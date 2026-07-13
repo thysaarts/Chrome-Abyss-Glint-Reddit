@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>
+@keyframes npPulse{0%,100%{box-shadow:0 0 20px rgba(192,132,252,0.32), inset 0 1px 0 rgba(255,255,255,0.06);border-color:rgba(192,132,252,0.55)}50%{box-shadow:0 0 40px rgba(192,132,252,0.62), inset 0 1px 0 rgba(255,255,255,0.08);border-color:rgba(192,132,252,0.85)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+@keyframes sheen{0%{transform:translateX(-160%) skewX(-12deg)}55%,100%{transform:translateX(360%) skewX(-12deg)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+</style></helmet>
+<div style="width:392px;flex:none;background:#0a0a0f;border-radius:46px;padding:10px;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), inset 0 0 0 1.5px #1c1e28;{{ paletteVars }}">
+<div style="position:relative;background:var(--screenbg,#0e0f15);border-radius:38px;overflow:hidden;min-height:812px;display:flex;flex-direction:column;font-family:'Saira',system-ui,sans-serif">
+
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px 300px at 50% -6%, rgba(157,123,255,0.16), transparent 62%), radial-gradient(360px 320px at 100% 30%, rgba(95,230,242,0.07), transparent 60%), radial-gradient(380px 340px at 0% 86%, rgba(224,139,255,0.08), transparent 62%)"></div>
+</sc-if>
+
+<!-- status bar -->
+<div style="position:relative;display:flex;justify-content:space-between;align-items:center;padding:13px 26px 3px;font:600 12px 'Saira';color:var(--text,#f1f2f6)">
+<span>9:41</span>
+<div style="display:flex;gap:5px;align-items:center;opacity:.85"><span style="width:16px;height:9px;border:1.4px solid var(--text,#f1f2f6);border-radius:3px;display:inline-block;position:relative"><span style="position:absolute;inset:1.4px;width:8px;background:var(--text,#f1f2f6);border-radius:1px"></span></span></div>
+</div>
+
+<div style="position:relative;padding:8px 14px 0;display:flex;flex-direction:column;flex:1">
+
+<!-- header -->
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 4px 12px">
+<div>
+<div style="font:400 8.5px 'Share Tech Mono',monospace;letter-spacing:.3em;color:var(--accent,#c084fc)">CHROME ABYSS</div>
+<sc-if value="{{ dirA }}" hint-placeholder-val="{{ true }}"><div style="font:700 27px/0.9 var(--disp,'Chakra Petch');letter-spacing:.01em;color:var(--text,#f1f2f6);margin-top:3px">GLINT</div></sc-if>
+<sc-if value="{{ dirB }}" hint-placeholder-val="{{ false }}"><div style="font:700 28px/0.9 var(--disp,'Chakra Petch');letter-spacing:.01em;margin-top:3px;background:linear-gradient(100deg,#7fe9f5,#9d7bff 50%,#e08bff 80%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 10px rgba(157,123,255,0.5))">GLINT</div></sc-if>
+</div>
+<button style="display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:12px;background:var(--panel,#171922);border:1px solid var(--border,#262a38);color:var(--text,#e7e9ef);font:600 11px 'Saira';cursor:pointer">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v5h-5"></path></svg>New</button>
+</div>
+
+<!-- hud -->
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<div style="flex:1.6;background:var(--panel,#171922);border:1px solid var(--border,#262a38);border-radius:16px;padding:9px 14px">
+<div style="font:400 8.5px 'Share Tech Mono',monospace;letter-spacing:.2em;color:var(--faint,#5f6675)">SCORE</div>
+<div style="font:700 31px/1 var(--disp,'Chakra Petch');color:var(--gold,#e8b53f);text-shadow:0 0 20px rgba(232,181,63,0.28);margin-top:3px">{{ score }}</div>
+</div>
+<div style="flex:1;background:var(--panel,#171922);border:1px solid var(--border,#262a38);border-radius:16px;padding:9px 12px;display:flex;flex-direction:column;justify-content:space-between">
+<div style="font:400 8.5px 'Share Tech Mono',monospace;letter-spacing:.16em;color:var(--faint,#5f6675)">BANKS</div>
+<div style="display:flex;gap:7px;margin-top:8px">
+<sc-for list="{{ banksPips }}" as="p" hint-placeholder-count="3">
+<sc-if value="{{ p.on }}" hint-placeholder-val="{{ true }}"><span style="width:13px;height:13px;transform:rotate(45deg);border-radius:3px;background:linear-gradient(135deg,#f4d885,#e8b53f);box-shadow:0 0 9px rgba(232,181,63,0.55)"></span></sc-if>
+<sc-if value="{{ p.off }}" hint-placeholder-val="{{ false }}"><span style="width:13px;height:13px;transform:rotate(45deg);border-radius:3px;background:var(--panel2,#1e2130);border:1px solid var(--border,#262a38)"></span></sc-if>
+</sc-for>
+</div>
+</div>
+<div style="flex:1;background:var(--panel,#171922);border:1px solid var(--border,#262a38);border-radius:16px;padding:9px 12px;display:flex;flex-direction:column;justify-content:space-between">
+<div style="font:400 8.5px 'Share Tech Mono',monospace;letter-spacing:.16em;color:var(--faint,#5f6675)">BUSTS</div>
+<div style="display:flex;gap:6px;margin-top:7px">
+<sc-for list="{{ bustsPips }}" as="p" hint-placeholder-count="3">
+<sc-if value="{{ p.on }}" hint-placeholder-val="{{ true }}"><svg width="15" height="14" viewBox="0 0 14 13" style="filter:drop-shadow(0 0 5px rgba(255,90,118,0.5))"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="#ff5a76"></path></svg></sc-if>
+<sc-if value="{{ p.off }}" hint-placeholder-val="{{ false }}"><svg width="15" height="14" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="none" stroke="var(--border,#3a2030)" stroke-width="1.3"></path></svg></sc-if>
+</sc-for>
+</div>
+</div>
+</div>
+
+<!-- board -->
+<div onPointerDown="{{ boardDown }}" onPointerUp="{{ boardUp }}" onPointerLeave="{{ boardUp }}" style="position:relative;padding:6px 0;cursor:pointer;touch-action:manipulation">
+<div style="transition:transform .36s cubic-bezier(.34,1.26,.5,1);transform:scale({{ boardScale }});transform-origin:50% 50%">
+<div style="animation:breathe 7s ease-in-out infinite">
+<dc-import name="Board" dir="{{ dir }}" size="{{ boardSize }}" hint-size="366px,330px" style="display:block;margin:0 auto"></dc-import>
+</div>
+</div>
+<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden"><div style="position:absolute;top:-15%;left:0;width:38%;height:130%;background:linear-gradient(95deg,transparent,rgba(196,214,255,0.09),transparent);animation:sheen 6.5s ease-in-out infinite"></div></div>
+</div>
+
+<!-- toast -->
+<div style="display:flex;justify-content:center;margin:4px 0 2px">
+<span style="font:600 11px var(--disp,'Chakra Petch');color:var(--good,#34d98b);background:rgba(52,217,139,0.1);border:1px solid rgba(52,217,139,0.28);padding:5px 13px;border-radius:999px">{{ toast }}</span>
+</div>
+
+<div style="flex:1;min-height:8px"></div>
+
+<!-- bank prompt (optional) -->
+<sc-if value="{{ showBank }}" hint-placeholder-val="{{ false }}">
+<button style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;border-radius:16px;border:1px solid rgba(232,181,63,0.5);background:linear-gradient(180deg,rgba(232,181,63,0.22),rgba(232,181,63,0.1));color:var(--gold,#e8b53f);margin-bottom:10px;cursor:pointer">
+<span style="position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center"><svg width="30" height="30" viewBox="0 0 30 30" style="position:absolute;transform:rotate(-90deg)"><circle cx="15" cy="15" r="13" fill="none" stroke="rgba(232,181,63,0.25)" stroke-width="2.5"></circle><circle cx="15" cy="15" r="13" fill="none" stroke="#e8b53f" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="81.6" stroke-dashoffset="27"></circle></svg><span style="font:700 14px var(--disp,'Chakra Petch')">{{ bankNum }}</span></span>
+<span style="font:700 18px var(--disp,'Chakra Petch');letter-spacing:.08em">BANK NOW</span>
+<span style="font:500 11px 'Saira';opacity:.7">tap to lock points</span>
+</button>
+</sc-if>
+
+<!-- footer menu -->
+<div style="position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:4px;padding:12px 12px 14px;background:var(--panel,#171922);border:1px solid var(--border,#262a38);border-radius:24px;margin-bottom:16px">
+<div style="position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:124px;height:120px;border-radius:50%;background:radial-gradient(circle at 50% 56%, rgba(192,132,252,0.22), transparent 62%);pointer-events:none"></div>
+
+<button title="Restart" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:4px 0;color:var(--dim,#8b91a0)">
+<div style="width:42px;height:42px;border-radius:13px;background:var(--panel2,#1e2130);border:1px solid var(--border,#262a38);display:flex;align-items:center;justify-content:center;transition:transform .14s,border-color .2s" style-active="transform:scale(0.9);border-color:rgba(192,132,252,0.7)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v5h-5"></path></svg>
+</div>
+<span style="font:600 8.5px 'Saira';letter-spacing:.04em">Restart</span>
+</button>
+
+<div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0">
+<div style="position:relative;width:50px;height:46px;animation:floaty 4.5s ease-in-out infinite">
+<svg viewBox="0 0 60 56" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+<polygon points="40,3 55,11.7 55,29 40,37.7 25,29 25,11.7" fill="var(--panel2,#1e2130)" opacity="0.4" stroke="var(--border,#262a38)" stroke-width="1.2"></polygon>
+<polygon points="35,7 50,15.7 50,33 35,41.7 20,33 20,15.7" fill="var(--panel2,#1e2130)" opacity="0.68" stroke="var(--border,#262a38)" stroke-width="1.2"></polygon>
+<polygon points="30,11 45,19.7 45,37 30,45.7 15,37 15,19.7" fill="var(--panel2,#1e2130)" stroke="rgba(192,132,252,0.5)" stroke-width="1.5"></polygon>
+</svg>
+<span style="position:absolute;left:15px;right:15px;top:11px;height:34px;display:flex;align-items:center;justify-content:center;font:700 18px var(--disp,'Chakra Petch');color:var(--accent,#c084fc)">{{ upNext }}</span>
+</div>
+<span style="font:600 8.5px 'Saira';letter-spacing:.04em;color:var(--dim,#8b91a0)">Up next</span>
+</div>
+
+<div style="position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;width:96px;margin-top:-34px">
+<div style="font:700 8.5px 'Share Tech Mono',monospace;letter-spacing:.2em;color:var(--accent,#c084fc)">NOW PLACING</div>
+<div style="position:relative;width:84px;height:84px;border-radius:24px;background:radial-gradient(circle at 50% 30%, rgba(192,132,252,0.26), var(--panel2,#1e2130) 74%);border:1.5px solid rgba(192,132,252,0.6);display:flex;align-items:center;justify-content:center;animation:npPulse 2.6s ease-in-out infinite">
+<div style="width:64px;height:64px"><dc-import name="Gem" type="{{ nowType }}" dir="{{ dir }}" hint-size="64px,64px" style="width:100%;height:100%"></dc-import></div>
+</div>
+<div style="font:700 12px var(--disp,'Chakra Petch');color:var(--text,#f1f2f6)">{{ nowName }}</div>
+</div>
+
+<button title="Minerals &amp; combos" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:4px 0;color:var(--dim,#8b91a0)">
+<div style="width:42px;height:42px;border-radius:13px;background:var(--panel2,#1e2130);border:1px solid var(--border,#262a38);display:flex;align-items:center;justify-content:center;transition:transform .14s,border-color .2s" style-active="transform:scale(0.9);border-color:rgba(192,132,252,0.7)">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16.5"></line><circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"></circle></svg>
+</div>
+<span style="font:600 8.5px 'Saira';letter-spacing:.04em">Combos</span>
+</button>
+
+<button title="How to play" style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:4px 0;color:var(--dim,#8b91a0)">
+<div style="width:42px;height:42px;border-radius:13px;background:var(--panel2,#1e2130);border:1px solid var(--border,#262a38);display:flex;align-items:center;justify-content:center;transition:transform .14s,border-color .2s" style-active="transform:scale(0.9);border-color:rgba(192,132,252,0.7)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M9.3 9.2a2.7 2.7 0 1 1 3.9 2.5c-.9.5-1.2 1-1.2 1.9"></path><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+</div>
+<span style="font:600 8.5px 'Saira';letter-spacing:.04em">Help</span>
+</button>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:840},&quot;dir&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;a&quot;,&quot;options&quot;:[&quot;a&quot;,&quot;b&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;score&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;13,100&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;banks&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;tsType&quot;:&quot;number&quot;},&quot;busts&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;tsType&quot;:&quot;number&quot;},&quot;showBank&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;boardSize&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;large&quot;,&quot;options&quot;:[&quot;large&quot;,&quot;small&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { pressed: false };
+  boardDown() { this.setState({ pressed: true }); }
+  boardUp() { this.setState({ pressed: false }); }
+  renderVals() {
+    const dir = this.props.dir || 'a';
+    const banks = this.props.banks != null ? +this.props.banks : 3;
+    const busts = this.props.busts != null ? +this.props.busts : 3;
+    const mk = (n) => [0, 1, 2].map((i) => ({ on: i < n, off: i >= n }));
+    const palettes = {
+      a: "--bg:#0e0f15;--panel:#171922;--panel2:#1e2130;--border:#262a38;--text:#f1f2f6;--dim:#8b91a0;--faint:#5f6675;--accent:#c084fc;--gold:#e8b53f;--good:#34d98b;--bad:#ff5a76;--disp:'Chakra Petch',sans-serif;--screenbg:#0e0f15",
+      b: "--bg:#07080f;--panel:#0e1018;--panel2:#15182a;--border:#2a2748;--text:#f1f0f8;--dim:#9b95bd;--faint:#6b6690;--accent:#c084fc;--gold:#e8b53f;--good:#34d98b;--bad:#ff5a76;--disp:'Chakra Petch',sans-serif;--screenbg:#07080f"
+    };
+    return {
+      dir,
+      dirA: dir === 'a',
+      dirB: dir === 'b',
+      paletteVars: palettes[dir] || palettes.a,
+      score: this.props.score || '13,100',
+      nowName: this.props.nowName || 'Verdite',
+      nowType: this.props.nowType || 'verdite',
+      upNext: this.props.upNext != null ? ('' + this.props.upNext) : '7',
+      banksPips: mk(banks),
+      bustsPips: mk(busts),
+      showBank: this.props.showBank === true || this.props.showBank === 'true',
+      bankNum: this.props.bankNum != null ? ('' + this.props.bankNum) : '3',
+      boardSize: this.props.boardSize || 'large',
+      boardScale: this.state.pressed ? 1.17 : 1.08,
+      boardDown: () => this.boardDown(),
+      boardUp: () => this.boardUp(),
+      toast: this.props.toast || 'Banked Pentad ×4 · Convergence → +3,300'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#0a0b12;color:#e7e9ef;font-family:'Saira',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:30px 0}
+  .lvlist{scrollbar-width:none;-ms-overflow-style:none}
+  .lvlist::-webkit-scrollbar{display:none}
+  @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  @keyframes chev{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(4px);opacity:1}}
+  @keyframes lbIn{0%{opacity:0;transform:translateY(16px) scale(.97)}100%{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+</helmet>
+
+<div style="width:392px;flex:none;background:#0a0a0f;border-radius:46px;padding:10px;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), inset 0 0 0 1.5px #1c1e28">
+<div style="position:relative;background:#07080f;border-radius:38px;overflow:hidden;height:812px;font-family:'Saira',system-ui;display:flex;flex-direction:column">
+  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(460px 340px at 50% 4%, rgba(157,123,255,0.14), transparent 60%), radial-gradient(420px 380px at 50% 100%, rgba(95,230,242,0.06), transparent 62%)"></div>
+
+  <!-- TOP BAR -->
+  <div style="position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;background:linear-gradient(180deg,#0b0d15,rgba(11,13,21,0))">
+    <div>
+      <div style="font:400 8px 'Share Tech Mono';letter-spacing:.3em;color:#c084fc">CHROME ABYSS</div>
+      <div style="font:700 21px/0.9 'Chakra Petch';margin-top:2px;background:linear-gradient(100deg,#7fe9f5,#9d7bff 52%,#e08bff 82%);-webkit-background-clip:text;background-clip:text;color:transparent">GLINT</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <button onClick="{{ openLB }}" title="High scores" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:12px;background:#12141f;border:1px solid #262344;color:#e8cf8f;font:600 12px 'Saira';cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v3a6 6 0 0 1-12 0Z"></path><path d="M6 6H4v1a3 3 0 0 0 3 3M18 6h2v1a3 3 0 0 1-3 3M9 15h6M8.5 19h7M10 15l-.5 4M14 15l.5 4"></path></svg>Scores</button>
+      <button title="Exit to menu" style="width:38px;height:38px;border-radius:12px;background:#12141f;border:1px solid #262344;color:#9b95bd;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"></path><path d="M16 16l4-4-4-4M20 12H10"></path></svg></button>
+    </div>
+  </div>
+
+  <!-- LIST VIEWPORT (scrollable) -->
+  <div style="position:relative;flex:1;overflow:hidden">
+    <div ref="{{ listRef }}" class="lvlist" style="position:absolute;inset:0;overflow-y:auto">
+      <div style="padding:120px 0 200px">
+        <sc-for list="{{ levels }}" as="lv" hint-placeholder-count="10">
+          <div data-cur="{{ lv.curFlag }}" style="position:relative;display:flex;flex-direction:column;align-items:center">
+            <div style="position:relative;width:214px;height:248px;{{ lv.floatA }}">
+              <svg viewBox="0 0 100 116" width="214" height="248" style="position:absolute;inset:0;overflow:visible"><polygon points="50,2 96,30 96,86 50,114 4,86 4,30" fill="#13151e" stroke="#2a2d3c" stroke-width="1.5"></polygon></svg>
+              <sc-if value="{{ lv.isCompleted }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 116" width="214" height="248" style="position:absolute;inset:0;overflow:visible"><polygon points="50,2 96,30 96,86 50,114 4,86 4,30" fill="rgba(52,217,139,0.05)" stroke="#34d98b" stroke-width="2.2" opacity="0.8"></polygon></svg></sc-if>
+              <sc-if value="{{ lv.isCurrent }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 116" width="214" height="248" style="position:absolute;inset:0;overflow:visible;filter:drop-shadow(0 0 15px rgba(192,132,252,0.6))"><polygon points="50,2 96,30 96,86 50,114 4,86 4,30" fill="rgba(157,123,255,0.06)" stroke="#c9a2ff" stroke-width="3"></polygon></svg></sc-if>
+
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 36px;gap:6px">
+                <div style="font:700 10px 'Share Tech Mono';letter-spacing:.22em;color:#8a85b8">LEVEL {{ lv.num }}</div>
+                <div style="font:700 20px/1.05 'Chakra Petch';color:#f1f0f8">{{ lv.title }}</div>
+                <sc-if value="{{ lv.hasRegion }}" hint-placeholder-val="{{ false }}"><div style="font:500 10px 'Saira';letter-spacing:.06em;color:#6b6690">{{ lv.region }}</div></sc-if>
+                <sc-if value="{{ lv.isCompleted }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;margin-top:3px;font:700 9.5px 'Share Tech Mono';letter-spacing:.14em;color:#34d98b;background:rgba(52,217,139,0.12);border:1px solid rgba(52,217,139,0.3);padding:4px 10px;border-radius:999px">COMPLETED</span></sc-if>
+                <sc-if value="{{ lv.isCurrent }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;margin-top:3px;font:700 10px 'Chakra Petch';letter-spacing:.1em;color:#1a0b2e;background:linear-gradient(180deg,#e6d2ff,#c9a2ff);padding:6px 14px;border-radius:999px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z"></path></svg>CONTINUE</span></sc-if>
+                <sc-if value="{{ lv.isLocked }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:2px"><span style="display:inline-flex;align-items:center;gap:5px;font:700 9.5px 'Share Tech Mono';letter-spacing:.14em;color:#6b6690"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>LOCKED</span><div style="display:flex;align-items:flex-start;gap:5px;max-width:150px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4f4a6b" stroke-width="2.4" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"></circle></svg><span style="font:500 10.5px/1.3 'Saira';color:#8a85b8;text-align:left">{{ lv.unlock }}</span></div></div></sc-if>
+                <sc-if value="{{ lv.isCurrent }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:flex-start;gap:5px;max-width:150px;margin-top:2px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d98b" stroke-width="3" style="flex:none;margin-top:1px"><path d="M20 6 9 17l-5-5"></path></svg><span style="font:500 10.5px/1.3 'Saira';color:#7aa896;text-align:left">{{ lv.unlock }}</span></div></sc-if>
+              </div>
+
+              <sc-if value="{{ lv.isCompleted }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;background:#34d98b;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(52,217,139,0.5)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04130c" stroke-width="3.4"><path d="M20 6 9 17l-5-5"></path></svg></div></sc-if>
+            </div>
+            <sc-if value="{{ lv.hasNext }}" hint-placeholder-val="{{ true }}"><div style="width:4px;height:44px;margin-top:-4px;border-radius:3px;{{ lv.conduitA }}"></div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:0;height:26px;pointer-events:none;background:linear-gradient(180deg,#07080f,transparent)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:64px;pointer-events:none;background:linear-gradient(180deg,transparent,#07080f)"></div>
+    <div style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);color:#6b6690;animation:chev 1.6s ease-in-out infinite;pointer-events:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div style="position:relative;z-index:3;display:flex;gap:11px;padding:14px 16px 20px;background:linear-gradient(0deg,#0b0d15,rgba(11,13,21,0))">
+    <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:15px;border-radius:15px;background:#12141f;border:1px solid #262344;color:#cdd3e0;font:700 13px 'Chakra Petch';letter-spacing:.03em;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5.5v13a1 1 0 0 0 1.5.87L14 14v4.5a1 1 0 0 0 1.5.87l9-6.5a1 1 0 0 0 0-1.74l-9-6.5A1 1 0 0 0 14 5.5V10L5.5 4.63A1 1 0 0 0 4 5.5Z"></path></svg>Quick start</button>
+    <button style="flex:1.25;display:flex;align-items:center;justify-content:center;gap:9px;padding:15px;border-radius:15px;border:none;background:linear-gradient(180deg,#cda6ff,#b06bf5);color:#1a0b2e;font:700 14px 'Chakra Petch';letter-spacing:.04em;cursor:pointer;box-shadow:0 10px 26px -8px rgba(176,107,245,0.6)"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z"></path></svg>Continue</button>
+  </div>
+
+  <!-- LEADERBOARD OVERLAY -->
+  <sc-if value="{{ showLB }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeLB }}" style="position:absolute;inset:0;z-index:6;background:rgba(6,7,14,0.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:0 22px">
+    <div style="position:relative;width:100%;border-radius:26px;background:linear-gradient(180deg,#101320,#0b0d16);border:1px solid #262344;box-shadow:0 40px 80px -20px rgba(0,0,0,0.7);overflow:hidden;padding:24px 22px 26px;animation:lbIn .3s ease-out both">
+      <div style="position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,#e8b53f,#ffd980,#e8b53f)"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:9px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8cf8f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v3a6 6 0 0 1-12 0Z"></path><path d="M6 6H4v1a3 3 0 0 0 3 3M18 6h2v1a3 3 0 0 1-3 3M9 15h6M8.5 19h7M10 15l-.5 4M14 15l.5 4"></path></svg><span style="font:700 17px 'Chakra Petch';color:#f1f0f8">High scores</span></div>
+        <button onClick="{{ closeLB }}" style="width:30px;height:30px;border-radius:9px;background:#15182a;border:1px solid #262344;color:#857fab;font:700 15px 'Saira';cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="font:400 10px 'Share Tech Mono';letter-spacing:.16em;color:#6b6690;margin-bottom:16px">YOUR TOP 6 · SCORE &amp; LEVEL</div>
+      <sc-for list="{{ leaders }}" as="r" hint-placeholder-count="6">
+        <div style="display:flex;align-items:center;gap:13px;padding:10px 0;border-bottom:1px solid #181b2a">
+          <div style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;font:700 12px 'Chakra Petch';color:{{ r.rankInk }};background:{{ r.rankBg }};border-radius:8px;transform:rotate(45deg)"><span style="transform:rotate(-45deg)">{{ r.rank }}</span></div>
+          <div style="flex:1"><div style="font:500 12px 'Saira';color:#9aa0ad">{{ r.level }}</div></div>
+          <div style="font:700 19px 'Chakra Petch';color:#ffd980">{{ r.score }}</div>
+        </div>
+      </sc-for>
+      <div style="font:400 10px 'Share Tech Mono';letter-spacing:.14em;color:#4f4a6b;margin-top:14px;text-align:center">PERSONAL BESTS</div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:840}}">
+class Component extends DCLogic {
+  state = { showLB: false };
+  constructor(props) { super(props); this.list = React.createRef(); }
+  componentDidMount() {
+    const el = this.list && this.list.current;
+    if (el) {
+      const cur = el.querySelector('[data-cur="1"]');
+      if (cur) el.scrollTop = Math.max(0, cur.offsetTop - 96);
+    }
+  }
+  renderVals() {
+    const regionColors = {
+      'Fringe Market': '#e8b53f', 'Machina Forge': '#d98a4a', 'Corporate Spire': '#5fe6f2',
+      'Digital Nexus': '#9d7bff', 'Shadow Sector': '#3fd39e', 'Divinity Enclave': '#ffd980', 'Military Bastion': '#ff5a76'
+    };
+    const raw = [
+      { num: '0', title: 'Tutorial', region: '', status: 'completed', unlock: '' },
+      { num: '1', title: 'The Basics', region: '', status: 'current', unlock: 'Complete tutorial to unlock' },
+      { num: '2', title: 'The Neon Bazaar', region: 'Fringe Market', status: 'locked', unlock: 'Bank 3 times to unlock' },
+      { num: '3', title: 'Iron Tide', region: 'Machina Forge', status: 'locked', unlock: 'Clear 2 Dross in one game to unlock' },
+      { num: '4', title: 'Syndicate of Spires', region: 'Corporate Spire', status: 'locked', unlock: 'Acquire a Nebulite to unlock' },
+      { num: '5', title: 'The Cyber Realm', region: 'Digital Nexus', status: 'locked', unlock: 'Clear the board to unlock' },
+      { num: '6', title: 'The Ghost Network', region: 'Shadow Sector', status: 'locked', unlock: 'Earn 15,000 points to unlock' },
+      { num: '7', title: 'The Tower of Truth', region: 'Divinity Enclave', status: 'locked', unlock: 'Earn 20,000 points to unlock' },
+      { num: '8', title: 'The Abyss', region: 'Fringe Market', status: 'locked', unlock: 'Earn 25,000 points to unlock' },
+      { num: '9', title: 'The Fortress', region: 'Military Bastion', status: 'locked', unlock: 'Earn 30,000 points to unlock' }
+    ];
+    const levels = raw.map((l) => {
+      const isCompleted = l.status === 'completed';
+      const isCurrent = l.status === 'current';
+      const isLocked = l.status === 'locked';
+      return {
+        num: l.num, title: l.title, region: l.region, unlock: l.unlock,
+        hasRegion: !!l.region,
+        isCompleted, isCurrent, isLocked,
+        hasNext: l.num !== '9',
+        curFlag: isCurrent ? '1' : '0',
+        floatA: isCurrent ? 'animation:floatY 4.5s ease-in-out infinite' : '',
+        conduitA: isCompleted ? 'background:linear-gradient(#34d98b,#c9a2ff)' : 'background:#222438'
+      };
+    });
+    const rankStyle = { '1': ['#1a0b2e', '#ffd980'], '2': ['#0c0e16', '#cfd6e6'], '3': ['#1a0b06', '#e0a06a'] };
+    const leaders = [
+      { rank: '1', score: '24,600', level: 'The Basics' },
+      { rank: '2', score: '19,200', level: 'The Basics' },
+      { rank: '3', score: '16,400', level: 'Tutorial' },
+      { rank: '4', score: '14,100', level: 'Quick Start' },
+      { rank: '5', score: '11,750', level: 'Tutorial' },
+      { rank: '6', score: '9,400', level: 'The Basics' }
+    ].map((r) => { const s = rankStyle[r.rank]; return { rank: r.rank, score: r.score, level: r.level, rankInk: s ? s[0] : '#9aa0ad', rankBg: s ? s[1] : '#20233a' }; });
+    return {
+      levels, leaders,
+      showLB: this.state.showLB,
+      listRef: this.list,
+      openLB: () => this.setState({ showLB: true }),
+      closeLB: () => this.setState({ showLB: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

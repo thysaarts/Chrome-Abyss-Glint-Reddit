@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.local
+
+# env
+.env
+.env.*
+
+# meshy.ai API key (dev-time 3D generation — never commit)
+meshy.key
+# getimg.ai Worker proxy URL (+ optional passphrase) — local only, never commit
+getimg.key
+# meshy generation state (holds task ids; local only)
+scripts/.meshy-state.json
+scripts/.meshy-retex.json
+# generated 3D models — the raw 10-17MB Meshy GLBs are dev-only sources; the scene
+# ships only the optimised model.opt.glb + thumbs + manifest (~1MB each)
+public/models3d/*/model.glb
+
+# tsc build mode cache
+*.tsbuildinfo
+

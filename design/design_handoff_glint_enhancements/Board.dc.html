@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes bglim{0%,68%,100%{opacity:0;transform:scale(0.4)}80%{opacity:0.9;transform:scale(1.15)}} .bglim{transform-box:fill-box;transform-origin:center}</style></helmet>
+<div style="position:relative;width:366px;height:330px;margin:0 auto">
+<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 46%, rgba(124,90,224,0.10), transparent 70%)"></div>
+{{ boardSvg }}
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:380,&quot;height&quot;:340},&quot;dir&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;b&quot;,&quot;options&quot;:[&quot;a&quot;,&quot;b&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;large&quot;,&quot;options&quot;:[&quot;large&quot;,&quot;small&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  pts(arr) { return arr.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '); }
+  scale(arr, cx, cy, f) { return arr.map((p) => [cx + (p[0] - cx) * f, cy + (p[1] - cy) * f]); }
+  poly(arr) { const a = []; for (let i = 0; i < arr.length; i++) { const d = arr[i] * Math.PI / 180; a.push([Math.cos(d), Math.sin(d)]); } return a; }
+  shape(type, cx, cy, s) {
+    const u = (deg) => deg.map((a) => { const d = a * Math.PI / 180; return [cx + s * Math.cos(d), cy + s * Math.sin(d)]; });
+    if (type === 'nuracite') return u([-90, -30, 30, 90, 150, 210]);
+    if (type === 'umbrite') return u([-90, -18, 54, 126, 198]);
+    if (type === 'verdite') return [[cx, cy - s], [cx + 0.72 * s, cy], [cx, cy + s], [cx - 0.72 * s, cy]];
+    if (type === 'chromite') return [[cx, cy - s], [cx + 0.9 * s, cy + 0.62 * s], [cx - 0.9 * s, cy + 0.62 * s]];
+    if (type === 'dross') return u([-67.5, -22.5, 22.5, 67.5, 112.5, 157.5, 202.5, 247.5]);
+    return u([-90, -30, 30, 90, 150, 210]);
+  }
+  gemEls(type, cx, cy, s, k) {
+    const E = React.createElement, P = (pts, fill, op) => E('polygon', { key: k + (op || '') + fill, points: this.pts(pts), fill, opacity: op == null ? 1 : op });
+    const spec = E('ellipse', { key: k + 'sp', cx: cx - 0.22 * s, cy: cy - 0.34 * s, rx: 0.18 * s, ry: 0.11 * s, fill: '#ffffff', opacity: 0.62 });
+    if (type === 'duneglass') return [E('circle', { key: k + '1', cx, cy, r: s, fill: '#AEB6C2' }), E('circle', { key: k + '2', cx: cx - 0.05 * s, cy: cy - 0.1 * s, r: 0.72 * s, fill: '#CDD3DD' }), E('circle', { key: k + '3', cx: cx - 0.1 * s, cy: cy - 0.15 * s, r: 0.42 * s, fill: '#E8ECF2' }), spec];
+    if (type === 'vigilite') { const L = (f) => `M${cx},${cy - s * f} Q${cx + 0.5 * s * f},${cy} ${cx},${cy + s * f} Q${cx - 0.5 * s * f},${cy} ${cx},${cy - s * f} Z`; return [E('path', { key: k + '1', d: L(1), fill: '#C8922F' }), E('path', { key: k + '2', d: `M${cx},${cy - s} Q${cx + 0.5 * s},${cy} ${cx},${cy + s} L${cx},${cy - s} Z`, fill: '#6E4E18', opacity: 0.55 }), E('path', { key: k + '3', d: L(0.78), fill: '#F6D789', opacity: 0.88 }), E('path', { key: k + '4', d: L(0.4), fill: '#FFF0C8', opacity: 0.6 })]; }
+    const sil = this.shape(type, cx, cy, s), tab = this.scale(sil, cx, cy, 0.5);
+    if (type === 'nuracite') return [P(sil, '#3FD3E6'), P([sil[2], sil[3], sil[4]], '#1E8E9E', 0.55), P(tab, '#C5FBFF', 0.92), spec];
+    if (type === 'umbrite') return [P(sil, '#A24DF0'), P([sil[2], sil[3]], '#6A24A8', 0), P([sil[1], sil[2], sil[3], sil[4]], '#6A24A8', 0.45), P(tab, '#D6A6FF', 0.9), spec];
+    if (type === 'verdite') return [P(sil, '#2FD27C'), P([sil[3], sil[2], sil[1]], '#138A4E', 0.5), P(tab, '#9CFFC8', 0.9), spec];
+    if (type === 'chromite') return [P(sil, '#C2CAD6'), P([sil[0], sil[1], [cx, cy + 0.62 * s]], '#8A93A3', 0.5), P(this.scale(sil, cx, cy + 0.12 * s, 0.5), '#FFFFFF', 0.9), spec];
+    if (type === 'dross') return [P(sil, '#E2B440'), P([sil[3], sil[4], sil[5], sil[6]], '#A8801E', 0.5), P(tab, '#F8DC82', 0.95), E('path', { key: k + 'st', d: `M${cx - 0.05 * s},${cy - 0.5 * s} l${0.09 * s},${0.32 * s} l${0.32 * s},${0.09 * s} l${-0.32 * s},${0.09 * s} l${-0.09 * s},${0.32 * s} l${-0.09 * s},${-0.32 * s} l${-0.32 * s},${-0.09 * s} l${0.32 * s},${-0.09 * s} Z`, fill: '#ffffff', opacity: 0.85 })];
+    if (type === 'nebulite') return [E('rect', { key: k + '1', x: cx - s, y: cy - s, width: 2 * s, height: 2 * s, rx: 0.5 * s, fill: '#B36BF5' }), P([[cx, cy - 0.62 * s], [cx + 0.62 * s, cy], [cx, cy + 0.62 * s], [cx - 0.62 * s, cy]], '#E9CCFF', 0.88), E('circle', { key: k + 'c', cx, cy, r: 0.22 * s, fill: '#FBF2FF', opacity: 0.9 }), E('rect', { key: k + 'r', x: cx - s, y: cy - s, width: 2 * s, height: 2 * s, rx: 0.5 * s, fill: 'none', stroke: '#E0BBFF', strokeWidth: Math.max(0.7, 0.07 * s), opacity: 0.6 })];
+    return [P(sil, '#AEB6C2'), P(tab, '#E8ECF2', 0.9), spec];
+  }
+  ringEls(cx, cy, R, color, k, fill) {
+    const E = React.createElement, hx = (f) => this.pts(this.shape('nuracite', cx, cy, R * f));
+    const a = [E('polygon', { key: k + 'r1', points: hx(1.0), fill: 'none', stroke: color, strokeWidth: 2.4, opacity: 0.95 }), E('polygon', { key: k + 'r2', points: hx(1.14), fill: 'none', stroke: color, strokeWidth: 1.6, opacity: 0.3 })];
+    if (fill) a.unshift(E('polygon', { key: k + 'rf', points: hx(1.0), fill: color, opacity: 0.12 }));
+    return a;
+  }
+  renderVals() {
+    const E = React.createElement;
+    const dir = this.props.dir || 'a';
+    const size = this.props.size || 'large';
+    const radius = size === 'small' ? 4 : 5;
+    const cw = size === 'small' ? 40 : 33;
+    const R = cw / Math.sqrt(3);
+    const vy = 1.5 * R;
+    const wellR = R * 0.95, gemR = R * 0.64;
+    const weighted = ['duneglass', 'duneglass', 'duneglass', 'duneglass', 'duneglass', 'vigilite', 'vigilite', 'vigilite', 'chromite', 'chromite', 'chromite', 'verdite', 'verdite', 'verdite', 'umbrite', 'umbrite', 'umbrite', 'nuracite', 'nuracite'];
+    const activated = new Set(['2,-3', '3,-3', '2,-2', '3,-2', '1,-2', '3,-4']);
+    const empties = new Set(['-2,2', '2,1', '-3,0', '0,3', '-4,2']);
+    const wellBase = '#181a23', wellLight = '#2a2e3a', wellStroke = '#2c2f3c';
+    const kids = [];
+    let i = 0;
+    for (let r = -radius; r <= radius; r++) {
+      for (let q = -radius; q <= radius; q++) {
+        const y = -q - r;
+        if (Math.max(Math.abs(q), Math.abs(r), Math.abs(y)) > radius) continue;
+        const key = q + ',' + r;
+        const cx = 183 + cw * (q + r / 2), cy = 165 + vy * r;
+        const k = 'c' + (i++);
+        const wv = this.shape('nuracite', cx, cy, wellR);
+        kids.push(E('polygon', { key: k + 'w', points: this.pts(wv), fill: wellBase }));
+        kids.push(E('polygon', { key: k + 'wl', points: this.pts([wv[0], wv[5], wv[4], wv[3]]), fill: wellLight, opacity: 0.42 }));
+        kids.push(E('polygon', { key: k + 'wd', points: this.pts([wv[0], wv[1], wv[2], wv[3]]), fill: '#000000', opacity: 0.2 }));
+        kids.push(E('polygon', { key: k + 'ws', points: this.pts(wv), fill: 'none', stroke: wellStroke, strokeWidth: 1.1 }));
+        let type, state = 'normal';
+        if (empties.has(key)) { type = 'empty'; }
+        else if (activated.has(key)) { type = 'nuracite'; state = 'activated'; }
+        else if (key === '0,1') { type = 'dross'; }
+        else if (key === '-1,2') { type = 'nebulite'; }
+        else if (key === '-2,-2') { type = 'vigilite'; }
+        else { const h = ((q * 341 + r * 977 + q * r * 131) % weighted.length + weighted.length) % weighted.length; type = weighted[h]; }
+        if (type !== 'empty') { this.gemEls(type, cx, cy, gemR, k).forEach((el) => kids.push(el)); }
+        if (type !== 'empty' && type !== 'dross' && i % 9 === 4) { kids.push(E('circle', { key: k + 'tw', cx: cx - 0.18 * gemR, cy: cy - 0.32 * gemR, r: 0.16 * gemR, fill: '#ffffff', className: 'bglim', style: { animation: `bglim ${3.2 + (i % 5) * 0.4}s ease-in-out infinite`, animationDelay: `${(i % 6) * 0.45}s` } })); }
+        if (state === 'activated') this.ringEls(cx, cy, wellR, '#ffffff', k).forEach((el) => kids.push(el));
+      }
+    }
+    const boardSvg = E('svg', { key: 'bsvg', viewBox: '0 0 366 330', width: 366, height: 330, style: { position: 'relative', display: 'block', overflow: 'visible' } }, kids);
+    return { boardSvg };
+  }
+}
+</script>
+</body>
+</html>

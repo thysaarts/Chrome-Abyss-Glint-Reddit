@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#0a0b12;color:#e7e9ef;font-family:'Saira',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:30px 0}
+  @keyframes tTgt{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+  @keyframes tAct{0%{opacity:0;transform:scale(1.25)}60%{opacity:1;transform:scale(.98)}100%{opacity:1;transform:scale(1)}}
+  @keyframes tGold{0%{opacity:0;transform:scale(1.2)}40%{opacity:1;transform:scale(1)}100%{opacity:1;transform:scale(1)}}
+  @keyframes tFly{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-56px) scale(.4)}}
+  @keyframes tClear{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.3)}}
+  @keyframes tDrop{0%{opacity:0;transform:translateY(-46px) scale(.6)}55%{opacity:1}72%{transform:translateY(5px) scale(1.05)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes tBanner{0%{opacity:0;transform:translate(-50%,-50%) scale(2.4);filter:blur(7px)}18%{opacity:1;transform:translate(-50%,-50%) scale(1);filter:blur(0)}24%{transform:translate(-50%,-50%) scale(1.06)}30%{transform:translate(-50%,-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.94)}}
+  @keyframes tShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(3px,1px)}}
+  @keyframes gemHover{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(2deg)}}
+  @keyframes npGlow{0%,100%{box-shadow:0 0 14px rgba(192,132,252,.3)}50%{box-shadow:0 0 26px rgba(192,132,252,.55)}}
+  @keyframes bankPulse{0%,100%{box-shadow:0 0 0 rgba(232,181,63,0)}50%{box-shadow:0 0 24px rgba(232,181,63,.45)}}
+  @keyframes bSway{0%,100%{transform:rotateX(15deg) rotateZ(-0.7deg)}50%{transform:rotateX(12.5deg) rotateZ(0.7deg)}}
+  @keyframes numIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+  @keyframes txtIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+
+<div style="width:392px;flex:none;background:#0a0a0f;border-radius:46px;padding:10px;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), inset 0 0 0 1.5px #1c1e28">
+<div style="position:relative;background:#07080f;border-radius:38px;overflow:hidden;height:812px;display:flex;flex-direction:column">
+<div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px 300px at 50% -6%, rgba(157,123,255,0.16), transparent 62%), radial-gradient(360px 320px at 100% 40%, rgba(95,230,242,0.06), transparent 60%), radial-gradient(380px 340px at 0% 86%, rgba(224,139,255,0.07), transparent 62%)"></div>
+
+<!-- top bar -->
+<div style="position:relative;z-index:4;display:flex;justify-content:space-between;align-items:center;padding:14px 14px 2px">
+<div><div style="font:400 7.5px 'Share Tech Mono',monospace;letter-spacing:.28em;color:#c084fc">CHROME ABYSS</div><div style="font:700 22px/0.9 'Chakra Petch';margin-top:2px;background:linear-gradient(100deg,#7fe9f5,#9d7bff 50%,#e08bff 80%);-webkit-background-clip:text;background-clip:text;color:transparent">GLINT</div></div>
+<div style="display:flex;gap:8px">
+<button title="Mute" style="width:34px;height:34px;border-radius:11px;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-bottom:2.5px solid #060810;color:#cdd3e0;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path></svg></button>
+<button title="How to play" style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:11px;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-bottom:2.5px solid #060810;color:#cdd3e0;font:600 11px 'Saira';cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M9.3 9.2a2.7 2.7 0 1 1 3.9 2.5c-.9.5-1.2 1-1.2 1.9"></path><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"></circle></svg>Help</button>
+<button title="Exit" style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:11px;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-bottom:2.5px solid #060810;color:#cdd3e0;font:600 11px 'Saira';cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"></path><path d="M16 16l4-4-4-4M20 12H10"></path></svg>Exit</button>
+</div>
+</div>
+
+<!-- score row -->
+<div style="position:relative;z-index:4;display:flex;gap:7px;padding:7px 14px 0">
+<div style="flex:1.4;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-radius:12px;padding:6px 11px"><div style="font:400 7px 'Share Tech Mono',monospace;letter-spacing:.16em;color:#6b6690">SCORE</div><div style="font:700 19px/1 'Chakra Petch';color:#ffd980;text-shadow:0 0 16px rgba(232,181,63,.4)">{{ score }}</div></div>
+<div style="flex:1;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-radius:12px;padding:6px 10px"><div style="font:400 7px 'Share Tech Mono',monospace;letter-spacing:.14em;color:#6b6690">BANKS</div><div style="display:flex;gap:4px;margin-top:5px"><sc-for list="{{ bankPips }}" as="p" hint-placeholder-count="3"><span style="width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:{{ p.bg }};border:{{ p.bd }}"></span></sc-for></div></div>
+<div style="flex:1;background:linear-gradient(180deg,#1a1d2e,#101322);border:1px solid #2c2f4a;border-radius:12px;padding:6px 10px"><div style="font:400 7px 'Share Tech Mono',monospace;letter-spacing:.14em;color:#6b6690">BUSTS</div><div style="display:flex;gap:3px;margin-top:4px"><sc-for list="{{ bustPips }}" as="p" hint-placeholder-count="3"><svg width="11" height="10" viewBox="0 0 14 13"><path d="M7 12.2C2 8.2 0.4 5.6 0.4 3.4A3.1 3.1 0 0 1 7 2.1A3.1 3.1 0 0 1 13.6 3.4C13.6 5.6 12 8.2 7 12.2Z" fill="{{ p.fill }}" stroke="{{ p.stroke }}" stroke-width="1.2"></path></svg></sc-for></div></div>
+</div>
+
+<!-- bank overlay — sits on top of the score row, like the real game -->
+<sc-if value="{{ bankVisible }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:14px;right:14px;top:56px;z-index:8;display:flex;justify-content:center">
+<button onClick="{{ bankTap }}" style="display:flex;align-items:center;gap:10px;padding:10px 28px;border-radius:13px;border:1px solid rgba(232,181,63,0.55);background:rgba(22,17,6,0.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#e8b53f;cursor:{{ bankCursor }};opacity:{{ bankOpacity }};{{ bankAnim }};box-shadow:0 16px 34px -10px rgba(0,0,0,.75)">
+<span style="position:relative;width:26px;height:26px;display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 26 26" style="position:absolute;transform:rotate(-90deg)"><circle cx="13" cy="13" r="11" fill="none" stroke="rgba(232,181,63,0.25)" stroke-width="2.4"></circle><circle cx="13" cy="13" r="11" fill="none" stroke="#e8b53f" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="69" stroke-dashoffset="18"></circle></svg><span style="font:700 12px 'Chakra Petch'">3</span></span>
+<span style="font:700 14px 'Chakra Petch';letter-spacing:.08em">BANK NOW</span>
+</button>
+</div>
+</sc-if>
+
+<!-- toast -->
+<div style="position:relative;z-index:4;display:flex;justify-content:center;height:26px;margin-top:5px">
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><span style="font:600 10px 'Chakra Petch';color:#7af0b4;background:rgba(52,217,139,0.1);border:1px solid rgba(52,217,139,0.28);padding:4px 12px;border-radius:999px;animation:txtIn .3s ease-out both">{{ toast }}</span></sc-if>
+</div>
+
+<!-- board -->
+<div style="position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;perspective:900px">
+<div style="transform-style:preserve-3d;animation:bSway 12s ease-in-out infinite">
+<div style="position:relative;width:300px;height:322px;{{ boardShake }}">
+<sc-for list="{{ cells }}" as="c" hint-placeholder-count="37">
+<div onClick="{{ c.tap }}" style="position:absolute;left:{{ c.left }}px;top:{{ c.top }}px;width:52px;height:51px;cursor:{{ c.cursor }};{{ c.animStyle }}">
+<svg viewBox="0 0 100 98" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+<polygon points="25,10 75,10 100,53.3 75,96.6 25,96.6 0,53.3" fill="#05060d"></polygon>
+<polygon points="100,43.3 75,86.6 75,96.6 100,53.3" fill="#0a0b13"></polygon>
+<polygon points="75,86.6 25,86.6 25,96.6 75,96.6" fill="#10121d"></polygon>
+<polygon points="25,86.6 0,43.3 0,53.3 25,96.6" fill="#262b3a"></polygon>
+<polygon points="25,0 75,0 100,43.3 75,86.6 25,86.6 0,43.3" fill="#181a23" stroke="#2c2f3c" stroke-width="1.4"></polygon>
+<polygon points="25,0 75,0 100,43.3 0,43.3" fill="#2a2e3a" opacity="0.4"></polygon>
+</svg>
+<sc-if value="{{ c.hasGem }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:14px;top:9px;width:24px;height:26px"><dc-import name="Gem" type="{{ c.type }}" dir="a" hint-size="24px,24px" style="width:100%;height:100%"></dc-import></div></sc-if>
+<sc-if value="{{ c.hl }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 98" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><polygon points="25,0 75,0 100,43.3 75,86.6 25,86.6 0,43.3" fill="rgba(77,163,255,0.08)" stroke="#4da3ff" stroke-width="2.6"></polygon></svg></sc-if>
+<sc-if value="{{ c.tgt }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 98" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;animation:tTgt 1.1s ease-in-out infinite"><polygon points="25,0 75,0 100,43.3 75,86.6 25,86.6 0,43.3" fill="rgba(143,208,255,0.16)" stroke="#a8dcff" stroke-width="3"></polygon><polygon points="25,-6 75,-6 106,43.3 75,92.6 25,92.6 -6,43.3" fill="none" stroke="#8fd0ff" stroke-width="1.6" opacity="0.5"></polygon></svg></sc-if>
+<sc-if value="{{ c.act }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 98" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;animation:tAct .3s ease-out both"><polygon points="25,0 75,0 100,43.3 75,86.6 25,86.6 0,43.3" fill="rgba(255,255,255,0.07)" stroke="#ffffff" stroke-width="2.8"></polygon></svg></sc-if>
+<sc-if value="{{ c.gold }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 100 98" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;animation:tGold .4s ease-out both"><polygon points="25,0 75,0 100,43.3 75,86.6 25,86.6 0,43.3" fill="rgba(232,181,63,0.14)" stroke="#ffd980" stroke-width="3"></polygon></svg></sc-if>
+<sc-if value="{{ c.num }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-15px;transform:translateX(-50%);font:700 11px 'Chakra Petch';color:#a8dcff;background:rgba(10,14,24,.85);border:1px solid rgba(143,208,255,.4);padding:1px 6px;border-radius:7px;animation:numIn .3s ease-out both">{{ c.num }}</div></sc-if>
+</div>
+</sc-for>
+
+<!-- multiplier badge -->
+<sc-if value="{{ multBadge }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:5;font:700 22px 'Chakra Petch';color:#1a0b2e;background:linear-gradient(135deg,#ffe6a8,#e8b53f);padding:6px 14px;border-radius:12px;box-shadow:0 0 26px rgba(232,181,63,.6);animation:tAct .35s ease-out both">{{ multBadge }}</div></sc-if>
+</div>
+</div>
+<div style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:256px;height:28px;border-radius:50%;background:radial-gradient(closest-side, rgba(0,0,0,.6), transparent);filter:blur(6px);pointer-events:none"></div>
+
+<!-- banner plate -->
+<sc-if value="{{ banner }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;top:46%;z-index:6;background:rgba(6,7,14,0.62);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);border-radius:16px;border:1px solid {{ bannerBd }};padding:15px 32px;animation:tBanner 1.9s ease-out both;transform:translate(-50%,-50%)">
+<div style="font:700 34px/1 'Chakra Petch';letter-spacing:.1em;color:{{ bannerInk }};text-shadow:0 0 22px {{ bannerGlow }};white-space:nowrap">{{ banner }}</div>
+</div>
+</sc-if>
+</div>
+
+<!-- footer menu -->
+<div style="position:relative;z-index:4;display:flex;align-items:flex-end;justify-content:space-between;gap:2px;padding:8px 12px 9px;margin:0 12px;background:linear-gradient(180deg,rgba(23,26,40,.9),rgba(13,15,26,.94));border:1px solid #2c2f4a;border-radius:20px">
+<div style="position:absolute;left:50%;top:-28px;transform:translateX(-50%);width:112px;height:102px;border-radius:50%;background:radial-gradient(circle at 50% 58%, rgba(192,132,252,0.2), transparent 62%);pointer-events:none"></div>
+<button title="Restart" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#9b95bd;padding:0">
+<span style="width:36px;height:36px;border-radius:12px;background:linear-gradient(180deg,#222639,#141726);border:1px solid #2c2f4a;border-bottom:2px solid #060810;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v5h-5"></path></svg></span>
+<span style="font:600 7px 'Share Tech Mono',monospace;letter-spacing:.16em">RESTART</span>
+</button>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:#9b95bd">
+<span style="position:relative;width:40px;height:36px;display:flex;align-items:center;justify-content:center">
+<svg viewBox="0 0 44 40" width="40" height="36" style="position:absolute;inset:0;overflow:visible"><polygon points="29,2 39,8 39,20 29,26 19,20 19,8" fill="#141726" opacity="0.35" stroke="#2c2f4a" stroke-width="1"></polygon><polygon points="25,5 35,11 35,23 25,29 15,23 15,11" fill="#141726" opacity="0.65" stroke="#2c2f4a" stroke-width="1"></polygon><polygon points="21,8 31,14 31,26 21,32 11,26 11,14" fill="#141726" stroke="rgba(192,132,252,0.55)" stroke-width="1.4"></polygon></svg>
+<span style="position:absolute;left:1px;top:9px;width:37px;display:flex;justify-content:center;font:700 13px 'Chakra Petch';color:#c084fc">{{ upNext }}</span>
+</span>
+<span style="font:600 7px 'Share Tech Mono',monospace;letter-spacing:.16em">UP NEXT</span>
+</div>
+<div style="flex:none;width:88px;display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:-36px">
+<span style="font:700 6.5px 'Share Tech Mono',monospace;letter-spacing:.22em;color:#c084fc">NOW PLACING</span>
+<span style="position:relative;width:64px;height:58px">
+<span style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:40px;height:8px;border-radius:50%;background:radial-gradient(closest-side, rgba(0,0,0,.7), transparent)"></span>
+<span style="position:absolute;left:6px;top:2px;width:52px;height:52px;animation:gemHover 4s ease-in-out infinite;filter:drop-shadow(0 10px 11px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(192,132,252,.4))"><dc-import name="Gem" type="{{ hand }}" dir="a" hint-size="52px,52px" style="width:100%;height:100%"></dc-import></span>
+</span>
+<span style="font:700 11px 'Chakra Petch';color:#f1f0f8">{{ handName }}</span>
+</div>
+<button title="Minerals &amp; combos" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#9b95bd;padding:0">
+<span style="width:36px;height:36px;border-radius:12px;background:linear-gradient(180deg,#222639,#141726);border:1px solid #2c2f4a;border-bottom:2px solid #060810;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="11" x2="12" y2="16.5"></line><circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"></circle></svg></span>
+<span style="font:600 7px 'Share Tech Mono',monospace;letter-spacing:.16em">COMBOS</span>
+</button>
+<button title="Log" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#9b95bd;padding:0">
+<span style="width:36px;height:36px;border-radius:12px;background:linear-gradient(180deg,#222639,#141726);border:1px solid #2c2f4a;border-bottom:2px solid #060810;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V5M8.5 8.5 12 5l3.5 3.5"></path><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg></span>
+<span style="font:600 7px 'Share Tech Mono',monospace;letter-spacing:.16em">LOG</span>
+</button>
+</div>
+
+<!-- tutorial text panel -->
+<div style="position:relative;z-index:4;margin:8px 12px 14px;padding:13px 16px 14px;background:linear-gradient(180deg,#131628,#0d0f1c);border:1px solid #34305c;border-radius:18px;box-shadow:0 -8px 30px -12px rgba(124,90,224,.35);min-height:118px;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:700 8.5px 'Share Tech Mono',monospace;letter-spacing:.24em;color:#9d7bff">TUTORIAL</span><span style="font:400 9px 'Share Tech Mono',monospace;color:#524d78">{{ stepLabel }}</span></div>
+<div style="flex:1;display:flex;align-items:flex-end;gap:12px;margin-top:6px">
+<div style="flex:1;font:400 12.5px/1.5 'Saira';color:#cfc9ea;animation:txtIn .3s ease-out both">{{ text }}</div>
+<sc-if value="{{ nextVisible }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ nextTap }}" title="{{ nextLabel }}" style="flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:none;background:linear-gradient(180deg,#cda6ff,#b06bf5);border-bottom:3px solid #7d3fc4;color:#1a0b2e;cursor:pointer;box-shadow:0 8px 18px -6px rgba(176,107,245,.6)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+</sc-if>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:412,&quot;height&quot;:840}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.KEYS = [];
+    for (let q = -3; q <= 3; q++) for (let r = -3; r <= 3; r++) { if (Math.abs(q + r) <= 3) this.KEYS.push(q + ',' + r); }
+    this.state = this.freshState();
+    this._timers = [];
+  }
+  freshState() {
+    return { step: 0, board: this.boardA(), hand: 'chromite', act: {}, gold: {}, hl: {}, tgt: {}, nums: {}, anim: {}, banner: null, bannerKind: 'violet', bank: 'hidden', bankFrozen: false, score: 0, banks: 3, busts: 3, toast: '', upNext: 8, multBadge: '', shake: false };
+  }
+  boardA() {
+    const b = {};
+    const fill = { '-3,0': 'verdite', '-3,1': 'duneglass', '-3,2': 'vigilite', '-3,3': 'umbrite', '-2,-1': 'nuracite', '-2,0': 'vigilite', '-2,1': 'verdite', '-2,2': 'duneglass', '-2,3': 'chromite', '-1,-2': 'vigilite', '-1,-1': 'duneglass', '-1,0': 'verdite', '-1,1': 'duneglass', '-1,2': 'vigilite', '-1,3': 'verdite', '0,-3': 'duneglass', '0,-2': 'chromite', '0,-1': 'chromite', '0,0': 'nuracite', '0,1': 'umbrite', '0,2': 'verdite', '0,3': 'duneglass', '1,-3': 'umbrite', '1,-2': 'chromite', '1,-1': 'duneglass', '1,0': 'umbrite', '1,1': 'vigilite', '1,2': 'duneglass', '2,-3': 'verdite', '2,-2': 'duneglass', '2,-1': 'vigilite', '2,0': 'nuracite', '2,1': 'umbrite', '3,-3': 'vigilite', '3,-2': 'umbrite', '3,-1': 'duneglass', '3,0': 'verdite' };
+    this.KEYS.forEach((k) => { b[k] = fill[k] || 'duneglass'; });
+    return b;
+  }
+  boardB() {
+    const b = {};
+    const fill = { '1,-3': 'duneglass', '1,-2': 'vigilite', '1,-1': 'chromite', '1,0': 'verdite', '1,1': 'umbrite', '1,2': 'nuracite', '-2,0': 'duneglass', '-2,1': 'vigilite', '-2,2': 'chromite', '-2,3': 'verdite', '-2,-1': 'nuracite', '-1,0': 'vigilite', '0,0': 'duneglass', '-3,0': 'vigilite', '-3,1': 'chromite', '-3,2': 'duneglass', '-3,3': 'umbrite', '-1,-2': 'chromite', '-1,-1': 'verdite', '-1,1': 'umbrite', '-1,2': 'vigilite', '-1,3': 'nuracite', '0,-3': 'umbrite', '0,-2': 'verdite', '0,-1': 'vigilite', '0,1': 'chromite', '0,2': 'vigilite', '0,3': 'verdite', '2,-3': 'duneglass', '2,-2': 'umbrite', '2,-1': 'verdite', '2,0': 'chromite', '2,1': 'duneglass', '3,-3': 'verdite', '3,-2': 'chromite', '3,-1': 'umbrite', '3,0': 'vigilite' };
+    this.KEYS.forEach((k) => { b[k] = fill[k] || 'duneglass'; });
+    return b;
+  }
+  boardC() {
+    const b = {};
+    this.KEYS.forEach((k) => { b[k] = null; });
+    b['0,-1'] = 'vigilite'; b['1,-1'] = 'vigilite'; b['0,0'] = 'vigilite'; b['-1,0'] = 'vigilite';
+    b['1,0'] = 'umbrite'; b['0,1'] = 'duneglass'; b['-1,1'] = 'duneglass';
+    return b;
+  }
+  t(fn, ms) { this._timers.push(setTimeout(fn, ms)); }
+  componentWillUnmount() { this._timers.forEach(clearTimeout); }
+  setKeys(field, keys) { const o = {}; keys.forEach((k) => { o[k] = true; }); this.setState({ [field]: o }); }
+  place(key, gem) {
+    const board = Object.assign({}, this.state.board);
+    const replaced = board[key];
+    board[key] = gem;
+    this.setState({ board, tgt: {}, hl: {}, upNext: Math.max(0, this.state.upNext - 1) });
+    return replaced;
+  }
+  bankOut(keys, pts, toastText, after) {
+    this.setKeys('gold', keys);
+    this.t(() => {
+      const board = Object.assign({}, this.state.board);
+      const anim = Object.assign({}, this.state.anim);
+      keys.forEach((k, i) => { anim[k] = 'animation:tFly .5s ease-in both;animation-delay:' + (i * 55) + 'ms'; });
+      this.setState({ anim });
+      this.t(() => {
+        keys.forEach((k) => { board[k] = null; });
+        this.setState({ board, gold: {}, act: {}, anim: {}, score: this.state.score + pts, toast: toastText, multBadge: '' });
+        if (after) after();
+      }, 800);
+    }, 700);
+  }
+  clearAndRefill(bannerText, kind, newBoard, after) {
+    const anim = {};
+    this.KEYS.forEach((k, i) => { if (this.state.board[k]) anim[k] = 'animation:tClear .4s ease-in both;animation-delay:' + (i * 22) + 'ms'; });
+    this.setState({ anim, banner: bannerText, bannerKind: kind, toast: '' });
+    this.t(() => {
+      const anim2 = {};
+      this.KEYS.forEach((k, i) => { if (newBoard[k]) anim2[k] = 'animation:tDrop .45s cubic-bezier(.34,1.3,.5,1) both;animation-delay:' + (i * 22) + 'ms'; });
+      this.setState({ board: newBoard, anim: anim2, banner: null });
+      this.t(() => { this.setState({ anim: {} }); if (after) after(); }, 1400);
+    }, 2000);
+  }
+  bustSeq(retry) {
+    this.setState({ banner: 'BUST', bannerKind: 'red', shake: true, busts: retry ? this.state.busts : this.state.busts - 1 });
+    this.t(() => {
+      this.setState({ shake: false, banner: null });
+      if (retry) { this.setState({ board: this.boardC(), hand: 'vigilite', act: {}, toast: 'Try again — connect the Vigilite cluster' }); }
+      else { this.setState({ banner: 'RESHUFFLE', bannerKind: 'violet' }); this.t(() => this.setState({ banner: null, step: 16, toast: '' }), 1900); }
+    }, 1500);
+  }
+  next() {
+    const s = this.state.step;
+    if (s === 0) { this.setKeys('hl', ['0,-2', '0,-1', '1,-2']); this.setKeys('tgt', ['-1,-1']); this.setState({ step: 1 }); }
+    else if (s === 2) { this.setState({ step: 3, hand: 'umbrite', toast: '' }); }
+    else if (s === 3) { this.setKeys('hl', ['0,1', '1,0']); this.setKeys('tgt', ['0,0']); this.setState({ step: 4 }); }
+    else if (s === 5) { this.clearAndRefill('COMBOS', 'violet', this.boardB(), () => this.setState({ step: 6, hand: 'verdite', bank: 'hidden' })); }
+    else if (s === 6) { this.setKeys('hl', ['-2,0', '-2,1', '-2,2', '-2,3']); this.setKeys('tgt', ['-2,3']); this.setState({ step: 7 }); }
+    else if (s === 9) { this.setKeys('hl', ['1,-3', '1,-2', '1,-1', '1,0', '1,1', '1,2']); this.setKeys('tgt', ['1,2']); this.setState({ step: 10, hand: 'nuracite', toast: '' }); }
+    else if (s === 11) { this.clearAndRefill('BANKING', 'gold', this.boardC(), () => this.setState({ step: 12, hand: 'vigilite', toast: '' })); }
+    else if (s === 14) { this.setState({ step: 15, hand: 'verdite', toast: '' }); }
+    else if (s === 16) { this.setState({ board: this.boardA(), hand: 'chromite', act: {}, hl: {}, tgt: {}, step: 17, toast: 'Tutorial complete · The Basics unlocked', bank: 'hidden', upNext: 30 }); }
+    else if (s === 17) { this._timers.forEach(clearTimeout); this.setState(this.freshState()); }
+  }
+  onCell(key) {
+    const s = this.state.step;
+    if (s === 1) { if (key !== '-1,-1') return; this.place(key, 'chromite'); this.setKeys('act', ['0,-2', '0,-1', '1,-2', '-1,-1']); this.setState({ step: 2, hand: 'duneglass', bank: 'disabled', toast: 'Quad activated · 4 / 6 tiles' }); }
+    else if (s === 4) { if (key !== '0,0') return; this.place(key, 'umbrite'); this.setKeys('act', ['0,-2', '0,-1', '1,-2', '-1,-1', '0,0', '0,1', '1,0']); this.setState({ multBadge: '×6', bank: 'hidden' }); this.t(() => this.bankOut(['0,-2', '0,-1', '1,-2', '-1,-1', '0,0', '0,1', '1,0'], 4200, '+4,200 · Quad + Trips · Convergence ×6', () => this.setState({ step: 5 })), 900); }
+    else if (s === 7) { if (key !== '-2,3') return; this.place(key, 'verdite'); this.setKeys('act', ['-2,0', '-2,1', '-2,2', '-2,3']); const nums = { '-2,0': '1', '-2,1': '2', '-2,2': '3', '-2,3': '4' }; this.setState({ step: 8, hand: 'duneglass', nums, toast: 'Drift activated · 4 / 6 tiles' }); this.setKeys('tgt', ['-1,0']); }
+    else if (s === 8) { if (key !== '-1,0') return; this.place(key, 'duneglass'); this.setKeys('act', ['-2,0', '-2,1', '-2,2', '-2,3', '-1,0', '0,0']); this.setState({ nums: {}, multBadge: '×2' }); this.t(() => this.bankOut(['-2,0', '-2,1', '-2,2', '-2,3', '-1,0', '0,0'], 1400, '+1,400 · Accord: Drift + Trips ×2', () => this.setState({ step: 9 })), 900); }
+    else if (s === 10) { if (key !== '1,2') return; this.place(key, 'nuracite'); this.setKeys('act', ['1,-3', '1,-2', '1,-1', '1,0', '1,1', '1,2']); this.setState({ multBadge: '×6' }); this.t(() => this.bankOut(['1,-3', '1,-2', '1,-1', '1,0', '1,1', '1,2'], 4800, '+4,800 · Full Drift ×6', () => this.setState({ step: 11 })), 900); }
+    else if (s === 12) {
+      if (!this.state.board[key]) return;
+      const vig = ['0,-1', '1,-1', '0,0', '-1,0'];
+      if (vig.indexOf(key) >= 0) { this.place(key, 'vigilite'); this.t(() => this.bustSeq(true), 500); return; }
+      const replaced = this.place(key, 'vigilite');
+      this._mult = replaced === 'umbrite' ? 5 : 1;
+      this.setKeys('act', vig.concat([key]));
+      this._pentad = vig.concat([key]);
+      this.setState({ step: 13, bank: 'armed', toast: 'Pentad activated · 5 tiles' });
+    }
+    else if (s === 15) {
+      if (!this.state.board[key]) return;
+      this.place(key, 'verdite');
+      this.t(() => this.bustSeq(false), 500);
+    }
+  }
+  bankNow() {
+    if (this.state.bank !== 'armed' || this.state.step !== 13) return;
+    const pts = 500 * (this._mult || 5);
+    this.setState({ bank: 'hidden', multBadge: '×' + (this._mult || 5) });
+    this.bankOut(this._pentad || [], pts, '+' + pts.toLocaleString() + ' · Pentad ×' + (this._mult || 5) + ' · free bank used', () => this.setState({ step: 14, banks: 2 }));
+  }
+  renderVals() {
+    const TEXTS = [
+      'In this game, you are trying to collect as many gems and minerals as you can. You do so by creating a combo. Let\u2019s try and make a combo with your Chromite tile.',
+      'There\u2019s already three Chromite tiles connected on the board. Let\u2019s turn it into a Quad. Place your tile on the highlighted spot.',
+      'You have now activated a combo on the board. And you replaced your Chromite tile with the Duneglass piece on the board, which went into your hand.',
+      'But a combo of less than 6 tiles isn\u2019t enough to bank. So, let\u2019s make another combo. Let\u2019s see where you can place this Umbrite gem.',
+      'Perfect! There\u2019s a pair of Umbrite gems close to your Quad of Chromite. Place your Umbrite gem onto the highlighted spot.',
+      'You have connected two combos. Notice how the tile you replaced did not go into your hand this time. It is used as a multiplier for your Convergence combo. A Nuracite is worth 6, the highest value!',
+      'Let\u2019s talk about Combos. You just banked a Quad and a Trips. These are combos of tiles of the same kind. You can also make combos that include tiles of different kinds. For example, a Drift.',
+      'Let\u2019s replace your Verdite gem with the Verdite gem in this combo. That way, you activate this Drift on the board. Place your gem on the highlighted spot.',
+      'A Drift is a run of four tiles and gems that form a straight. Look at the numbers above these tiles. You can easily work out a tile\u2019s value by counting its points. Now, place your Duneglass on the highlighted tile.',
+      'Now, you created an Accord. An Accord consists of a Drift and a set-combo, in your case a Trips of Duneglass. Because this is exactly 6 tiles, it\u2019s banked automatically.',
+      'Your next gem is a Nuracite. Notice there\u2019s a Full Drift on the board already. Let\u2019s claim it by replacing the Nuracite gem in the Full Drift with yours. Place your gem in the highlighted spot.',
+      'A Full Drift is already 6 tiles, so it banks immediately. Remember that this will happen automatically for every combo or chain of 6 tiles and more.',
+      'Now, let\u2019s see if you can claim a combo of Vigilite tiles. Go ahead and place your gem on the board.',
+      'Well done. Now, let\u2019s bank this combo immediately. Notice the BANK NOW banner with a countdown. You usually get 3 seconds to decide if you want to bank. Click it!',
+      'You have now banked a combo yourself, without waiting for the 6+ threshold. You get this free bank 3 times per game, so use it wisely. It\u2019s best to wait till later in the game to spend it.',
+      'Your next tile seems to be incompatible. You can try to place it anywhere, but unfortunately, there\u2019s no match or Drift to make, so you will Bust!',
+      'You can Bust 3 times in one game and then it\u2019s game over. Do you think you are ready to try it out yourself now? Click Continue when you\u2019re ready.',
+      'Tutorial complete! This is a fresh 37-tile board — from here the real Level 0 run begins.'
+    ];
+    const s = this.state;
+    const NAMES = { duneglass: 'Duneglass', vigilite: 'Vigilite', chromite: 'Chromite', verdite: 'Verdite', umbrite: 'Umbrite', nuracite: 'Nuracite' };
+    const R = 26, xp = 39, yp = 45, ox = 150, oy = 158;
+    const cells = this.KEYS.map((k) => {
+      const p = k.split(','); const q = +p[0], r = +p[1];
+      const type = s.board[k];
+      const clickable = (s.step === 1 && s.tgt[k]) || (s.step === 4 && s.tgt[k]) || (s.step === 7 && s.tgt[k]) || (s.step === 8 && s.tgt[k]) || (s.step === 10 && s.tgt[k]) || ((s.step === 12 || s.step === 15) && !!type);
+      return {
+        key: k,
+        left: +(ox + xp * q - 26).toFixed(1),
+        top: +(oy + yp * (r + q / 2) - 25).toFixed(1),
+        type: type || 'duneglass',
+        hasGem: !!type,
+        hl: !!s.hl[k], tgt: !!s.tgt[k], act: !!s.act[k], gold: !!s.gold[k],
+        num: s.nums[k] || '',
+        animStyle: s.anim[k] || '',
+        cursor: clickable ? 'pointer' : 'default',
+        tap: () => this.onCell(k)
+      };
+    });
+    const nextSteps = { 0: 'Next', 2: 'Next', 3: 'Next', 5: 'Next', 6: 'Next', 9: 'Next', 11: 'Next', 14: 'Next', 16: 'Continue', 17: 'Replay tutorial' };
+    const kindMap = { violet: ['rgba(157,123,255,.45)', '#e2dcff', 'rgba(157,123,255,.6)'], gold: ['rgba(232,181,63,.5)', '#ffd980', 'rgba(232,181,63,.55)'], red: ['rgba(255,90,118,.4)', '#ff5a76', 'rgba(255,90,118,.6)'] };
+    const km = kindMap[s.bannerKind] || kindMap.violet;
+    return {
+      cells,
+      score: s.score.toLocaleString(),
+      bankPips: [0, 1, 2].map((i) => ({ bg: i < s.banks ? 'linear-gradient(135deg,#f4d885,#e8b53f)' : '#15182a', bd: i < s.banks ? 'none' : '1px solid #2a2748' })),
+      bustPips: [0, 1, 2].map((i) => ({ fill: i < s.busts ? '#ff5a76' : 'none', stroke: i < s.busts ? 'none' : '#3a2030' })),
+      toast: s.toast,
+      hand: s.hand, handName: NAMES[s.hand] || s.hand, upNext: '' + s.upNext,
+      text: TEXTS[s.step] || '',
+      stepLabel: (s.step + 1) + ' / 18',
+      nextVisible: nextSteps[s.step] != null,
+      nextLabel: nextSteps[s.step] || 'Next',
+      nextTap: () => this.next(),
+      banner: s.banner, bannerBd: km[0], bannerInk: km[1], bannerGlow: km[2],
+      bankVisible: s.bank !== 'hidden',
+      bankOpacity: s.bank === 'disabled' ? 0.38 : 1,
+      bankCursor: s.bank === 'armed' ? 'pointer' : 'not-allowed',
+      bankAnim: s.bank === 'armed' ? 'animation:bankPulse 1.1s ease-in-out infinite' : '',
+      bankTap: () => this.bankNow(),
+      multBadge: s.multBadge,
+      boardShake: s.shake ? 'animation:tShake .45s ease-in-out 2' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>
