@@ -9,12 +9,15 @@ import { pickDailyChallenges, computeMilestones } from "../game/challenges";
 import { itemName } from "../game/collection";
 import { DailyRow, RewardPill, useResetCountdown } from "./DailyRow";
 import type { RewardNav } from "./DailyRow";
+import { useEffect, useState } from "react";
+import { fetchDaily } from "../game/redditDaily";
+import type { DailyResponse } from "../../shared/api";
 
 /**
  * CHALLENGES tab — today's three daily challenges (pulled from the CMS bank,
  * date-seeded), lifetime milestone count-ups, and the next steps on the Ascent.
  */
-export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav }) {
+export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number) => void }) {
   const C = CONTENT.challenges;
   const daily = loadDaily();
   const today = pickDailyChallenges(todayKey());
@@ -33,6 +36,9 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward }: { onQ
 
   return (
     <div style={page}>
+      {/* SUBREDDIT DAILY — the shared community board (only renders on Reddit) */}
+      <CommunityDaily onPlayDaily={onPlayDaily} />
+
       {/* DAILY */}
       <div style={eyebrow}>
         <span>{C.dailyLabel} · {today.length} TODAY</span>
@@ -118,6 +124,67 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward }: { onQ
         </>
       )}
     </div>
+  );
+}
+
+/* ---- the Reddit community daily ---- */
+
+/** Today's SHARED board: one seed for the whole subreddit, best score per
+ *  player on a Redis leaderboard. Renders nothing outside Reddit (the /api
+ *  endpoints only exist inside the Devvit app). */
+function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: number) => void }) {
+  const [daily, setDaily] = useState<DailyResponse | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchDaily().then((d) => { if (live) setDaily(d); });
+    return () => { live = false; };
+  }, []);
+  if (!daily || !onPlayDaily) return null;
+  const medal = (r: number) => (r === 1 ? "#e8b53f" : r === 2 ? "#c9ccdd" : r === 3 ? "#c98d5a" : theme.color.faint);
+  return (
+    <>
+      <div style={eyebrow}>
+        <span>COMMUNITY DAILY</span>
+        <span style={{ color: theme.color.gold }}>{daily.day}</span>
+      </div>
+      <div style={{ ...card, border: "1px solid rgba(157,123,255,0.42)", background: "linear-gradient(180deg, rgba(157,123,255,0.13), rgba(16,19,34,0.92))" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>Today's shared board</div>
+            <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, lineHeight: 1.45, color: theme.color.dim, marginTop: 3 }}>
+              Everyone in the community plays the same board today. One score counts — your best.
+            </div>
+          </div>
+          <button style={playBtn} onClick={() => { sfx.click(); onPlayDaily(daily.day, daily.seed); }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
+            {daily.yourScore != null ? "RETRY" : "PLAY"}
+          </button>
+        </div>
+        {daily.yourScore != null && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.mono, fontSize: 11, color: theme.color.dim, fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ color: theme.color.gold }}>YOUR BEST</span>
+            <b style={{ color: theme.color.text }}>{daily.yourScore.toLocaleString()}</b>
+            {daily.yourRank != null && <span>· #{daily.yourRank} in the community</span>}
+          </div>
+        )}
+        {daily.leaderboard.length > 0 && (
+          <div style={{ padding: "4px 14px 12px", borderTop: daily.yourScore == null ? `1px solid ${theme.color.border}` : "none" }}>
+            {daily.leaderboard.map((e) => (
+              <div key={e.username} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontFamily: theme.fonts.mono, fontSize: 11.5, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ width: 22, color: medal(e.rank), fontWeight: 700 }}>#{e.rank}</span>
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: e.username === daily.username ? theme.color.accent : theme.color.dim }}>u/{e.username}</span>
+                <b style={{ color: theme.color.text }}>{e.score.toLocaleString()}</b>
+              </div>
+            ))}
+          </div>
+        )}
+        {daily.leaderboard.length === 0 && daily.yourScore == null && (
+          <div style={{ padding: "10px 14px 13px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.faint }}>
+            No scores yet today — be the first on the board.
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

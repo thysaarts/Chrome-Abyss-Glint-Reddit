@@ -41,6 +41,7 @@ import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
+import { dailyRun, submitDailyScore } from "./game/redditDaily";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
@@ -368,8 +369,19 @@ export default function App() {
     sfx.unlock(); sfx.click();
     setCelebrate(null);
     setCurrentLevel(null);
+    dailyRun.day = null;
     const seedParam = new URLSearchParams(window.location.search).get("seed");
     start(seedParam ? { seed: Number(seedParam) } : {});
+    setScreen("game");
+  }, [start]);
+  // The REDDIT DAILY CHALLENGE — a quick game on today's shared seed; the score
+  // lands on the subreddit leaderboard when the run ends.
+  const startDaily = useCallback((day: string, seed: number) => {
+    sfx.unlock(); sfx.click();
+    setCelebrate(null);
+    setCurrentLevel(null);
+    dailyRun.day = day;
+    start({ seed });
     setScreen("game");
   }, [start]);
   // Launch a campaign level's ENGINE game with its generator parameters. The NEXT
@@ -377,6 +389,7 @@ export default function App() {
   // the goal to play for — as long as it hasn't been unlocked yet.
   const launchLevel = useCallback((level: Level, extra?: { obstacleSeed?: number }) => {
     sfx.unlock(); sfx.click();
+    dailyRun.day = null; // a campaign level is never a daily attempt
     setCelebrate(null);
     setCurrentLevel(level);
     const { side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, boardShape, singularityAt, extraTiles } = level.params;
@@ -508,6 +521,12 @@ export default function App() {
       return;
     }
     recordScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
+    // DAILY CHALLENGE run -> submit to the subreddit leaderboard (best-only,
+    // fire-and-forget; outside Reddit this resolves to null silently)
+    if (dailyRun.day && !currentLevel) {
+      void submitDailyScore(state.finalScore);
+      dailyRun.day = null;
+    }
     // fold this run into the lifetime stats + today's daily-challenge progress
     const finished = {
       score: state.finalScore,
@@ -868,7 +887,7 @@ export default function App() {
             ) : (
               <div key={homeTab} className="gl-rise-in" style={{ position: "absolute", inset: 0 }}>
                 {homeTab === "challenges" ? (
-                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} />
+                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} />
                 ) : homeTab === "achievements" ? (
                   <AchievementsPage />
                 ) : homeTab === "collection" ? (
