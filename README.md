@@ -49,7 +49,7 @@ Open **Challenges → COMMUNITY DAILY** and hit **PLAY**. Everyone in the subred
 same board that day (it rolls over at midnight UTC). Your best score lands on the community
 leaderboard — come back tomorrow for a fresh board and a clean slate.
 
-Beyond the daily: a 60-level campaign (**The Ascent**), three date-seeded challenge objectives
+Beyond the daily: a 101-level campaign (**The Ascent**), three date-seeded challenge objectives
 per day, lifetime milestones, achievements, a sticker book, and a Shop where the Nebulite you
 bank buys board themes and music.
 
