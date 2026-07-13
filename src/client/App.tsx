@@ -41,7 +41,7 @@ import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
-import { dailyRun, submitDailyScore } from "./game/redditDaily";
+import { dailyRun, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
@@ -521,8 +521,10 @@ export default function App() {
       return;
     }
     recordScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
-    // DAILY CHALLENGE run -> submit to the subreddit leaderboard (best-only,
-    // fire-and-forget; outside Reddit this resolves to null silently)
+    // COMMUNITY LEADERBOARD: every run reports its score (the server keeps each
+    // redditor's best); fire-and-forget, silently a no-op outside Reddit
+    void submitAllTimeScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
+    // DAILY CHALLENGE run -> submit to the subreddit daily board too
     if (dailyRun.day && !currentLevel) {
       void submitDailyScore(state.finalScore);
       dailyRun.day = null;
@@ -889,7 +891,7 @@ export default function App() {
                 {homeTab === "challenges" ? (
                   <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} />
                 ) : homeTab === "achievements" ? (
-                  <AchievementsPage />
+                  <AchievementsPage onOpenLeaderboard={() => setShowLB(true)} />
                 ) : homeTab === "collection" ? (
                   <CollectionPage sub={collectionSub} onSub={setCollectionSub} settings={settings} onSettingsChange={updateSettings} onOpenAudioSettings={() => openSettings("audio")} onOpenDecorSettings={() => openSettings("decor")} onOpenShop={() => setHomeTab("shop")} onUnseenChange={refreshCollectionAlert} openItem={openCustomiseItem} onOpenItemHandled={() => setOpenCustomiseItem(null)} focusSticker={focusSticker} onFocusStickerHandled={() => setFocusSticker(null)} />
                 ) : homeTab === "shop" ? (

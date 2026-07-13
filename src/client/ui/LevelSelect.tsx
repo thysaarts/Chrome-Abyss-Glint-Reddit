@@ -6,6 +6,8 @@ import { levelStatus, unlockedIndex, topScores, LevelStatus, levelResult } from 
 import { REGIONS } from "../theme/regions";
 import { Backdrop } from "./Backdrop";
 import { sfx } from "../audio/sfx";
+import { fetchLeaderboard } from "../game/redditDaily";
+import type { LeaderboardResponse } from "../../shared/api";
 import type { RefObject } from "react";
 
 /**
@@ -832,32 +834,86 @@ function Connector({ num, from, travelled }: { num: number; from: "left" | "righ
 
 export function Leaderboard({ onClose }: { onClose: () => void }) {
   const scores = topScores();
+  // COMMUNITY first — on Reddit the shared board is the headline; if the
+  // endpoints aren't there (running outside Reddit) the tab explains itself.
+  const [tab, setTab] = useState<"community" | "personal">("community");
+  const [lb, setLb] = useState<LeaderboardResponse | null | undefined>(undefined); // undefined = loading
+  useEffect(() => {
+    let live = true;
+    void fetchLeaderboard().then((d) => { if (live) setLb(d); });
+    return () => { live = false; };
+  }, []);
   const rankStyle: Record<number, [string, string]> = { 1: ["#1a0b2e", "#ffd980"], 2: ["#0c0e16", "#cfd6e6"], 3: ["#1a0b06", "#e0a06a"] };
+  const rankDiamond = (rank: number) => {
+    const [ink, bg] = rankStyle[rank] ?? ["#9aa0ad", "#20233a"];
+    return (
+      <div style={{ width: 26, height: 26, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, color: ink, background: bg, borderRadius: 8, transform: "rotate(45deg)" }}>
+        <span style={{ transform: "rotate(-45deg)" }}>{rank}</span>
+      </div>
+    );
+  };
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    flex: 1, padding: "8px 4px", borderRadius: 9, border: "none", cursor: "pointer",
+    fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 11, letterSpacing: "0.06em",
+    color: active ? "#1a0b2e" : "#857fab",
+    background: active ? "linear-gradient(180deg,#ffe9b0,#e8b53f)" : "transparent",
+  });
   return (
     <div onClick={onClose} style={lbScrim}>
       <div onClick={(e) => e.stopPropagation()} style={lbCard} className="gl-lb-in">
         <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 2, background: "linear-gradient(90deg,#e8b53f,#ffd980,#e8b53f)" }} />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8cf8f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h12v3a6 6 0 0 1-12 0Z" /><path d="M6 6H4v1a3 3 0 0 0 3 3M18 6h2v1a3 3 0 0 1-3 3M9 15h6M8.5 19h7M10 15l-.5 4M14 15l.5 4" /></svg>
             <span style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 17, color: "#f1f0f8" }}>High scores</span>
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, background: "#15182a", border: "1px solid #262344", color: "#857fab", fontSize: 15, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
-        <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.16em", color: "#6b6690", marginBottom: 16 }}>YOUR TOP 6 · SCORE &amp; LEVEL</div>
-        {scores.length === 0 && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: "#6b6690", padding: "18px 0", textAlign: "center" }}>No scores yet — play a game to set one.</div>}
-        {scores.map((r, i) => {
-          const rank = i + 1;
-          const [ink, bg] = rankStyle[rank] ?? ["#9aa0ad", "#20233a"];
-          return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0", borderBottom: "1px solid #181b2a" }}>
-              <div style={{ width: 26, height: 26, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, color: ink, background: bg, borderRadius: 8, transform: "rotate(45deg)" }}><span style={{ transform: "rotate(-45deg)" }}>{rank}</span></div>
-              <div style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: "#9aa0ad" }}>{r.level}</div>
-              <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980" }}>{r.score.toLocaleString()}</div>
-            </div>
-          );
-        })}
-        <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.14em", color: "#4f4a6b", marginTop: 14, textAlign: "center" }}>PERSONAL BESTS</div>
+
+        {/* tabs: the community board first, your personal bests second */}
+        <div style={{ display: "flex", gap: 4, padding: 3, borderRadius: 11, background: "rgba(0,0,0,0.3)", border: "1px solid #262344", marginBottom: 14 }}>
+          <button style={tabBtn(tab === "community")} onClick={() => { sfx.click(); setTab("community"); }}>LEADERBOARD</button>
+          <button style={tabBtn(tab === "personal")} onClick={() => { sfx.click(); setTab("personal"); }}>YOUR HIGH SCORES</button>
+        </div>
+
+        {tab === "community" ? (
+          <>
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.16em", color: "#6b6690", marginBottom: 12 }}>COMMUNITY TOP 10 · BEST PER PLAYER</div>
+            {lb === undefined && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: "#6b6690", padding: "18px 0", textAlign: "center" }}>Loading the community board…</div>}
+            {lb === null && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: "#6b6690", padding: "18px 0", textAlign: "center", lineHeight: 1.5 }}>The community leaderboard lives on Reddit — play Glint in its Reddit post to compete.</div>}
+            {lb && lb.entries.length === 0 && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: "#6b6690", padding: "18px 0", textAlign: "center" }}>No scores yet — be the first on the board.</div>}
+            {lb && lb.entries.map((e) => (
+              <div key={e.username} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0", borderBottom: "1px solid #181b2a" }}>
+                {rankDiamond(e.rank)}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: theme.fonts.sans, fontWeight: 600, fontSize: 12.5, color: e.username === lb.username ? theme.color.accent : "#c9c4e4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>u/{e.username}</div>
+                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10.5, color: "#6b6690", marginTop: 1 }}>{e.level}</div>
+                </div>
+                <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980" }}>{e.score.toLocaleString()}</div>
+              </div>
+            ))}
+            {lb && lb.yourBest != null && (lb.yourRank == null || lb.yourRank > 10) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontFamily: theme.fonts.mono, fontSize: 11, color: "#6b6690", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ color: "#e8cf8f" }}>YOU</span>
+                {lb.yourRank != null && <span>#{lb.yourRank}</span>}
+                <b style={{ color: "#f1f0f8", marginLeft: "auto" }}>{lb.yourBest.toLocaleString()}</b>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.16em", color: "#6b6690", marginBottom: 12 }}>YOUR TOP 6 · SCORE &amp; LEVEL</div>
+            {scores.length === 0 && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: "#6b6690", padding: "18px 0", textAlign: "center" }}>No scores yet — play a game to set one.</div>}
+            {scores.map((r, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0", borderBottom: "1px solid #181b2a" }}>
+                {rankDiamond(i + 1)}
+                <div style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: "#9aa0ad" }}>{r.level}</div>
+                <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980" }}>{r.score.toLocaleString()}</div>
+              </div>
+            ))}
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.14em", color: "#4f4a6b", marginTop: 14, textAlign: "center" }}>PERSONAL BESTS</div>
+          </>
+        )}
       </div>
     </div>
   );

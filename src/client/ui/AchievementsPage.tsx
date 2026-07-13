@@ -13,7 +13,7 @@ import type { TileVal } from "../game/engine";
  * ACHIEVEMENTS tab — lifetime stats, an expanding HIGH SCORES section (the same
  * rows as the top-bar high-scores popup), and the REWARDS gem case.
  */
-export function AchievementsPage() {
+export function AchievementsPage({ onOpenLeaderboard }: { onOpenLeaderboard?: () => void } = {}) {
   const A = CONTENT.achievements;
   const stats = loadStats();
   const scores = topScores();
@@ -65,6 +65,15 @@ export function AchievementsPage() {
             </div>
           );
         })}
+        {onOpenLeaderboard && (
+          <button
+            onClick={() => { sfx.click(); onOpenLeaderboard(); }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "11px 0 12px", border: "none", borderTop: `1px solid ${theme.color.border}`, background: "none", cursor: "pointer", fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 11.5, letterSpacing: "0.06em", color: theme.color.accent }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h12v3a6 6 0 0 1-12 0Z" /><path d="M6 6H4v1a3 3 0 0 0 3 3M18 6h2v1a3 3 0 0 1-3 3M9 15h6M8.5 19h7M10 15l-.5 4M14 15l.5 4" /></svg>
+            COMMUNITY LEADERBOARD
+          </button>
+        )}
       </div>
 
       {/* REWARDS */}

@@ -32,6 +32,24 @@ export type SubmitScoreResponse = {
   yourRank: number | null;
 };
 
+/** One row of the ALL-TIME community leaderboard — the same info as the
+ *  personal high-scores list (score + the level it was set on), plus who. */
+export type AllTimeEntry = {
+  rank: number;
+  username: string;
+  score: number;
+  level: string; // "Quick Start" or the campaign level title
+};
+
+/** GET /api/leaderboard — the community's best (one entry per redditor). */
+export type LeaderboardResponse = {
+  type: "leaderboard";
+  username: string | null;
+  entries: AllTimeEntry[];
+  yourBest: number | null;
+  yourRank: number | null;
+};
+
 export type ErrorResponse = {
   status: "error";
   message: string;

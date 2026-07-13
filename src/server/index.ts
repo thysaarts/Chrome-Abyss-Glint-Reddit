@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
-import type { DailyResponse, ErrorResponse, LeaderboardEntry, SubmitScoreResponse } from "../shared/api";
+import type { AllTimeEntry, DailyResponse, ErrorResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -97,6 +97,59 @@ app.post("/api/daily/score", async (c) => {
   } catch (err) {
     console.error("score submit failed", err);
     return c.json<ErrorResponse>({ status: "error", message: "score submit failed" }, 500);
+  }
+});
+
+// ---- ALL-TIME community leaderboard: one best score per redditor ----
+
+const ALLTIME = "glint:alltime";
+const ALLTIME_META = "glint:alltime:meta"; // username -> the level the best was set on
+
+async function allTimeTop(n = 10): Promise<AllTimeEntry[]> {
+  const rows = await redis.zRange(ALLTIME, 0, n - 1, { by: "rank", reverse: true });
+  if (rows.length === 0) return [];
+  const labels = await Promise.all(rows.map((r) => redis.hGet(ALLTIME_META, r.member)));
+  return rows.map((r, i) => ({ rank: i + 1, username: r.member, score: r.score, level: labels[i] ?? "Quick Start" }));
+}
+
+async function allTimeStanding(username: string | null): Promise<{ score: number | null; rank: number | null }> {
+  if (!username) return { score: null, rank: null };
+  const score = await redis.zScore(ALLTIME, username);
+  if (score === undefined || score === null) return { score: null, rank: null };
+  const above = (await redis.zCard(ALLTIME)) - ((await redis.zRank(ALLTIME, username)) ?? 0);
+  return { score, rank: above };
+}
+
+app.get("/api/leaderboard", async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    const [entries, mine] = await Promise.all([allTimeTop(), allTimeStanding(username)]);
+    return c.json<LeaderboardResponse>({ type: "leaderboard", username, entries, yourBest: mine.score, yourRank: mine.rank });
+  } catch (err) {
+    console.error("leaderboard failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "leaderboard failed" }, 500);
+  }
+});
+
+app.post("/api/score", async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
+    const body = await c.req.json<{ score?: number; level?: string }>().catch(() => ({}) as { score?: number; level?: string });
+    const score = Math.floor(Number(body.score));
+    const level = String(body.level ?? "Quick Start").slice(0, 60);
+    if (!Number.isFinite(score) || score <= 0 || score > 1_000_000) {
+      return c.json<ErrorResponse>({ status: "error", message: "invalid score" }, 400);
+    }
+    const prev = await redis.zScore(ALLTIME, username);
+    if (prev === undefined || prev === null || score > prev) {
+      await redis.zAdd(ALLTIME, { member: username, score });
+      await redis.hSet(ALLTIME_META, { [username]: level });
+    }
+    return c.json({ type: "score-recorded" });
+  } catch (err) {
+    console.error("all-time score failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "score failed" }, 500);
   }
 });
 
