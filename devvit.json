@@ -5,11 +5,12 @@
     "dir": "dist/client",
     "entrypoints": {
       "default": {
-        "inline": true,
-        "entry": "splash.html"
+        "entry": "splash.html",
+        "height": "tall"
       },
       "game": {
-        "entry": "game.html"
+        "entry": "game.html",
+        "height": "tall"
       }
     }
   },
@@ -40,5 +41,8 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "chrome_abyss_glin_dev"
   }
 }
