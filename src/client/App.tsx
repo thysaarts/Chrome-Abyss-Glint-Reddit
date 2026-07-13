@@ -42,6 +42,7 @@ import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
 import { dailyRun, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
+import type { DailyMetric } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
@@ -376,11 +377,12 @@ export default function App() {
   }, [start]);
   // The REDDIT DAILY CHALLENGE — a quick game on today's shared seed; the score
   // lands on the subreddit leaderboard when the run ends.
-  const startDaily = useCallback((day: string, seed: number) => {
+  const startDaily = useCallback((day: string, seed: number, metric: DailyMetric) => {
     sfx.unlock(); sfx.click();
     setCelebrate(null);
     setCurrentLevel(null);
     dailyRun.day = day;
+    dailyRun.metric = metric;
     start({ seed });
     setScreen("game");
   }, [start]);
@@ -524,9 +526,21 @@ export default function App() {
     // COMMUNITY LEADERBOARD: every run reports its score (the server keeps each
     // redditor's best); fire-and-forget, silently a no-op outside Reddit
     void submitAllTimeScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
-    // DAILY CHALLENGE run -> submit to the subreddit daily board too
+    // DAILY CHALLENGE run -> submit today's METRIC to the subreddit board.
+    // Resource metrics (Nebulite refined/banked, banks) follow the game's own
+    // forfeit rule: a true game-over (busted out, no cash-out) banks nothing.
+    // Skill feats (score, biggest single bank, chains banked) always count,
+    // same as the personal leaderboard.
     if (dailyRun.day && !currentLevel) {
-      void submitDailyScore(state.finalScore);
+      const chainsBanked = (state.chainCounts.Convergence ?? 0) + (state.chainCounts.Harmony ?? 0) + (state.chainCounts.Accord ?? 0) + (state.chainCounts.Sweep ?? 0);
+      const metricValue =
+        dailyRun.metric === "bankscore" ? state.maxBankScore
+        : dailyRun.metric === "refined" ? (gameOver ? 0 : Math.max(0, state.nebulitesRefined))
+        : dailyRun.metric === "nebulite" ? (gameOver ? 0 : Math.max(0, state.coresCollected))
+        : dailyRun.metric === "banks" ? (gameOver ? 0 : state.banks)
+        : dailyRun.metric === "chains" ? chainsBanked
+        : state.finalScore;
+      void submitDailyScore(metricValue);
       dailyRun.day = null;
     }
     // fold this run into the lifetime stats + today's daily-challenge progress

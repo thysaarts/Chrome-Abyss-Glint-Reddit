@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
-import type { AllTimeEntry, DailyResponse, ErrorResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
+import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -31,6 +31,25 @@ const dailySeed = (day: string): number => {
 
 const boardKey = (day: string) => `glint:daily:${day}`;
 
+/** The metric rotation. Mon/Wed/Fri anchor on Highest score (the most legible
+ *  challenge, ~3 days of 7); the other weekdays cycle through the five
+ *  specialist metrics by day number, so each one comes around roughly weekly. */
+const SPECIALIST_METRICS: DailyMetric[] = ["bankscore", "refined", "nebulite", "banks", "chains"];
+const METRIC_LABEL: Record<DailyMetric, string> = {
+  score: "Highest score",
+  bankscore: "Highest single bank",
+  refined: "Most Nebulite refined",
+  nebulite: "Most Nebulite banked",
+  banks: "Most banks in one game",
+  chains: "Most chains banked",
+};
+const metricFor = (day: string): DailyMetric => {
+  const d = new Date(`${day}T00:00:00Z`);
+  const weekday = d.getUTCDay();
+  if (weekday === 1 || weekday === 3 || weekday === 5) return "score";
+  return SPECIALIST_METRICS[Math.floor(d.getTime() / 86_400_000) % SPECIALIST_METRICS.length] ?? "score";
+};
+
 /** Top-N standings from the day's sorted set (highest score first). */
 async function topStandings(day: string, n = 10): Promise<LeaderboardEntry[]> {
   const rows = await redis.zRange(boardKey(day), 0, n - 1, { by: "rank", reverse: true });
@@ -51,10 +70,13 @@ app.get("/api/daily", async (c) => {
     const day = utcDay();
     const username = (await reddit.getCurrentUsername()) ?? null;
     const [leaderboard, mine] = await Promise.all([topStandings(day), standingFor(day, username)]);
+    const metric = metricFor(day);
     return c.json<DailyResponse>({
       type: "daily",
       day,
       seed: dailySeed(day),
+      metric,
+      metricLabel: METRIC_LABEL[metric],
       username,
       leaderboard,
       yourScore: mine.score,

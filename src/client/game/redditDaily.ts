@@ -6,7 +6,7 @@
  * tests) the endpoints don't exist: every call resolves to null and the
  * community UI simply doesn't render.
  */
-import type { DailyResponse, LeaderboardResponse, SubmitScoreResponse } from "../../shared/api";
+import type { DailyMetric, DailyResponse, LeaderboardResponse, SubmitScoreResponse } from "../../shared/api";
 
 let cache: { day: string; data: DailyResponse } | null = null;
 
@@ -41,9 +41,9 @@ export async function submitDailyScore(score: number): Promise<SubmitScoreRespon
   }
 }
 
-/** Set (to the challenge day) while a daily-challenge run is in flight, so the
- *  end-of-run bookkeeping knows to submit the score. */
-export const dailyRun: { day: string | null } = { day: null };
+/** Set while a daily-challenge run is in flight, so the end-of-run bookkeeping
+ *  knows to submit — and WHICH per-run number today's board ranks. */
+export const dailyRun: { day: string | null; metric: DailyMetric } = { day: null, metric: "score" };
 
 // ---- the ALL-TIME community leaderboard ----
 

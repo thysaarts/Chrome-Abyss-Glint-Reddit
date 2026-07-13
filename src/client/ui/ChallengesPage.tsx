@@ -11,13 +11,13 @@ import { DailyRow, RewardPill, useResetCountdown } from "./DailyRow";
 import type { RewardNav } from "./DailyRow";
 import { useEffect, useState } from "react";
 import { fetchDaily } from "../game/redditDaily";
-import type { DailyResponse } from "../../shared/api";
+import type { DailyMetric, DailyResponse } from "../../shared/api";
 
 /**
  * CHALLENGES tab — today's three daily challenges (pulled from the CMS bank,
  * date-seeded), lifetime milestone count-ups, and the next steps on the Ascent.
  */
-export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number) => void }) {
+export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void }) {
   const C = CONTENT.challenges;
   const daily = loadDaily();
   const today = pickDailyChallenges(todayKey());
@@ -132,7 +132,7 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
 /** Today's SHARED board: one seed for the whole subreddit, best score per
  *  player on a Redis leaderboard. Renders nothing outside Reddit (the /api
  *  endpoints only exist inside the Devvit app). */
-function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: number) => void }) {
+function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void }) {
   const [daily, setDaily] = useState<DailyResponse | null>(null);
   useEffect(() => {
     let live = true;
@@ -150,12 +150,12 @@ function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: num
       <div style={{ ...card, border: "1px solid rgba(157,123,255,0.42)", background: "linear-gradient(180deg, rgba(157,123,255,0.13), rgba(16,19,34,0.92))" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>Today's shared board</div>
+            <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>{daily.metricLabel}</div>
             <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, lineHeight: 1.45, color: theme.color.dim, marginTop: 3 }}>
-              Everyone in the community plays the same board today. One score counts — your best.
+              Everyone plays the same board today — best <b style={{ color: theme.color.accent, fontWeight: 600 }}>{daily.metricLabel.toLowerCase()}</b> takes the top. Your best attempt counts.
             </div>
           </div>
-          <button style={playBtn} onClick={() => { sfx.click(); onPlayDaily(daily.day, daily.seed); }}>
+          <button style={playBtn} onClick={() => { sfx.click(); onPlayDaily(daily.day, daily.seed, daily.metric); }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
             {daily.yourScore != null ? "RETRY" : "PLAY"}
           </button>
