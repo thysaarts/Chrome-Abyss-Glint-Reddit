@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Chrome Abyss: Glint</title>
+    <style>
+      /* the INLINE feed view — deliberately tiny: no React, no game code, just an
+         invitation. Heavy dependencies stay in game.html (the expanded view). */
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 14px; text-align: center;
+        background: radial-gradient(120% 100% at 50% 0%, #171233 0%, #07080f 70%);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #cdc7e8;
+      }
+      .kicker { font-size: 11px; letter-spacing: 0.35em; color: #8f87b8; text-transform: uppercase; }
+      h1 {
+        margin: 0; font-size: 52px; font-weight: 800; letter-spacing: 0.04em; line-height: 1;
+        background: linear-gradient(90deg, #67d4ff, #c084fc);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      p { margin: 0 18px; max-width: 340px; font-size: 14px; line-height: 1.5; color: #a49cc9; }
+      button {
+        margin-top: 8px; padding: 14px 44px; border: none; border-radius: 14px; cursor: pointer;
+        border-bottom: 3px solid #7d3fc4;
+        background: linear-gradient(180deg, #e2c8ff, #b06bf5);
+        color: #1a0b2e; font-size: 16px; font-weight: 800; letter-spacing: 0.02em;
+      }
+      .gem { width: 64px; height: 64px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.25);
+        background: linear-gradient(180deg, #c084fc, #7d3fc4); display: grid; place-items: center;
+        box-shadow: 0 10px 30px -8px rgba(176,107,245,0.7); }
+      .gem span { width: 30px; height: 30px; background: #fff; transform: rotate(45deg); border-radius: 6px;
+        box-shadow: inset 0 -6px 12px rgba(125,63,196,0.55); }
+    </style>
+  </head>
+  <body>
+    <div class="gem" aria-hidden="true"><span></span></div>
+    <div class="kicker">Chrome Abyss</div>
+    <h1>GLINT</h1>
+    <p>Bank glowing gem combos and push your luck before the abyss collapses the board.</p>
+    <button id="play">▶&nbsp; Play</button>
+    <script type="module" src="./splash.ts"></script>
+  </body>
+</html>
