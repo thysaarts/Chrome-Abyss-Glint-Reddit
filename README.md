@@ -16,20 +16,32 @@ a serverless backend hands out the daily seed and keeps the community leaderboar
 **Goal:** score as many points as you can before the run ends — then get on the community
 leaderboard.
 
-1. **Place gems.** Tap any empty cell to place the gem you're holding (shown in *NOW PLACING*).
-   Six connected gems of matching kinds **activate** into a glowing combo.
-2. **Bank or push.** Activated combos are worth points — bank them now, or keep placing to
-   grow the cluster and multiply the value. The longer you wait, the more you risk.
-3. **Don't bust.** If a placement overloads the board, you **bust** and lose a life. Three
-   busts end the run.
-4. **Watch the collapse.** As the board empties past a threshold, the Abyss **collapses** it to
-   a smaller grid — twice. The final, tiny board is **GLINT RUSH**: every placement matters,
-   and you can **CASH OUT** at any moment to bank the run.
-5. **Special tiles.** Dross blocks your combos until cleared; overflow refines into
-   **Nebulite** — a shape-shifting wild that also pays out as currency for the Shop.
+1. **Place gems.** On every turn you hold one visible gem (*NOW PLACING*). Place it to
+   **cover a gem** already on the board (that gem joins your hand) or to **fill an empty
+   gap**. A placement is only legal if it forms or extends a combo.
+2. **Build combos.** One placement **activates** a whole combo by absorbing the connected
+   matching gems around it — matched sets (a pair of 2s or 6s, three/four/five/six of a
+   kind) or straights of consecutive values (four, five or all six). Activated combos glow
+   and stay in play; you can build several.
+3. **Bank at six.** When a connected glowing cluster reaches **6+ gems it banks
+   automatically** — and the gem your finishing placement covered becomes the
+   **multiplier** (finish on a 6 for ×6; finish into a gap for no multiplier). Chaining
+   combos into the bank adds bonus points. A timed **BANK** button also lets you bank a
+   small cluster early, three times per game, at base value.
+4. **Don't bust.** If your gem can't form or extend any combo, you **bust**: everything
+   glowing is lost unbanked and you spend one of three lives. Three busts end the run.
+5. **The Abyss collapses — twice.** As the board empties it contracts to a smaller
+   hexagon, then contracts again into **GLINT RUSH**: the final round where ANY completed
+   combo banks instantly, your whole hand is revealed, and you may **CASH OUT** at any
+   moment to convert unspent lives, free banks and hand gems into points.
+6. **Specials.** Dross is a booby-trap that can only be placed as a bust — isolate it to
+   clear it. The Nebulite pays +500 when covered, acts as a joker, and is also the
+   **currency**: banked Nebulite fills your wallet (doubled if you clear the board) and
+   buys board themes and music in the Shop. Bank 7+ of the same gem and the overflow
+   returns to your hand — every six overflow gems **refine into a new Nebulite**.
 
-The in-game **How to play** (the ? in the header) and the interactive tutorial cover the full
-ruleset.
+The in-game **How to play** (the ? in the header) and the interactive tutorial teach the
+full ruleset.
 
 ### The Community Daily
 
