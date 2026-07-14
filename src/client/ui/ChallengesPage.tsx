@@ -149,6 +149,18 @@ function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: num
       </div>
       <div style={{ ...card, border: "1px solid rgba(157,123,255,0.42)", background: "linear-gradient(180deg, rgba(157,123,255,0.13), rgba(16,19,34,0.92))" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px" }}>
+          {/* the winner's podium — bolder than the daily-row glyphs on purpose: this
+              is the community square, and the gold pulls the eye to it */}
+          <div style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 11, display: "grid", placeItems: "center", background: "linear-gradient(180deg, rgba(232,181,63,0.32), rgba(232,181,63,0.08))", border: "1px solid rgba(232,181,63,0.55)", boxShadow: "0 0 14px -4px rgba(232,181,63,0.6)", color: theme.color.gold }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              {/* star above the champion's block */}
+              <path d="M12 2.6l0.95 1.92 2.12 0.31-1.53 1.5 0.36 2.11L12 7.44l-1.9 1-0.36-2.11-1.53-1.5 2.12-0.31z" fill="currentColor" stroke="none" />
+              {/* podium: 2nd - 1st - 3rd */}
+              <rect x="2.5" y="14" width="6" height="7" rx="0.8" />
+              <rect x="8.5" y="11" width="7" height="10" rx="0.8" fill="rgba(232,181,63,0.28)" />
+              <rect x="15.5" y="16.5" width="6" height="4.5" rx="0.8" />
+            </svg>
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>{daily.metricLabel}</div>
             <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, lineHeight: 1.45, color: theme.color.dim, marginTop: 3 }}>
