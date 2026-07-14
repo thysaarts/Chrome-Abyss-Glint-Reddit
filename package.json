@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Chrome Abyss: Glint — push-your-luck gem puzzle as a Reddit community game (Devvit)",
+  "description": "Chrome Abyss: Glint \u2014 push-your-luck gem puzzle as a Reddit community game (Devvit)",
   "scripts": {
     "build": "vite build",
     "dev": "devvit playtest",
@@ -12,7 +12,8 @@
     "login": "devvit login",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preview:web": "npm run build && node scripts/preview.mjs"
   },
   "dependencies": {
     "@devvit/web": "0.13.7",
