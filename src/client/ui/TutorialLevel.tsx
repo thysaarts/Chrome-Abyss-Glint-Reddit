@@ -361,6 +361,12 @@ export function TutorialLevel({
    *  NOT spent as a multiplier — the replaced tile flies to the hand and joins the
    *  stack (one revealed + one returned = UP NEXT unchanged). */
   const place = (key: string, gem: TileVal, nextHand: TileVal, replacedToHand: boolean) => {
+    // SAFETY NET: the script gates input while sequences play, so any flight
+    // still on screen when a NEW placement starts is a stale leftover (an
+    // animation that never completed) — finish it instantly instead of letting
+    // it linger over the rest of the walkthrough.
+    setFlying([]);
+    setHandFlight(null);
     // a correct placement must never trigger the wrong-click veil: the board click
     // bubbles to onBoardMiss right after this (and setTarget(null) below is async, so
     // the stale target would otherwise spotlight the cell we just placed on).
@@ -590,6 +596,13 @@ export function TutorialLevel({
   /** Stagger the old board out under a banner, then drop the new board in. */
   const clearAndRefill = (text: string, kind: BannerKind, nextBoard: ScriptBoard, then: () => void) => {
     setBusyAll(true);
+    // SEGMENT BOUNDARY WIPE: nothing transient may carry across a segment — any
+    // flight, lineup, plate or parked multiplier still visible is stale.
+    setFlying([]);
+    setHandFlight(null);
+    setLineup(null);
+    setBankedPlate(null);
+    setMultLabel(null);
     setBanner({ text, kind });
     setBoardFx("clear");
     setDropCell(undefined);
@@ -1528,6 +1541,9 @@ export function TutorialLevel({
                 scrim only filled the board and left a visible frame around it. */}
             <div style={{ position: "absolute", top: 0, left: -9, right: -9, bottom: -FOOTER_POKE, zIndex: 30, pointerEvents: "none" }}>
               {banner && <BigBanner text={banner.text} kind={banner.kind} />}
+              {/* GLINT RUSH — hosted in this layer exactly like the real game, so the
+                  announcement centres on the board viewport, not the whole screen */}
+              {rush && <RushOverlay />}
             </div>
 
             <div style={toastBand}>
@@ -1632,9 +1648,6 @@ export function TutorialLevel({
           }}
         />
       )}
-
-      {/* GLINT RUSH — the same final-round announcement the real game plays */}
-      {rush && <RushOverlay />}
 
       {/* CASH OUT ceremony — the SAME component as the real game: the counted
           lives / banks / hand gems gather into the tally, CONFIRM dives the
