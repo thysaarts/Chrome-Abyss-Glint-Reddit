@@ -371,18 +371,21 @@ export default function App() {
     setCelebrate(null);
     setCurrentLevel(null);
     dailyRun.day = null;
+    dailyGameRef.current = null;
     const seedParam = new URLSearchParams(window.location.search).get("seed");
     start(seedParam ? { seed: Number(seedParam) } : {});
     setScreen("game");
   }, [start]);
   // The REDDIT DAILY CHALLENGE — a quick game on today's shared seed; the score
   // lands on the subreddit leaderboard when the run ends.
+  const dailyGameRef = useRef<{ day: string; seed: number; metric: DailyMetric } | null>(null);
   const startDaily = useCallback((day: string, seed: number, metric: DailyMetric) => {
     sfx.unlock(); sfx.click();
     setCelebrate(null);
     setCurrentLevel(null);
     dailyRun.day = day;
     dailyRun.metric = metric;
+    dailyGameRef.current = { day, seed, metric };
     start({ seed });
     setScreen("game");
   }, [start]);
@@ -392,6 +395,7 @@ export default function App() {
   const launchLevel = useCallback((level: Level, extra?: { obstacleSeed?: number }) => {
     sfx.unlock(); sfx.click();
     dailyRun.day = null; // a campaign level is never a daily attempt
+    dailyGameRef.current = null;
     setCelebrate(null);
     setCurrentLevel(level);
     const { side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, boardShape, singularityAt, extraTiles } = level.params;
@@ -472,8 +476,13 @@ export default function App() {
   // Launching from the levels menu still generates a fresh board.
   const startGame = useCallback(() => {
     if (currentLevel) launchLevel(currentLevel, { obstacleSeed: state.obstacleSeed });
-    else start({ obstacleSeed: state.obstacleSeed });
-  }, [currentLevel, launchLevel, start, state.obstacleSeed]);
+    else if (dailyGameRef.current) {
+      // the run was the DAILY CHALLENGE — Play again / Restart re-enters the same
+      // daily: the same shared board, and the next result still counts
+      const dcx = dailyGameRef.current;
+      startDaily(dcx.day, dcx.seed, dcx.metric);
+    } else start({ obstacleSeed: state.obstacleSeed });
+  }, [currentLevel, launchLevel, start, startDaily, state.obstacleSeed]);
 
   // On game end, record the score and (for a campaign level) the per-level result,
   // and evaluate whether the run unlocks the next level. `endNav` drives the end
@@ -540,7 +549,8 @@ export default function App() {
         : dailyRun.metric === "banks" ? (gameOver ? 0 : state.banks)
         : dailyRun.metric === "chains" ? chainsBanked
         : state.finalScore;
-      void submitDailyScore(metricValue);
+      // zeros never go up (a forfeited game-over would read as a broken "0" row)
+      if (metricValue > 0) void submitDailyScore(metricValue, dailyRun.day);
       dailyRun.day = null;
     }
     // fold this run into the lifetime stats + today's daily-challenge progress

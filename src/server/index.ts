@@ -93,11 +93,15 @@ app.post("/api/daily/score", async (c) => {
     const day = utcDay();
     const username = (await reddit.getCurrentUsername()) ?? null;
     if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
-    const body = await c.req.json<{ score?: number }>().catch(() => ({}) as { score?: number });
+    const body = await c.req.json<{ score?: number; day?: string }>().catch(() => ({}) as { score?: number; day?: string });
     const score = Math.floor(Number(body.score));
-    // sanity: scores are positive and bounded (no plausible run exceeds this)
-    if (!Number.isFinite(score) || score < 0 || score > 1_000_000) {
+    // sanity: scores are positive (zeros never land on the board) and bounded
+    if (!Number.isFinite(score) || score <= 0 || score > 1_000_000) {
       return c.json<ErrorResponse>({ status: "error", message: "invalid score" }, 400);
+    }
+    // a run that started on a previous day must not pollute today's board
+    if (body.day && body.day !== day) {
+      return c.json<ErrorResponse>({ status: "error", message: "challenge day rolled over" }, 409);
     }
     const key = boardKey(day);
     const prev = await redis.zScore(key, username);

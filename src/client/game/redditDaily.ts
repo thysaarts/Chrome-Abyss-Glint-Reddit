@@ -25,12 +25,14 @@ export async function fetchDaily(force = false): Promise<DailyResponse | null> {
   }
 }
 
-export async function submitDailyScore(score: number): Promise<SubmitScoreResponse | null> {
+export async function submitDailyScore(score: number, day?: string): Promise<SubmitScoreResponse | null> {
   try {
     const res = await fetch("/api/daily/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ score }),
+      // `day` = the challenge day the run STARTED on; the server rejects it if
+      // the board has rolled over since (a stale run must not pollute today)
+      body: JSON.stringify({ score, day }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as SubmitScoreResponse;

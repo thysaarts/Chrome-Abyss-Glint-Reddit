@@ -1,9 +1,9 @@
 {
   "name": "chrome-abyss-glint",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
-  "description": "Chrome Abyss: Glint \u2014 push-your-luck gem puzzle as a Reddit community game (Devvit)",
+  "description": "Chrome Abyss: Glint — push-your-luck gem puzzle as a Reddit community game (Devvit)",
   "scripts": {
     "build": "vite build",
     "dev": "devvit playtest",
@@ -35,5 +35,6 @@
   },
   "engines": {
     "node": ">=22.2.0"
-  }
+  },
+  "license": "BSD-3-Clause"
 }
