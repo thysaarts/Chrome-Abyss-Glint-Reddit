@@ -140,63 +140,73 @@ function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: num
     return () => { live = false; };
   }, []);
   if (!daily || !onPlayDaily) return null;
-  const medal = (r: number) => (r === 1 ? "#e8b53f" : r === 2 ? "#c9ccdd" : r === 3 ? "#c98d5a" : theme.color.faint);
   return (
     <>
       <div style={eyebrow}>
         <span>COMMUNITY DAILY</span>
         <span style={{ color: theme.color.gold }}>{daily.day}</span>
       </div>
-      <div style={{ ...card, border: "1px solid rgba(157,123,255,0.42)", background: "linear-gradient(180deg, rgba(157,123,255,0.13), rgba(16,19,34,0.92))" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px" }}>
-          {/* the winner's podium — bolder than the daily-row glyphs on purpose: this
-              is the community square, and the gold pulls the eye to it */}
-          <div style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 11, display: "grid", placeItems: "center", background: "linear-gradient(180deg, rgba(232,181,63,0.32), rgba(232,181,63,0.08))", border: "1px solid rgba(232,181,63,0.55)", boxShadow: "0 0 14px -4px rgba(232,181,63,0.6)", color: theme.color.gold }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              {/* star above the champion's block */}
-              <path d="M12 2.6l0.95 1.92 2.12 0.31-1.53 1.5 0.36 2.11L12 7.44l-1.9 1-0.36-2.11-1.53-1.5 2.12-0.31z" fill="currentColor" stroke="none" />
-              {/* podium: 2nd - 1st - 3rd */}
-              <rect x="2.5" y="14" width="6" height="7" rx="0.8" />
-              <rect x="8.5" y="11" width="7" height="10" rx="0.8" fill="rgba(232,181,63,0.28)" />
-              <rect x="15.5" y="16.5" width="6" height="4.5" rx="0.8" />
-            </svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>{daily.metricLabel}</div>
-            <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, lineHeight: 1.45, color: theme.color.dim, marginTop: 3 }}>
-              Everyone plays the same board today — best <b style={{ color: theme.color.accent, fontWeight: 600 }}>{daily.metricLabel.toLowerCase()}</b> takes the top. Your best attempt counts.
-            </div>
-          </div>
-          <button style={playBtn} onClick={() => { sfx.click(); onPlayDaily(daily.day, daily.seed, daily.metric); }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
-            {daily.yourScore != null ? "RETRY" : "PLAY"}
-          </button>
-        </div>
-        {daily.yourScore != null && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.mono, fontSize: 11, color: theme.color.dim, fontVariantNumeric: "tabular-nums" }}>
-            <span style={{ color: theme.color.gold }}>YOUR BEST</span>
-            <b style={{ color: theme.color.text }}>{daily.yourScore.toLocaleString()}</b>
-            {daily.yourRank != null && <span>· #{daily.yourRank} in the community</span>}
-          </div>
-        )}
-        {daily.leaderboard.length > 0 && (
-          <div style={{ padding: "4px 14px 12px", borderTop: daily.yourScore == null ? `1px solid ${theme.color.border}` : "none" }}>
-            {daily.leaderboard.map((e) => (
-              <div key={e.username} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontFamily: theme.fonts.mono, fontSize: 11.5, fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ width: 22, color: medal(e.rank), fontWeight: 700 }}>#{e.rank}</span>
-                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: e.username === daily.username ? theme.color.accent : theme.color.dim }}>u/{e.username}</span>
-                <b style={{ color: theme.color.text }}>{e.score.toLocaleString()}</b>
-              </div>
-            ))}
-          </div>
-        )}
-        {daily.leaderboard.length === 0 && daily.yourScore == null && (
-          <div style={{ padding: "10px 14px 13px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.faint }}>
-            No scores yet today — be the first on the board.
-          </div>
-        )}
-      </div>
+      <CommunityDailyCard daily={daily} onPlay={() => onPlayDaily(daily.day, daily.seed, daily.metric)} />
     </>
+  );
+}
+
+/** The COMMUNITY DAILY card itself — today's challenge, your standing, and the
+ *  top of the board. Shared verbatim between the Challenges tab and the
+ *  NEW COMMUNITY CHALLENGE pop-up so they can never drift apart. */
+export function CommunityDailyCard({ daily, onPlay }: { daily: DailyResponse; onPlay: () => void }) {
+  const medal = (r: number) => (r === 1 ? "#e8b53f" : r === 2 ? "#c9ccdd" : r === 3 ? "#c98d5a" : theme.color.faint);
+  return (
+    <div style={{ ...card, border: "1px solid rgba(157,123,255,0.42)", background: "linear-gradient(180deg, rgba(157,123,255,0.13), rgba(16,19,34,0.92))" }}>
+      {/* icon + title top-align; the PLAY button stays vertically centred */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 14px" }}>
+        {/* the winner's podium — bolder than the daily-row glyphs on purpose: this
+            is the community square, and the gold pulls the eye to it */}
+        <div style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 11, display: "grid", placeItems: "center", background: "linear-gradient(180deg, rgba(232,181,63,0.32), rgba(232,181,63,0.08))", border: "1px solid rgba(232,181,63,0.55)", boxShadow: "0 0 14px -4px rgba(232,181,63,0.6)", color: theme.color.gold }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            {/* star above the champion's block */}
+            <path d="M12 2.6l0.95 1.92 2.12 0.31-1.53 1.5 0.36 2.11L12 7.44l-1.9 1-0.36-2.11-1.53-1.5 2.12-0.31z" fill="currentColor" stroke="none" />
+            {/* podium: 2nd - 1st - 3rd */}
+            <rect x="2.5" y="14" width="6" height="7" rx="0.8" />
+            <rect x="8.5" y="11" width="7" height="10" rx="0.8" fill="rgba(232,181,63,0.28)" />
+            <rect x="15.5" y="16.5" width="6" height="4.5" rx="0.8" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 14.5, color: theme.color.text }}>{daily.metricLabel}</div>
+          <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, lineHeight: 1.45, color: theme.color.dim, marginTop: 3 }}>
+            Everyone plays the same board today — best <b style={{ color: theme.color.accent, fontWeight: 600 }}>{daily.metricLabel.toLowerCase()}</b> takes the top. Your best attempt counts.
+          </div>
+        </div>
+        <button style={{ ...playBtn, alignSelf: "center" }} onClick={() => { sfx.click(); onPlay(); }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
+          {daily.yourScore != null ? "RETRY" : "PLAY"}
+        </button>
+      </div>
+      {daily.yourScore != null && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.mono, fontSize: 11, color: theme.color.dim, fontVariantNumeric: "tabular-nums" }}>
+          <span style={{ color: theme.color.gold }}>YOUR BEST</span>
+          <b style={{ color: theme.color.text }}>{daily.yourScore.toLocaleString()}</b>
+          {daily.yourRank != null && <span>· #{daily.yourRank} in the community</span>}
+        </div>
+      )}
+      {daily.leaderboard.length > 0 && (
+        <div style={{ padding: "4px 14px 12px", borderTop: daily.yourScore == null ? `1px solid ${theme.color.border}` : "none" }}>
+          {daily.leaderboard.map((e) => (
+            <div key={e.username} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", fontFamily: theme.fonts.mono, fontSize: 11.5, fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ width: 22, color: medal(e.rank), fontWeight: 700 }}>#{e.rank}</span>
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: e.username === daily.username ? theme.color.accent : theme.color.dim }}>u/{e.username}</span>
+              <b style={{ color: theme.color.text }}>{e.score.toLocaleString()}</b>
+            </div>
+          ))}
+        </div>
+      )}
+      {daily.leaderboard.length === 0 && daily.yourScore == null && (
+        <div style={{ padding: "10px 14px 13px", borderTop: `1px solid ${theme.color.border}`, fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.faint }}>
+          No scores yet today — be the first on the board.
+        </div>
+      )}
+    </div>
   );
 }
 

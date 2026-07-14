@@ -41,7 +41,9 @@ import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
-import { dailyRun, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
+import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
+import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
+import type { DailyResponse } from "../shared/api";
 import type { DailyMetric } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
@@ -93,6 +95,7 @@ export default function App() {
   const [startExiting, setStartExiting] = useState(false);
   // the daily-challenge pop-up shown on the Ascent menu (once/day per kind)
   const [dailyPopup, setDailyPopup] = useState<null | "new" | "done">(null);
+  const [communityPopup, setCommunityPopup] = useState<DailyResponse | null>(null);
   // the Collection page's two sub-tabs — Customise opens first
   const [collectionSub, setCollectionSub] = useState<"customise" | "book">("customise");
   // deep-link a reward chip → the Collection: open a theme/music detail, or focus a sticker
@@ -781,21 +784,33 @@ export default function App() {
     if (screen !== "levels" || homeTab !== "ascent") return;
     if (!tutorialDone()) return;
     const id = window.setTimeout(() => {
-      const today = todayKey();
-      const entries = pickDailyChallenges(today);
-      if (entries.length === 0) return;
-      const daily = loadDaily();
-      const allDone = entries.every((c) => daily.done.includes(c.id));
-      const seen = loadDailyPopupSeen();
-      if (allDone) {
-        if (seen.doneDate === today) return;
-        markDailyPopupSeen("done");
-        setDailyPopup("done");
-      } else {
-        if (seen.newDate === today) return;
-        markDailyPopupSeen("new");
-        setDailyPopup("new");
-      }
+      void (async () => {
+        // NEW COMMUNITY CHALLENGE takes priority: shown once per challenge day
+        // (UTC). While it's unseen, the DAILY CHALLENGES pop-up WAITS — it gets
+        // its turn on the next entry into the Ascent menu. Outside Reddit the
+        // fetch resolves null and the regular flow runs untouched.
+        const community = await fetchDaily();
+        if (community && communityPopupSeenDay() !== community.day) {
+          markCommunityPopupSeen(community.day);
+          setCommunityPopup(community);
+          return;
+        }
+        const today = todayKey();
+        const entries = pickDailyChallenges(today);
+        if (entries.length === 0) return;
+        const daily = loadDaily();
+        const allDone = entries.every((c) => daily.done.includes(c.id));
+        const seen = loadDailyPopupSeen();
+        if (allDone) {
+          if (seen.doneDate === today) return;
+          markDailyPopupSeen("done");
+          setDailyPopup("done");
+        } else {
+          if (seen.newDate === today) return;
+          markDailyPopupSeen("new");
+          setDailyPopup("new");
+        }
+      })();
     }, 2000);
     return () => window.clearTimeout(id);
   }, [screen, homeTab]);
@@ -1329,6 +1344,13 @@ export default function App() {
         />
       )}
       {sheet === "combos" && <InfoSheet onClose={() => setSheet(null)} />}
+      {communityPopup && (
+        <CommunityDailyPopup
+          daily={communityPopup}
+          onPlay={(day, seed, metric) => { setCommunityPopup(null); startDaily(day, seed, metric); }}
+          onClose={() => setCommunityPopup(null)}
+        />
+      )}
       {dailyPopup && (
         <DailyChallengePopup
           kind={dailyPopup}

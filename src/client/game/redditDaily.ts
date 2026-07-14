@@ -79,3 +79,24 @@ export async function submitAllTimeScore(score: number, level: string): Promise<
     /* not on Reddit — the community leaderboard simply doesn't apply */
   }
 }
+
+// ---- the NEW COMMUNITY CHALLENGE pop-up: once per challenge day ----
+
+const POPUP_SEEN_KEY = "glint.communityPopup.v1";
+
+/** The challenge day (YYYY-MM-DD) whose pop-up the player has already seen. */
+export function communityPopupSeenDay(): string | null {
+  try {
+    return localStorage.getItem(POPUP_SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function markCommunityPopupSeen(day: string): void {
+  try {
+    localStorage.setItem(POPUP_SEEN_KEY, day);
+  } catch {
+    /* storage unavailable — the pop-up will just show again */
+  }
+}
