@@ -94,3 +94,13 @@ shared-seed board and Redis leaderboard, and a slimmed build (the experimental 3
 from the web version was left out of the Reddit bundle). The engine also received major
 gameplay updates throughout the period — collapse animation guarantees, per-element
 settings, and the sticker/puzzle identity system.
+
+---
+
+## License
+
+Copyright © 2026 **Studio FUNK**. All rights reserved.
+
+This is not open-source software: the repository is published for evaluation and
+reference only (see [LICENSE](LICENSE)). No part of the code, art, audio, design
+or the Chrome Abyss universe may be used without written permission from Studio FUNK.
