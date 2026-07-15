@@ -16,6 +16,8 @@
  *    the wallet floors its balance) — this layer only parses and backfills.
  */
 
+import { scheduleSavePush } from "./saveSync";
+
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -39,6 +41,7 @@ export function readStored<T>(key: string, fallback: T): T {
 export function writeStored(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    scheduleSavePush();
   } catch {
     /* storage unavailable — the value just won't persist this session */
   }
@@ -47,6 +50,7 @@ export function writeStored(key: string, value: unknown): void {
 export function removeStored(key: string): void {
   try {
     localStorage.removeItem(key);
+    scheduleSavePush();
   } catch {
     /* ignore */
   }
@@ -91,6 +95,7 @@ export function readVersioned<T>(key: string, fallback: T, currentVersion: numbe
 export function writeVersioned(key: string, value: unknown, version: number): void {
   try {
     localStorage.setItem(key, JSON.stringify({ v: version, d: value } satisfies Envelope));
+    scheduleSavePush();
   } catch {
     /* storage unavailable — the value just won't persist this session */
   }

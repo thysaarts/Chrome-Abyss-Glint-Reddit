@@ -7,6 +7,7 @@
  * community UI simply doesn't render.
  */
 import type { DailyMetric, DailyResponse, LeaderboardResponse, SubmitScoreResponse } from "../../shared/api";
+import { scheduleSavePush } from "./saveSync";
 
 let cache: { day: string; data: DailyResponse } | null = null;
 
@@ -96,6 +97,7 @@ export function communityPopupSeenDay(): string | null {
 export function markCommunityPopupSeen(day: string): void {
   try {
     localStorage.setItem(POPUP_SEEN_KEY, day);
+    scheduleSavePush();
   } catch {
     /* storage unavailable — the pop-up will just show again */
   }

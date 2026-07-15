@@ -43,8 +43,7 @@ import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDail
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
-import type { DailyResponse } from "../shared/api";
-import type { DailyMetric } from "../shared/api";
+import type { DailyMetric, DailyResponse } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
@@ -95,6 +94,7 @@ export default function App() {
   const [startExiting, setStartExiting] = useState(false);
   // the daily-challenge pop-up shown on the Ascent menu (once/day per kind)
   const [dailyPopup, setDailyPopup] = useState<null | "new" | "done">(null);
+  const [endDaily, setEndDaily] = useState<DailyResponse | null>(null);
   const [communityPopup, setCommunityPopup] = useState<DailyResponse | null>(null);
   // the Collection page's two sub-tabs — Customise opens first
   const [collectionSub, setCollectionSub] = useState<"customise" | "book">("customise");
@@ -369,7 +369,7 @@ export default function App() {
 
   // A Quick Start / generic game — the standard full board, outside the campaign.
   // Dev affordance: `?seed=N` in the URL makes quick starts reproducible.
-  const startQuick = useCallback(() => {
+  const startFresh = useCallback(() => {
     sfx.unlock(); sfx.click();
     setCelebrate(null);
     setCurrentLevel(null);
@@ -392,6 +392,17 @@ export default function App() {
     start({ seed });
     setScreen("game");
   }, [start]);
+  // QUICK PLAY routes to the COMMUNITY DAILY until the player has a score on
+  // today's board — the shared board IS the quick game of the day. Once scored
+  // (or outside Reddit, or with a dev ?seed), quick play deals a fresh board.
+  const startQuick = useCallback(() => {
+    if (new URLSearchParams(window.location.search).get("seed")) { startFresh(); return; }
+    void (async () => {
+      const d = await fetchDaily();
+      if (d && d.yourScore == null) startDaily(d.day, d.seed, d.metric);
+      else startFresh();
+    })();
+  }, [startDaily, startFresh]);
   // Launch a campaign level's ENGINE game with its generator parameters. The NEXT
   // level's unlock requirement opens the log ("Bank 3 times to unlock Level 2") —
   // the goal to play for — as long as it hasn't been unlocked yet.
@@ -776,6 +787,16 @@ export default function App() {
     }
   }, [screen]);
 
+  // when a non-campaign run ends, know today's daily so the end card's PLAY
+  // AGAIN deals the shared board (and FRESH BOARD offers the random one)
+  useEffect(() => {
+    if (state.phase === "playing" || currentLevel) { setEndDaily(null); return; }
+    let live = true;
+    void fetchDaily().then((d) => { if (live) setEndDaily(d); });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase, currentLevel]);
+
   // DAILY-CHALLENGE POP-UP — ~2s after the Ascent menu is shown, at most once a
   // day per kind. Excludes new players (tutorial not completed); quick-start never
   // shows the menu, so it's naturally skipped. Shows CHALLENGE COMPLETED when all
@@ -1111,6 +1132,7 @@ export default function App() {
                           puzzleImage={currentLevel?.puzzleImage}
                           puzzleFocalX={currentLevel?.puzzleFocalX}
                           puzzleFocalY={currentLevel?.puzzleFocalY}
+                          maxHeightCss="max(300px, min(64vh, calc(100dvh - 400px)))"
                           onMapper={handleMapper}
                           onFractionMapper={handleFractionMapper}
                         />
@@ -1232,7 +1254,12 @@ export default function App() {
           {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && (
             <EndCard
               state={state}
-              onPlayAgain={startGame}
+              onPlayAgain={
+                !currentLevel && endDaily
+                  ? () => startDaily(endDaily.day, endDaily.seed, endDaily.metric)
+                  : startGame
+              }
+              onFreshBoard={!currentLevel && endDaily ? startFresh : undefined}
               onContinue={
                 // Continue exists when there's a NEXT STEP, chained in order:
                 // ability unlock pop-up → collection reward reveal → next level.
@@ -1682,7 +1709,7 @@ const TALLY_META: Record<EndTallyKind, { label: string; color: string }> = {
   tiles: { label: "Tiles on board", color: theme.color.bad },
 };
 
-function EndCard({ state, onPlayAgain, onContinue }: { state: GameState; onPlayAgain: () => void; onContinue?: () => void }) {
+function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: GameState; onPlayAgain: () => void; onContinue?: () => void; onFreshBoard?: () => void }) {
   const won = state.phase === "won";
   const outOfLives = state.livesLeft <= 0;
   const outcome = state.cashedOut > 0 ? "cashedout" : won ? "cleared" : outOfLives ? "gameover" : "outoftiles";
@@ -1840,11 +1867,25 @@ function EndCard({ state, onPlayAgain, onContinue }: { state: GameState; onPlayA
             <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onPlayAgain}>
               Play again <RefreshIcon />
             </button>
+            {onFreshBoard && (
+              <button style={{ ...secondaryEndBtn, marginTop: 8 }} onClick={onFreshBoard}>
+                Fresh board
+              </button>
+            )}
           </>
         ) : (
-          <button style={{ ...primaryBtn, marginTop: 22 }} onClick={onPlayAgain}>
-            Play again <RefreshIcon />
-          </button>
+          <>
+            {/* PLAY AGAIN re-deals today's COMMUNITY DAILY board (when one exists);
+                FRESH BOARD is the random, non-daily alternative */}
+            <button style={{ ...primaryBtn, marginTop: 22 }} onClick={onPlayAgain}>
+              Play again <RefreshIcon />
+            </button>
+            {onFreshBoard && (
+              <button style={{ ...secondaryEndBtn, marginTop: 10, width: "100%", justifyContent: "center" }} onClick={onFreshBoard}>
+                Fresh board
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

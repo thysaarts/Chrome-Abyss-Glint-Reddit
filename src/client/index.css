@@ -277,6 +277,15 @@ button:disabled:active {
   margin: 0 auto;
   padding: 8px 9px 40px;
 }
+/* REDDIT WEBVIEW FIT (bug026): inside the post's webview the viewport is short —
+   Reddit's own chrome eats ~180px — and the game page must not scroll. On short
+   viewports the shell sheds its deep bottom padding; the board and the toast band
+   give up their slack too (see App: the board's max-height is dvh-capped). */
+@media (max-height: 860px) {
+  .gl-shell {
+    padding-bottom: 10px;
+  }
+}
 /* Installed as an app (Add to Home Screen): keep the game clear of the notch and
    the home indicator. env() is 0 everywhere else, so this only bites on-device. */
 @media (display-mode: standalone) {

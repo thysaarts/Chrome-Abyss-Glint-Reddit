@@ -179,6 +179,43 @@ app.post("/api/score", async (c) => {
   }
 });
 
+// ---- SAVE SYNC: the player's full local save, mirrored per Reddit account ----
+// The value is a JSON object of the client's `glint.*` localStorage keys. The
+// server treats it as an opaque blob — the client owns the shape.
+
+const saveKey = (username: string) => `glint:save:${username}`;
+const SAVE_LIMIT = 200_000; // bytes — a real save is a few KB
+
+app.get("/api/save", async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
+    const raw = await redis.get(saveKey(username));
+    return c.json({ type: "save", data: raw ? JSON.parse(raw) : null });
+  } catch (err) {
+    console.error("save get failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "save get failed" }, 500);
+  }
+});
+
+app.post("/api/save", async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
+    const body = await c.req.json<{ data?: Record<string, string> }>().catch(() => ({}) as { data?: Record<string, string> });
+    if (!body.data || typeof body.data !== "object") {
+      return c.json<ErrorResponse>({ status: "error", message: "invalid save" }, 400);
+    }
+    const raw = JSON.stringify(body.data);
+    if (raw.length > SAVE_LIMIT) return c.json<ErrorResponse>({ status: "error", message: "save too large" }, 413);
+    await redis.set(saveKey(username), raw);
+    return c.json({ type: "save-stored" });
+  } catch (err) {
+    console.error("save put failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "save put failed" }, 500);
+  }
+});
+
 /** Moderator menu action + install trigger — create a post running the game. */
 async function createGamePost() {
   return reddit.submitCustomPost({
