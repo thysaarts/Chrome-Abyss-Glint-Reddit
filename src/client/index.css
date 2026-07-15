@@ -307,6 +307,18 @@ button:disabled:active {
     flex-direction: column;
     justify-content: center;
   }
+  /* the log-pill band floats over the board's bottom edge (instead of reserving
+     40px of flow space) — the board gets every pixel; a pill briefly kissing
+     the bottom tiles is the accepted trade for a bigger board */
+  .gl-shell--fit .gl-toastband {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    margin-top: 0;
+    z-index: 7;
+    pointer-events: none;
+  }
 }
 /* the tutorial keeps its roomier flow layout; just trim its bottom padding on
    short webviews so its text panel stays reachable */

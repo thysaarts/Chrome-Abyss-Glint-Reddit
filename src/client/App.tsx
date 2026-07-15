@@ -745,7 +745,7 @@ export default function App() {
     const mq = window.matchMedia("(max-width: 979px)");
     const measure = () => {
       if (!mq.matches) { setBoardFitH(null); return; }
-      const h = Math.floor(el.clientHeight - 46 - 6); // toast band + sheen top padding
+      const h = Math.floor(el.clientHeight - 12); // sheen top padding + a hair of margin
       setBoardFitH(h > 220 ? h : 220);
     };
     measure();
@@ -1233,7 +1233,7 @@ export default function App() {
           {/* Slim band between the board and NOW PLACING. The most-recent log line
               FLOATS up from behind the footer into this band, holds ~3s, then floats
               up and fades. (BANK NOW no longer lives here — it overlays the HUD.) */}
-          <div style={toastBand}>
+          <div style={toastBand} className="gl-toastband">
             {toastId > 0 && <FloatingToast key={toastId} kind={toast.kind} text={toast.text} stay={toast.sticky} />}
           </div>
 
