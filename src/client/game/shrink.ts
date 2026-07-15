@@ -237,22 +237,63 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
   };
 
   // ---- 1. activated combos first, as rigid groups ----
+  // The combo list may hold OVERLAPPING entries (extending a Trips to a Quad
+  // appends the Quad while the Trips stays listed — they share cells; a set and
+  // a straight can share one). A source cell must be placed exactly ONCE: cells
+  // already mapped by an earlier combo keep their destination and merely PIN the
+  // translation for the rest of this combo (bug028 — re-placing shared cells
+  // duplicated their tiles, conjuring gems out of a collapse).
   const newActivated: { name: string; cells: string[] }[] = [];
   for (const combo of activatedCombos) {
-    const m = placeRigidCombo(combo.cells, free, targetSet);
-    if (m) {
-      for (const [oldK, newK] of m) placeTile(oldK, newK);
-      newActivated.push({ name: combo.name, cells: combo.cells.map((k) => m.get(k)!) });
+    const fixed = combo.cells.filter((k) => mapping.has(k));
+    const pending = [...new Set(combo.cells.filter((k) => !mapping.has(k)))];
+    let m: Map<string, string> | null = null;
+
+    if (fixed.length === 0) {
+      m = placeRigidCombo(combo.cells, free, targetSet);
+      if (m) for (const [oldK, newK] of m) placeTile(oldK, newK);
     } else {
-      // couldn't keep it rigid; place its cells individually (best effort) and
-      // drop the combo's "activated" status for any cell that can't be placed.
-      const placed: string[] = [];
-      for (const oldK of combo.cells) {
+      // shared cells pin the translation: every fixed cell must agree on ONE
+      // shift, and every pending cell must land free under that same shift
+      const o0 = parseKey(fixed[0]);
+      const n0 = parseKey(mapping.get(fixed[0])!);
+      const t = { q: n0.q - o0.q, r: n0.r - o0.r };
+      const consistent = fixed.every((k) => {
+        const o = parseKey(k);
+        const n = parseKey(mapping.get(k)!);
+        return n.q - o.q === t.q && n.r - o.r === t.r;
+      });
+      if (consistent) {
+        const shift = (k: string) => {
+          const c = parseKey(k);
+          return keyOf({ q: c.q + t.q, r: c.r + t.r });
+        };
+        const targets = pending.map(shift);
+        const ok = targets.every((k) => targetSet.has(k) && free.has(k)) && new Set(targets).size === targets.length;
+        if (ok) {
+          m = new Map<string, string>();
+          for (const k of fixed) m.set(k, mapping.get(k)!);
+          pending.forEach((k, i) => {
+            placeTile(k, targets[i]);
+            m!.set(k, targets[i]);
+          });
+        }
+      }
+    }
+
+    if (m) {
+      newActivated.push({ name: combo.name, cells: combo.cells.map((k) => m!.get(k)!) });
+    } else {
+      // couldn't keep it rigid; already-placed cells stay put, the rest are
+      // placed individually (best effort) — never a second copy of any cell.
+      const placed: string[] = fixed.map((k) => mapping.get(k)!);
+      for (const oldK of pending) {
         const c = parseKey(oldK);
         const dest = targetSet.has(oldK) && free.has(oldK) ? oldK : nearestFree(c, free, targetSet);
         if (dest) { placeTile(oldK, dest); placed.push(dest); }
       }
-      if (placed.length >= 2) newActivated.push({ name: combo.name, cells: placed });
+      const unique = [...new Set(placed)];
+      if (unique.length >= 2) newActivated.push({ name: combo.name, cells: unique });
     }
   }
 
