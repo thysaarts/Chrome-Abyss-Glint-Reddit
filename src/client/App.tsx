@@ -1233,7 +1233,7 @@ export default function App() {
           {/* Slim band between the board and NOW PLACING. The most-recent log line
               FLOATS up from behind the footer into this band, holds ~3s, then floats
               up and fades. (BANK NOW no longer lives here — it overlays the HUD.) */}
-          <div style={toastBand} className="gl-toastband">
+          <div style={boardFitH ? { ...toastBand, position: "absolute", left: 0, right: 0, bottom: 7, marginTop: 0, zIndex: 8 } : toastBand}>
             {toastId > 0 && <FloatingToast key={toastId} kind={toast.kind} text={toast.text} stay={toast.sticky} />}
           </div>
 

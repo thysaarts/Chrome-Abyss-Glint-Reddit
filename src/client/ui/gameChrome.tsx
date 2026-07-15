@@ -227,7 +227,7 @@ export const floatToastWrap: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   pointerEvents: "none",
-  zIndex: 4, // behind the footer, so it reads as rising from behind it
+  zIndex: 8, // ABOVE the footer: the log pill must stay legible over NOW PLACING
 };
 export const hudBankOverlay: React.CSSProperties = {
   position: "absolute",
