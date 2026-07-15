@@ -216,9 +216,7 @@ export const boardCastShadow: React.CSSProperties = {
 };
 export const toastBand: React.CSSProperties = {
   position: "relative",
-  // 40px of breathing room on tall screens; collapses to 10px inside short
-  // webviews (Reddit post view) so the whole game fits without scrolling
-  height: "clamp(10px, calc(100dvh - 790px), 40px)",
+  height: 40,
   marginTop: 2,
 };
 export const floatToastWrap: React.CSSProperties = {

@@ -154,6 +154,11 @@ export default function App() {
   // decides what "Got it — Play" does.
   const [tutorial, setTutorial] = useState<null | "start" | "game">(null);
   const [boardPressed, setBoardPressed] = useState(false);
+  // bug027: the board's max height is MEASURED, not estimated — the fit layout
+  // (mobile) flexes the sheen area to the leftover viewport space; the board may
+  // use all of it minus the toast band. null = desktop flow layout (64vh cap).
+  const sheenRef = useRef<HTMLDivElement | null>(null);
+  const [boardFitH, setBoardFitH] = useState<number | null>(null);
 
   // player settings (theme / motion / audio), persisted + applied globally
   const [settings, setSettings] = useState<Settings>(loadSettings);
@@ -731,6 +736,24 @@ export default function App() {
 
   // While an animation plays, render the frozen pre-commit board.
   const shownState: GameState = anim.playing && anim.freezeState ? anim.freezeState : state;
+
+  // keep the measured board space current (fit layout only — max-width 979px)
+  useEffect(() => {
+    if (screen !== "game") return;
+    const el = sheenRef.current;
+    if (!el || typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 979px)");
+    const measure = () => {
+      if (!mq.matches) { setBoardFitH(null); return; }
+      const h = Math.floor(el.clientHeight - 46 - 6); // toast band + sheen top padding
+      setBoardFitH(h > 220 ? h : 220);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    mq.addEventListener("change", measure);
+    return () => { ro.disconnect(); mq.removeEventListener("change", measure); };
+  }, [screen]);
   const toast = state.log[0];
 
   // REGION THEME: a campaign level with a region carries its in-game treatment —
@@ -999,7 +1022,7 @@ export default function App() {
         />
       ) : (
         <div
-          className="gl-shell gl-screen-in"
+          className="gl-shell gl-shell--fit gl-screen-in"
           style={{ position: "relative", zIndex: 1, ...(regionTheme ? regionVars(regionTheme) : {}) }}
         >
           {regionTheme ? <RegionBackdrop region={regionTheme} /> : <Backdrop />}
@@ -1042,7 +1065,7 @@ export default function App() {
               below the HUD (the top bar) down to the top of the footer. Its responsive
               top padding IS the HUD→board clearance, so the sweep starts at the bar's
               bottom rather than over it. */}
-          <div className="gl-sheen-area">
+          <div className="gl-sheen-area" ref={sheenRef}>
           <div style={boardPanel}>
             <div style={boardGlow} />
             <div ref={boardBoxRef} style={{ position: "relative" }} className={anim.shake && settings.screenShake ? "gl-shake" : undefined}>
@@ -1132,7 +1155,7 @@ export default function App() {
                           puzzleImage={currentLevel?.puzzleImage}
                           puzzleFocalX={currentLevel?.puzzleFocalX}
                           puzzleFocalY={currentLevel?.puzzleFocalY}
-                          maxHeightCss="max(300px, min(64vh, calc(100dvh - 400px)))"
+                          maxHeightCss={boardFitH ? `${boardFitH}px` : "64vh"}
                           onMapper={handleMapper}
                           onFractionMapper={handleFractionMapper}
                         />
