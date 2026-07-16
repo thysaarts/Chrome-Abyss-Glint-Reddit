@@ -204,6 +204,19 @@ a { color: var(--accent); }
   </ul>
   <p>Because both ledgers are updated in the same breath, banking never desynchronises them.
   The books stay balanced.</p>
+  <div class="callout"><div class="ct">DOES THE HISTORY DOUBLE-SCORE? NO.</div>
+    <p>Fair question, given section 04: if Ledger B holds Trips <em>and</em> Quad <em>and</em>
+    Pentad for the same five gems, does banking pay all three? It never did. The scorer doesn't
+    sum the ledger — it starts from the combos <strong>this placement</strong> just formed, then
+    walks the older entries and <strong>skips any that are already represented</strong>: entries
+    whose cells all sit inside the new combo, or same-mineral entries connected into the blob
+    being banked (their extra tiles overflow to the hand instead). Only a genuinely
+    <em>separate</em> combo merging in — another mineral's set, a run joining a set — adds its
+    name, which is exactly how chain bonuses like Convergence and Harmony arise.</p>
+    <p>That contrast is the quiet irony of Bug&nbsp;#1: <strong>the banker read the ledger through
+    a dedupe filter; the removal van read it raw.</strong> Same book, two readers — only one of
+    them careful.</p>
+  </div>
 
   <h2 id="s6"><span class="no">06</span>The collapse: moving a whole board</h2>
   <p>When the board runs low, the Abyss collapses it: the old spreadsheet is thrown away and a
