@@ -109,6 +109,7 @@ a { color: var(--accent); }
     <a href="#s10"><span class="tn">10</span>Fix #2 — locked gems, audited ledger</a>
     <a href="#s11"><span class="tn">11</span>The guardrails that now stand watch</a>
     <a href="#s12"><span class="tn">12</span>Three sharp questions — the design trade-offs</a>
+    <a href="#s13"><span class="tn">13</span>The decision record — agreed direction</a>
   </nav>
 
   <h2 id="s1"><span class="no">01</span>The board is a list of addresses</h2>
@@ -424,6 +425,56 @@ a { color: var(--accent); }
   and is dismissed — its gems remain on the board as plain, de-activated tiles: a gameplay
   forfeit, never a material one. And with Rule 1 in force, the audit should find nothing at all —
   it is the tripwire, not the mechanism.</p>
+
+  <h2 id="s13"><span class="no">13</span>The decision record — agreed direction</h2>
+  <p><em>Status: agreed in principle, <strong>not yet implemented</strong> — pending playtesting
+  of how often the affected situations occur in real games.</em></p>
+
+  <h3>The rules</h3>
+  <ul>
+    <li><strong>R1 · Cluster cohesion.</strong> The remap keeps walking Ledger B (it must — separate
+    builds and chains-in-progress are not subsets of any single entry), and keeps recognising
+    overlap. But the deduped remainder of an entry (the D of a Quad, the E of a Pentad) must be
+    placed <em>touching</em> the already-placed shared cells. The goal is geometric: whatever the
+    mechanism, a connected cluster goes in → a connected cluster comes out.</li>
+    <li><strong>R2 · Combos outrank loose tiles.</strong> Activated combos claim their space
+    before any unactivated tile is placed. (Already true today: combos are pass&nbsp;1, loose
+    tiles are passes 2–3. A stray Chromite can never block a Pentad — only <em>other combos</em>
+    and surviving holes compete.)</li>
+    <li><strong>R3 · Honest de-activation.</strong> If a tile genuinely cannot stay connected
+    (holes, extreme crowding), it is <strong>de-activated</strong> — never scattered while still
+    glowing. Fully isolated → it banks via the standard isolated-tile rule; touching other tiles
+    → it stays on the board as a plain gem.</li>
+    <li><strong>R4 · Whole-combo integrity.</strong> If a loss breaks the combo's shape, the rest
+    de-activates too: a Drift missing a link is no longer a Drift; a Trips reduced to two (of a
+    non-Echo mineral) is no longer a combo. <span class="term">Proposed refinement, pending
+    sign-off:</span> if the surviving connected remainder still forms a <em>valid</em> combo, it
+    <strong>downgrades</strong> instead of dying — a Pentad losing one gem is a legal Quad.</li>
+    <li><strong>R5 · No auto-bank from a collapse.</strong> If the remap merges activations into
+    a 6+ connected cluster, it stays activated and unbanked. Banking fires on placement only —
+    ratifying what the engine already does.</li>
+  </ul>
+  <div class="callout gold"><div class="ct">THE NARRATIVE FIT</div>
+    <p>These rules sharpen the game's own language: <em>bank before the abyss collapses</em>.
+    A collapse helps — the board gets smaller and denser — but it can also hurt: hold a combo
+    through one and you risk losing it. Risk for reward, which is the whole game.</p>
+  </div>
+
+  <h3>The measurements so far</h3>
+  <p>A 400-game simulation (random legal play, varied collapse triggers, obstacle boards mixed
+  in) counted what actually happens at collapses under the current code:</p>
+  <div class="math">
+    452 collapses · 601 combos carried through · <span class="good">0 disconnected</span><br/>
+    merged 6+ clusters left unbanked: <span class="gold">40 (~9% of collapses)</span>
+  </div>
+  <p>Read with care: a random bot banks early and carries small builds into collapses — the
+  scatter fallback essentially never fires for it. A strategic player holds bigger unbanked
+  histories, which is exactly how the live phantom bust reached states the bot never visits.
+  Conclusion so far: <strong>cluster cohesion is nearly free</strong> (the fallback is a rare
+  path), the <strong>de-activation rule will be a rare event</strong> — and the merged-cluster
+  rule (R5) is common enough (~9%) that ratifying it as design was worth doing. The simulation
+  lives in the repo as <code>src/game/collapse-sim.test.ts</code> (skipped by default; unskip
+  to re-measure), to be weighed together with live playtesting.</p>
 
   <div class="foot">CHROME ABYSS · GLINT — ENGINE NOTES · BUG 028 &amp; THE PHANTOM BUST · STUDIO FUNK</div>
 </div>
