@@ -135,12 +135,16 @@ function declusterIsolated(
   newCells: Map<string, Cell>,
   target: Axial[],
   targetSet: Set<string>,
-  mapping: Map<string, string>
+  mapping: Map<string, string>,
+  activatedSet: Set<string>
 ): void {
   const nbrs = new Map<string, string[]>();
   for (const c of target) nbrs.set(keyOf(c), neighbours(c, targetSet).map(keyOf));
   const occ = (k: string) => (newCells.get(k)?.tile ?? null) !== null;
-  const isIsolated = (k: string) => occ(k) && !nbrs.get(k)!.some(occ);
+  // an ACTIVATED cell is never "isolated": relocating a player's activated tile
+  // would strand the combo lists (a stale activated cell then rejects the next
+  // placement as "nothing newly activated" — a phantom bust)
+  const isIsolated = (k: string) => occ(k) && !activatedSet.has(k) && !nbrs.get(k)!.some(occ);
   const repoint = (fromK: string, toK: string) => {
     for (const [oldK, newK] of mapping) if (newK === fromK) { mapping.set(oldK, toK); break; }
   };
@@ -324,7 +328,15 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
 
   // ---- GLINT RUSH: on the final collapse to 37 cells, consolidate any stragglers
   // next to the cluster so the small board isn't a scatter of lone tiles ----
-  if (toSide === 4) declusterIsolated(newCells, target, targetSet, mapping);
+  if (toSide === 4) {
+    const activatedSet = new Set(newActivated.flatMap((c) => c.cells));
+    declusterIsolated(newCells, target, targetSet, mapping, activatedSet);
+  }
+
+  // ---- validate the remapped combos: every activated cell must hold a tile ----
+  const prunedActivated = newActivated
+    .map((c) => ({ name: c.name, cells: c.cells.filter((k) => (newCells.get(k)?.tile ?? null) !== null) }))
+    .filter((c) => c.cells.length >= 2);
 
   // ---- rebuild adjacency for the new board ----
   const adj = new Map<string, string[]>();
@@ -346,5 +358,5 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
   const orphanedBonus: number[] = [];
   for (const [gem, bc] of before) for (let i = 0; i < bc - (after.get(gem) ?? 0); i++) orphanedBonus.push(gem);
 
-  return { side: toSide, cells: newCells, order: newOrder, adj, mapping, activatedCombos: newActivated, obstacles: keptObstacles, orphanedBonus };
+  return { side: toSide, cells: newCells, order: newOrder, adj, mapping, activatedCombos: prunedActivated, obstacles: keptObstacles, orphanedBonus };
 }

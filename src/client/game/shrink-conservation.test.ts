@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { shrinkBoard, Cell } from "./shrink";
 import { hexCells, keyOf } from "./hex";
+import { newGame, place, isLegalTarget, GameState } from "./engine";
 
 /**
  * BUG028 — tile conservation through the collapse.
@@ -90,6 +91,46 @@ describe("collapse conserves the tile multiset (bug028)", () => {
     expect(new Set(dests).size).toBe(dests.length);
   });
 
+  it("activated cells always hold tiles after the FINAL collapse (decluster must not strand them)", () => {
+    // the GLINT RUSH collapse (toSide 4) runs declusterIsolated; a combo that
+    // fell to the scatter fallback can have isolated members, and moving them
+    // (or moving another tile into a freed activated cell) strands the
+    // activated lists — the live bust: placing on a stale 'activated' cell is
+    // rejected as 'nothing newly activated'.
+    let seed = 99;
+    const rnd = () => {
+      seed = (seed * 48271) % 2147483647;
+      return seed / 2147483647;
+    };
+    for (let run = 0; run < 300; run++) {
+      const { cells, order } = emptyBoard(5);
+      const keys = [...order];
+      const occupied: string[] = [];
+      for (const k of keys) {
+        if (rnd() < 0.2) {
+          cells.get(k)!.tile = 1 + Math.floor(rnd() * 6);
+          occupied.push(k);
+        }
+      }
+      if (occupied.length < 8) continue;
+      const combos: { name: string; cells: string[] }[] = [];
+      const comboCount = 1 + Math.floor(rnd() * 3);
+      for (let i = 0; i < comboCount; i++) {
+        const start = Math.floor(rnd() * (occupied.length - 5));
+        const len = 2 + Math.floor(rnd() * 4);
+        combos.push({ name: "Trips", cells: occupied.slice(start, start + len) });
+      }
+      const before = countValues(cells);
+      const result = shrinkBoard({ fromSide: 5, toSide: 4, cells, order, activatedCombos: combos });
+      expect(Object.fromEntries(countValues(result.cells)), `run ${run} conservation`).toEqual(Object.fromEntries(before));
+      for (const c of result.activatedCombos) {
+        for (const k of c.cells) {
+          expect(result.cells.get(k)?.tile ?? null, `run ${run} activated cell ${k} must hold a tile`).not.toBeNull();
+        }
+      }
+    }
+  });
+
   it("holds across randomised overlapping-combo boards (200 seeds)", () => {
     let seed = 1;
     const rnd = () => {
@@ -124,4 +165,27 @@ describe("collapse conserves the tile multiset (bug028)", () => {
       expect(new Set(dests).size, `seed run ${run} unique destinations`).toBe(dests.length);
     }
   });
+
+  it("LIVE invariant: activated cells always hold tiles across seeded playthroughs", () => {
+    // the end-to-end guard for the phantom-bust class: at no point in a real
+    // game may the activated lists reference an empty cell (through collapses,
+    // singularities, reshuffles, decluster — everything)
+    const legalTargets = (g: GameState) => g.order.filter((k) => isLegalTarget(g, k));
+    const offenders: string[] = [];
+    for (let seed = 1; seed <= 120 && offenders.length === 0; seed++) {
+      let g = newGame({ seed, side: 6 });
+      for (let m = 0; m < 300 && g.phase === "playing"; m++) {
+        const targets = legalTargets(g);
+        if (targets.length === 0) break;
+        g = place(g, targets[(seed * 31 + m * 17) % targets.length]);
+        for (const k of g.activatedCells) {
+          if ((g.cells.get(k)?.tile ?? null) === null) {
+            offenders.push(`seed ${seed} move ${m}: activated cell ${k} is empty (side ${g.side})`);
+            break;
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  }, 120000);
 });
