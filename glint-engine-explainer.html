@@ -108,6 +108,7 @@ a { color: var(--accent); }
     <a href="#s9"><span class="tn">09</span>Bug #2 — the phantom bust</a>
     <a href="#s10"><span class="tn">10</span>Fix #2 — locked gems, audited ledger</a>
     <a href="#s11"><span class="tn">11</span>The guardrails that now stand watch</a>
+    <a href="#s12"><span class="tn">12</span>Three sharp questions — the design trade-offs</a>
   </nav>
 
   <h2 id="s1"><span class="no">01</span>The board is a list of addresses</h2>
@@ -318,7 +319,8 @@ a { color: var(--accent); }
   <div class="callout green"><div class="ct">RULE 1 — ACTIVATED GEMS ARE IMMOVABLE</div>
     <p>The tidy-up now treats every address in Ledger B as untouchable. Your build is the one
     thing on the board a cleanup pass may never silently rearrange — even a scattered, lonely
-    member stays where the remap put it.</p>
+    member stays where the remap put it. (Yes, that means a scattered member now <em>stays</em>
+    scattered — a deliberate trade, unpacked in section 12.)</p>
   </div>
   <div class="callout green"><div class="ct">RULE 2 — THE LEDGER IS AUDITED</div>
     <p>Before the engine accepts any remap result, every Ledger B entry is checked against
@@ -365,6 +367,63 @@ a { color: var(--accent); }
     "The animation looked right" is never evidence: the books are the truth, the pixels are a
     drawing of it.</p>
   </div>
+
+  <h2 id="s12"><span class="no">12</span>Three sharp questions — the design trade-offs</h2>
+  <p>These came from reading this page critically, and each one touches a real design decision
+  rather than a detail. Honest answers, including the roads not taken.</p>
+
+  <h3>Q1 · "Why does the remap walk Ledger B at all? Why not just place the newest combo?"</h3>
+  <p>Because the ledger is not only one build's growth history. At collapse time it can hold
+  <strong>several independent things at once</strong>: a Nuracite chain in the north, a separate
+  Trips of Umbrite in the east — and <em>chains in progress</em>, like a Drift touching a Trips
+  on its way to an Accord. Those are separate entries that are <strong>not subsets of each
+  other</strong>. "Only place the most recent entry" would silently drop real builds. The
+  Trips&nbsp;⊂&nbsp;Quad&nbsp;⊂&nbsp;Pentad overlap is a <em>special case</em> — a same-value
+  growth chain — that the original code failed to distinguish from the general one.</p>
+  <div class="callout"><div class="ct">THE ROAD NOT (YET) TAKEN</div>
+    <p>The cleaner architecture the question points at: group Ledger B entries into
+    <strong>connected clusters</strong> (the union of their cells), move each cluster rigidly as
+    one stamp, then re-derive every entry's addresses from that one move. Duplication becomes
+    impossible <em>by construction</em> instead of by a memory check — and it would also close a
+    subtlety the current design still permits: two separate <em>touching</em> combos can be
+    moved with different shifts and land apart, quietly breaking a chain-in-progress. Fix #1's
+    pinning approximates cluster-rigidity through shared cells; a union-based remap would make
+    it the rule. If the remap is ever rebuilt, this is the shape to rebuild it in.</p>
+  </div>
+
+  <h3>Q2 · "So an activated combo really can come out of a collapse disconnected?"</h3>
+  <p>Yes — but only through the <span class="term">scatter fallback</span>, the last resort when
+  the smaller board genuinely has no room for the shape (obstacles, crowding: a 37-cell board may
+  simply not host an 8-cell snake anywhere). Rigid and pinned placement preserve shape by
+  definition; when both fail, <em>something</em> must give. Scatter preserves the gems but not
+  the geometry. Alternatives exist — search harder for a fitting spot, or <em>de-activate</em>
+  what cannot stay connected ("the collapse broke your combo", honestly) — that's an open design
+  choice, not a bug. Bug&nbsp;#2's real lesson was narrower: however rare the fallback, it must
+  keep the books consistent.</p>
+
+  <h3>Q3 · "Doesn't Rule 1 defeat the tidy-up's purpose? And does the audit delete gems?"</h3>
+  <p><strong>On Rule 1 — partly, and deliberately.</strong> The tidy-up was never written
+  <em>for</em> activated gems; it consolidates loose stragglers, and merely <em>assumed</em>
+  activated gems are never alone. Rule 1 turns that assumption into law, so yes: a scattered
+  activated member now stays scattered. Correctness bought at the price of aesthetics. It is
+  less harmful than it sounds — banking is connectivity-based, so the lone member simply doesn't
+  count toward the main cluster, and when that cluster banks, the combo entry is consumed and
+  the lone gem quietly returns to being a plain tile.</p>
+  <p><strong>The alternative fix</strong> — "move the gem <em>and</em> hand its old → new address
+  to Ledger B so the books stay aligned" — is entirely valid, and arguably better for the player
+  (the build stays visually whole). It was not chosen because relocating an activated gem changes
+  the <em>meaning</em> of the board, not just its look: the moved gem gains new neighbours, and a
+  tidy-up that reunites a combo could create a 6+ connected activated cluster that <em>should</em>
+  have banked — but banking only triggers on placement, so it would sit in a state the rules
+  never defined. Immovability sidesteps that entire class of problem. A future version could take
+  the other road with care around exactly those cases.</p>
+  <p><strong>On the audit — no gems are ever touched.</strong> The audit edits only the
+  <em>list</em>: an address with no gem behind it is struck from the entry, which stops the
+  outline being drawn there. Ledger A is read, never written. Nothing is added to or removed
+  from the board, so conservation is untouched. Worst case an entry drops below two addresses
+  and is dismissed — its gems remain on the board as plain, de-activated tiles: a gameplay
+  forfeit, never a material one. And with Rule 1 in force, the audit should find nothing at all —
+  it is the tripwire, not the mechanism.</p>
 
   <div class="foot">CHROME ABYSS · GLINT — ENGINE NOTES · BUG 028 &amp; THE PHANTOM BUST · STUDIO FUNK</div>
 </div>
