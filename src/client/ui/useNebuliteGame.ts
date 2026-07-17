@@ -1534,84 +1534,82 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           await pause(T.toHandFly + bustToHand.length * 70 + 100);
         }
 
-        // The bust's forced inert tile — the engine reports exactly where it ends up
-        // (tracked through the collapse remap + nudge drift). Keep it hidden through
-        // the reshuffle at BOTH its pre-nudge and post-nudge positions so it never
-        // flashes in and only appears when Phase B drops it.
-        const inertKey = bres.inertAt;
-        const hideInert = new Set<string>();
-        if (inertKey) {
-          hideInert.add(inertKey);
-          const nudge = bres.nudged.find((m) => m.to === inertKey);
-          if (nudge) hideInert.add(nudge.from);
+        // CAUSE-ORDER PRESENTATION (mirrors the engine, decision record): the
+        // forced tile drops FIRST, then the reshuffle drifts, then the bust's own
+        // wake discards (red flash + poof — a bust never pays), and only THEN the
+        // collapse, whose strays bank by the standard rules afterwards.
+        const inertKey = bres.inertAt; // FINAL position (post nudge + collapse remap)
+        const bustCleared = new Set<string>([...frozen.activatedCells, cellKey]);
+        const preBase = boardWithout(frozen, bustCleared); // the board after the losses
+        // where the forced tile sat BEFORE any collapse: the bust cell, or its
+        // nudged spot — the wake-discard list records it at that position
+        const inertKeyPre = bres.nudged.find((m) => m.from === cellKey)?.to ?? cellKey;
+        const inertDiscard = bres.lateDiscarded.find((t) => t.key === inertKeyPre) ?? null;
+        const inertVal = inertKey ? (committed.cells.get(inertKey)?.tile ?? null) : null;
+        const dropVal = (inertVal ?? inertDiscard?.value ?? null) as TileVal | null;
+        const preWithDrop = dropVal !== null ? withTileAt(preBase, cellKey, dropVal) : preBase;
+
+        // THE FORCED TILE'S ENTRANCE — it lands on the bust cell with a negative
+        // sting. Even when the wake immediately discards it (it landed isolated —
+        // the inert marker is purely visual now), the player sees it land, flash
+        // red and poof with the other discards: it never appears from nowhere,
+        // and never vanishes unseen.
+        if (dropVal !== null) {
+          const dropFly: FlyingTile[] = [
+            { id: "bust-next", value: dropVal, fromKey: null, fromXY: handOrigin(), to: "gap", toKey: cellKey, delay: 0 },
+          ];
+          setAnim({ ...IDLE, playing: true, focused: true, hiddenCells: new Set([cellKey]), flying: dropFly, freezeState: preWithDrop });
+          setTimeout(() => {
+            sfx.place(); // the landing thud…
+            sfx.gainDross(); // …under a negative sting: this tile was forced on you
+          }, T.bustDropNext - 120);
+          await pause(T.bustDropNext + 120);
         }
 
-        // Keep any tiles the FINAL isolation pass will clear on the board through the
-        // collapse / reshuffle; they fly off afterwards in animateLateResolution.
+        // Keep any tiles the COLLAPSE-stray pass will bank on the board through
+        // the collapse; they fly off afterwards in animateLateResolution.
         const cw = withLateTiles(committed);
 
-        // THE ABYSS COLLAPSES: a bust that drops the board to a trigger plays the
-        // collapse and reveals the settled (smaller) board — which already shows the
-        // inert in place, so we skip the reshuffle + separate inert drop below. Only
-        // without a collapse do we animate the RESHUFFLE word + drift.
-        {
-          // the SINGULARITY (if this bust triggered it) plays before any collapse
-          const bustCleared = new Set<string>([...frozen.activatedCells, cellKey]);
-          const preShrinkC = await singularityBeat(boardWithout(frozen, bustCleared), bres);
-          if (bres.shrunk) {
-            // contract a clean board — the lost activated group and the busted tile are
-            // gone, so no green rings linger and nothing reappears mid-collapse. The
-            // forced tile stays HELD BACK on the revealed board: it must never simply
-            // materialise inside the collapse reveal — it gets its own drop beat below.
-            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final, new Set(inertKey ? [inertKey] : []));
-          }
-        }
+        // RESHUFFLE drift (never on a collapse turn — the contraction shows the
+        // final positions itself). The forced tile is already down, so it simply
+        // drifts along with everything else.
         if (!bres.shrunk && (bres.reshuffled || bres.nudged.length > 0)) {
-          await animateReshuffle(cw, hideInert);
+          await animateReshuffle(cw);
         }
 
-        // The forced next tile is dropped LAST, once every other beat has fully
-        // resolved. Keep it HIDDEN through the reshuffle / collapse reveal and the
-        // discard + isolation cleanup below, so its inert (red-outlined) cell never
-        // flickers into the frame while the isolated tiles are still being cleared.
-        // On a collapse only its POST-remap cell is held back — the pre-nudge key
-        // may hold a legitimately remapped tile on the new board.
-        const lateHide = bres.shrunk ? new Set<string>(inertKey ? [inertKey] : []) : hideInert;
-
-        // Tiles the bust's wake left isolated are DISCARDED — no points: they
-        // flash red, then poof off the board.
+        // THE WAKE DISCARDS — resolved BEFORE any collapse now. Without a
+        // collapse the committed board still has these coordinates (flash on the
+        // final view); with one, rebuild the pre-collapse board with the nudges
+        // applied so the flash happens where the player last saw the tiles.
+        let collapseBase = bres.shrunk ? applyNudges(preWithDrop, bres.nudged) : preWithDrop;
         if (bres.lateDiscarded.length > 0) {
           const keys = new Set(bres.lateDiscarded.map((t) => t.key));
-          setAnim((a) => ({ ...a, freezeState: cw, flying: [], redCells: keys, hiddenCells: new Set([...a.hiddenCells, ...lateHide]) }));
+          const flashView = bres.shrunk ? collapseBase : cw;
+          // warning beat: the doomed isolated tiles (the forced tile included, if
+          // the wake cut it off) turn RED…
+          setAnim((a) => ({ ...a, playing: true, freezeState: flashView, flying: [], redCells: keys, hiddenCells: new Set() }));
           await pause(520);
-          sfx.poof();
-          setAnim((a) => ({ ...a, hiddenCells: new Set([...a.hiddenCells, ...lateHide, ...keys]), redCells: new Set() }));
-          await pause(320);
+          // …then they DROP off the board, exactly like a forfeited activated
+          // combo — they don't bank, so they share its exit. Never a silent poof.
+          [...keys].forEach((_, i) => setTimeout(() => sfx.poof(), 130 + i * 70));
+          setAnim((a) => ({ ...a, redCells: new Set(), fallCells: keys, fallGo: true }));
+          await pause(760);
+          collapseBase = boardWithout(collapseBase, keys);
+          setAnim((a) => ({ ...a, freezeState: bres.shrunk ? collapseBase : boardWithout(cw, keys), fallCells: null, fallGo: false }));
+          await pause(100);
         }
 
-        // Resolve isolation: any tile or same-value pair still cut off banks /
-        // returns to the hand — animated. The forced tile stays hidden throughout.
-        await animateLateResolution(committed, lateHide);
-
-        // NOW the board has fully settled — every discarded / isolated tile is
-        // resolved and gone. Drop the forced inert tile cleanly as the final beat,
-        // where it simply lands and stays — on a collapse too: it was held back
-        // through the reveal, and this entrance (with its negative sting) is the
-        // only way the player learns a tile was forced from their hand.
-        if (inertKey) {
-          const inertVal = committed.cells.get(inertKey)?.tile ?? null;
-          if (inertVal !== null) {
-            const dropFly: FlyingTile[] = [
-              { id: "bust-next", value: inertVal as TileVal, fromKey: null, fromXY: handOrigin(), to: "gap", toKey: inertKey, delay: 0 },
-            ];
-            setAnim({ ...IDLE, playing: true, focused: true, hiddenCells: new Set([inertKey]), flying: dropFly, freezeState: committed });
-            setTimeout(() => {
-              sfx.place(); // the landing thud…
-              sfx.gainDross(); // …under a negative sting: this tile was forced on you
-            }, T.bustDropNext - 120);
-            await pause(T.bustDropNext + 120);
+        // THE ABYSS COLLAPSES — last, exactly as the engine now resolves it. The
+        // surviving forced tile contracts along with the board and reappears
+        // remapped; the strays the collapse cut off fly to score/hand afterwards
+        // by the standard isolation rules (the collapse pays — the bust never does).
+        {
+          const preShrinkC = await singularityBeat(collapseBase, bres);
+          if (bres.shrunk) {
+            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final);
           }
         }
+        await animateLateResolution(committed);
 
         await commitFinal(committed); // plays COLLAPSE / GLINT RUSH first if the board came down
         setAnim(IDLE);
@@ -1718,6 +1716,22 @@ function withLateTiles(committed: GameState): GameState {
   li.toHand.forEach((t) => readd(t.key, t.value));
   li.buried.forEach((t) => readd(t.key, t.value));
   return { ...committed, cells };
+}
+
+// Apply the engine's nudge drifts forward onto a frozen view — used to rebuild
+// the PRE-collapse board a bust's wake discards flashed on (the engine nudges,
+// then discards, then collapses; the discard keys are post-nudge positions).
+function applyNudges(g: GameState, moves: { from: string; to: string }[]): GameState {
+  if (moves.length === 0) return g;
+  const cells = new Map(g.cells);
+  for (const { from, to } of moves) {
+    const src = cells.get(from);
+    const dst = cells.get(to);
+    if (!src || !dst) continue;
+    cells.set(to, { coord: dst.coord, tile: src.tile, inert: src.inert, buried: src.buried });
+    cells.set(from, { coord: src.coord, tile: null, inert: false, buried: null });
+  }
+  return { ...g, cells };
 }
 
 // The primary pointer is coarse (a finger) → a touch device. The thick-thumbs

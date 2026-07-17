@@ -1276,6 +1276,23 @@ function settleCollapse(s: GameState, resolveIso: (s: GameState) => void, afterS
 }
 
 /**
+ * CAUSE-BASED bust resolution (one rule, every phase — decision record):
+ * the BUST'S OWN WAKE — every tile the cluster loss, forced drop and reshuffle
+ * left isolated — resolves FIRST and is DISCARDED: a bust never pays. Only then
+ * does an owed collapse fire, and anything THE COLLAPSE strands resolves by the
+ * STANDARD isolation rules (banks / to hand): the collapse pays, whichever turn
+ * it lands in. The old code picked one resolver for the whole turn by context —
+ * pre-rush everything discarded (even collapse strays), rush everything banked
+ * (even the bust's own wake, which quietly made a rush bust a free clearing
+ * tool) — and collapsed BEFORE sweeping, letting the remap rescue tiles the
+ * player had just isolated.
+ */
+function settleBustWake(s: GameState, afterShrink?: (s: GameState) => void): void {
+  discardLateIsolation(s);
+  settleCollapse(s, resolveLateIsolation, afterShrink);
+}
+
+/**
  * Resolve tiles cut off from the rest of the board after a clear.
  *
  * A "cut-off group" is a connected component (ignoring gaps) whose tiles touch no
@@ -1318,7 +1335,7 @@ function resolveIsolatedTiles(s: GameState): {
   };
 
   const pointsFor = (t: TileVal): number =>
-    t === GLINT ? 0 : t === CORE ? CORE_BONUS : (t as number) * 100;
+    t === GLINT ? 0 : t === CORE ? CORE_BONUS : t === ZENITH ? ZENITH_BONUS : (t as number) * 100;
 
   const removeTile = (k: string) => {
     const cell = s.cells.get(k)!;
@@ -1357,7 +1374,7 @@ function resolveIsolatedTiles(s: GameState): {
 
     if (comp.length === 1) {
       const k = comp[0];
-      if (s.cells.get(k)!.inert) continue; // dead inert tiles block connectivity but never bank
+      // (the forced tile's inert flag is purely visual — it banks like any tile)
       const cellK = s.cells.get(k)!;
       const t = cellK.tile!;
       let points = pointsFor(t);
@@ -1374,13 +1391,13 @@ function resolveIsolatedTiles(s: GameState): {
       removeTile(k);
     } else if (comp.length === 2) {
       // Rule 6: isolated pair. Only applies when BOTH are the same value and both
-      // are plain tiles (not part of an activated combo, and not inert).
+      // are plain tiles (not part of an activated combo). A forced tile's inert
+      // flag is purely visual — it pairs like any tile.
       const [a, b] = comp;
       const ta = s.cells.get(a)!.tile!;
       const tb = s.cells.get(b)!.tile!;
       const bothActivated = s.activatedCells.includes(a) || s.activatedCells.includes(b);
-      const eitherInert = s.cells.get(a)!.inert || s.cells.get(b)!.inert;
-      if (ta === tb && !bothActivated && !eitherInert) {
+      if (ta === tb && !bothActivated) {
         const ordered = [a, b].sort(leftTopFirst);
         if (ta === GLINT) {
           // EXCEPTION — a pair of Dross: bank BOTH (worth 0, both fly to the score).
@@ -1513,8 +1530,9 @@ function resolveLateIsolation(s: GameState): void {
  * The BUST-path counterpart of resolveLateIsolation: tiles left isolated in a
  * bust's wake (the cluster loss + forced drop + reshuffle) are DISCARDED —
  * no points, nothing to the hand, no Dross/Nebulite credit. Same trigger
- * conditions as normal isolation (lone tiles; same-value plain pairs; inert
- * tiles never resolve), looped until stable. Records the removals in
+ * conditions as normal isolation (lone tiles; same-value plain pairs — the
+ * forced tile's inert flag is purely visual, so it discards and pairs like any
+ * tile), looped until stable. Records the removals in
  * lastResolved.lateDiscarded for the UI to poof away.
  */
 function discardLateIsolation(s: GameState): void {
@@ -1548,14 +1566,12 @@ function discardLateIsolation(s: GameState): void {
         }
       }
       if (comp.length === 1) {
-        if (s.cells.get(comp[0])!.inert) continue; // inert blockers stay, as ever
         drop(comp[0]);
       } else if (comp.length === 2) {
         const [a, b] = comp;
         const ta = s.cells.get(a)!.tile!;
         const tb = s.cells.get(b)!.tile!;
-        const eitherInert = s.cells.get(a)!.inert || s.cells.get(b)!.inert;
-        if (ta === tb && !eitherInert) {
+        if (ta === tb) {
           drop(a);
           drop(b);
         }
@@ -2285,32 +2301,25 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
   // ends up as the board mutates below (shrink remap + nudge drift), so the UI can
   // keep it hidden through the whole animation and only reveal it on the final drop.
   let inertAt: string | null = null;
-  // GLINT RUSH exception: during the final round a bust does NOT force a tile onto
-  // the board. The endgame is about clearing — punishing a bust by GROWING the
-  // board is a death spiral, so in rush you only lose the tile and the life.
-  if (s.deathMatch) {
-    pushLog(s, { text: logText("rushNoForcedTile"), kind: "rush", sticky: logIsSticky("rushNoForcedTile") });
-  } else {
-    // A hard-won Nebulite is never wasted as the forced inert tile: skip past any
-    // Nebulites and drop the first ordinary tile instead (the Nebulites stay in the
-    // hand). If the only tiles left are Nebulites, no tile is forced down.
-    const forcedIdx = s.hand.findIndex((t) => t !== CORE);
+  // THE FORCED TILE — every phase, GLINT RUSH included: one bust, one rule. While
+  // the hand is BLIND the invisible mercy stands (skip past Nebulites so a
+  // hard-won gem isn't wasted unseen). Once the wheel is REVEALED there is no
+  // mercy and no skipping: the next tile — the one left of the gem you busted
+  // with — comes down, Nebulite or Zenith included. The wheel is visible;
+  // busting into it is the player's own call.
+  {
+    const forcedIdx = s.handRevealed ? (s.hand.length > 0 ? 0 : -1) : s.hand.findIndex((t) => t !== CORE);
     if (forcedIdx >= 0) {
       const next = s.hand.splice(forcedIdx, 1)[0];
       const cell = s.cells.get(cellKey)!;
       cell.tile = next;
+      // one-turn red marker, purely VISUAL: the isolation rules treat the forced
+      // tile like any other tile (it can be discarded by the bust's own wake, or
+      // pair-cleared) — it just isn't a placement, so it activates nothing.
       cell.inert = true;
       inertAt = cellKey;
       pushLog(s, { text: logText("forcedInert"), kind: "info", sticky: logIsSticky("forcedInert") });
     }
-  }
-
-  // THE ABYSS COLLAPSES (also checked after a bust clears tiles). Follow the inert
-  // tile through the collapse remap.
-  maybeShrink(s, stateRng(s));
-  if (inertAt && s.lastResolved.shrunk) {
-    const m = s.lastResolved.shrunk.mapping.find((mm) => mm.from === inertAt);
-    inertAt = m ? m.to : null;
   }
 
   // RULE 2: armed-before-this-move Core respawn fires now (unless shrink disabled).
@@ -2322,12 +2331,15 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
 
   if (s.deathMatch) {
     // GLINT RUSH: a bust does NOT reshuffle — the shuffle could isolate tiles and
-    // hand the player a lucky clear. Isolation caused by the cluster loss itself
-    // (no shuffle involved) still resolves normally.
+    // hand the player a lucky clear. Everything else is the one shared rule below.
     s.lastResolved.inertAt = inertAt;
-    // a late isolation here can itself cross a collapse trigger the check above missed —
-    // settle so the collapse resolves THIS bust, not a later move (see settleCollapse)
-    settleCollapse(s, resolveLateIsolation);
+    settleBustWake(s, () => {
+      if (inertAt && s.lastResolved.shrunk) {
+        const m = s.lastResolved.shrunk.mapping.find((mm) => mm.from === inertAt);
+        inertAt = m ? m.to : null;
+        s.lastResolved.inertAt = inertAt;
+      }
+    });
   } else {
     // After a bust, reshuffle the stack and nudge the board (a few tiles drift by
     // one cell). Follow the inert tile if the nudge drifted it.
@@ -2342,12 +2354,7 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
     if (didReshuffle || s.lastResolved.nudged.length > 0) {
       pushLog(s, { text: logText("reshuffled"), kind: "glint", sticky: logIsSticky("reshuffled") });
     }
-    // tiles isolated in a BUST's wake are DISCARDED — no points, nothing to the
-    // hand. Only Dross-clear reshuffles pay out isolation; a bust never does.
-    // That discard can itself cross a collapse trigger the check above missed, so settle
-    // here — following the inert tile through any late collapse remap — and let the
-    // collapse resolve THIS bust rather than deferring it to a later move.
-    settleCollapse(s, discardLateIsolation, () => {
+    settleBustWake(s, () => {
       if (inertAt && s.lastResolved.shrunk) {
         const m = s.lastResolved.shrunk.mapping.find((mm) => mm.from === inertAt);
         inertAt = m ? m.to : null;
