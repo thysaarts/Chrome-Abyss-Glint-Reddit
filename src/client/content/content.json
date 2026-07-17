@@ -140,7 +140,7 @@
       },
       {
         "title": "Your tiles: now & next",
-        "copy": "You place one gem at a time. UP NEXT counts your tiles, but their values stay hidden, until you have only 3 remaining. Not knowing what's coming is the gamble."
+        "copy": "You place one gem at a time. UP NEXT counts your tiles, but their values stay hidden, until you have only 4 remaining. Not knowing what's coming is the gamble."
       },
       {
         "title": "Build a combo",
@@ -172,7 +172,7 @@
       },
       {
         "title": "Climb the levels",
-        "copy": "The game is a climb through levels, each a new region with its own unlock requirement, getting increasingly difficult as your progress. Bigger boards, more Dross, earlier collapses. It gets tougher the deeper you go. Good luck!"
+        "copy": "The game is a climb through levels, each a new region with its own unlock requirement, getting increasingly difficult as you progress. Bigger boards, more Dross, earlier collapses. It gets tougher the deeper you go. Good luck!"
       }
     ]
   },

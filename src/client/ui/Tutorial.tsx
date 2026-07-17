@@ -482,16 +482,33 @@ function MiniLevelIsland({ w, kind, children }: { w: number; kind: "current" | "
 }
 
 function HexStackMini({ count }: { count: number }) {
+  // mirrors the in-game UP NEXT stack exactly: face-down tiles carry the
+  // closed-eye glyph inside the front hexagon, and the COUNT sits outside it
+  // at the lower-right (the same badge spot the rush wheel uses)
+  const hex = (cx: number, cy: number, r: number) => {
+    const pts: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (-90 + i * 60) * (Math.PI / 180);
+      pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+    }
+    return pts.join(" ");
+  };
+  const R = 15;
+  const f = { x: 26, y: 36 };
   return (
     <div style={{ position: "relative", width: 62, height: 66 }}>
       <svg viewBox="0 0 60 64" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
-        <polygon points="38,7 54,16 54,36 38,45 22,36 22,16" fill="#15182a" opacity="0.45" stroke="#262344" strokeWidth="1.2" />
-        <polygon points="34,11 50,20 50,40 34,49 18,40 18,20" fill="#15182a" opacity="0.72" stroke="#262344" strokeWidth="1.2" />
-        <polygon points="30,15 46,24 46,44 30,53 14,44 14,24" fill="#15182a" stroke="rgba(192,132,252,0.5)" strokeWidth="1.5" />
-        <text x="30" y="34" textAnchor="middle" dominantBaseline="central" fill={theme.color.accent} style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 22 }}>
-          {count}
-        </text>
+        <polygon points={hex(40, 22, R)} fill="#15182a" opacity="0.45" stroke="#262344" strokeWidth="1.3" />
+        <polygon points={hex(33, 29, R)} fill="#15182a" opacity="0.72" stroke="#262344" strokeWidth="1.3" />
+        <polygon points={hex(f.x, f.y, R)} fill="#15182a" stroke="rgba(192,132,252,0.85)" strokeWidth="1.8" />
+        {/* the eye-off: these tiles are face-down */}
+        <g stroke={theme.color.accent} strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.9">
+          <path d={`M ${f.x - 7} ${f.y} Q ${f.x} ${f.y - 6.5} ${f.x + 7} ${f.y} Q ${f.x} ${f.y + 6.5} ${f.x - 7} ${f.y}`} />
+          <circle cx={f.x} cy={f.y} r="2.1" fill={theme.color.accent} stroke="none" />
+          <line x1={f.x - 8} y1={f.y + 7} x2={f.x + 8} y2={f.y - 7} />
+        </g>
       </svg>
+      <span style={{ position: "absolute", left: 40, bottom: 12, fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 14, lineHeight: 1, color: theme.color.accent }}>{count}</span>
     </div>
   );
 }
