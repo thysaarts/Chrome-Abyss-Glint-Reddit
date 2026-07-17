@@ -88,6 +88,25 @@ function nearestFree(from: Axial, free: Set<string>, targetSet: Set<string>): st
   return best;
 }
 
+/** R1 (decision record): nearest free target cell that TOUCHES one of `anchors`
+ *  — used when a combo can't stay rigid, so its stray cells re-attach to the
+ *  entry's already-placed cells instead of scattering. Null when no free cell
+ *  borders the anchors (R3/R4 then de-activate the entry honestly). */
+function nearestFreeTouching(from: Axial, free: Set<string>, targetSet: Set<string>, anchors: string[]): string | null {
+  if (anchors.length === 0) return null;
+  const anchorCoords = anchors.map(parseKey);
+  let best: string | null = null;
+  let bestD = Infinity;
+  for (const k of free) {
+    if (!targetSet.has(k)) continue;
+    const c = parseKey(k);
+    if (!anchorCoords.some((a) => hexDistance(a, c) === 1)) continue;
+    const d = hexDistance(from, c);
+    if (d < bestD) { bestD = d; best = k; }
+  }
+  return best;
+}
+
 /**
  * Try to place a rigid combo (a set of old cells) onto the target board. Returns a
  * map oldCellKey -> newCellKey if a fitting translation exists, else null.
@@ -289,11 +308,21 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
       newActivated.push({ name: combo.name, cells: combo.cells.map((k) => m!.get(k)!) });
     } else {
       // couldn't keep it rigid; already-placed cells stay put, the rest are
-      // placed individually (best effort) — never a second copy of any cell.
+      // placed individually — never a second copy of any cell. R1 (decision
+      // record): each stray cell prefers keeping its own spot only if that spot
+      // TOUCHES the entry's already-placed cells, else the nearest free cell
+      // that does — so the cluster comes out connected whenever the geometry
+      // allows. Only when no attaching cell exists does it scatter (and the
+      // connectivity audit below then de-activates the entry).
       const placed: string[] = fixed.map((k) => mapping.get(k)!);
       for (const oldK of pending) {
         const c = parseKey(oldK);
-        const dest = targetSet.has(oldK) && free.has(oldK) ? oldK : nearestFree(c, free, targetSet);
+        const ownSpotFree = targetSet.has(oldK) && free.has(oldK);
+        const ownSpotAttaches =
+          ownSpotFree && (placed.length === 0 || placed.some((p) => hexDistance(parseKey(p), c) === 1));
+        const dest = ownSpotAttaches
+          ? oldK
+          : nearestFreeTouching(c, free, targetSet, placed) ?? (ownSpotFree ? oldK : nearestFree(c, free, targetSet));
         if (dest) { placeTile(oldK, dest); placed.push(dest); }
       }
       const unique = [...new Set(placed)];
@@ -338,6 +367,29 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
     .map((c) => ({ name: c.name, cells: c.cells.filter((k) => (newCells.get(k)?.tile ?? null) !== null) }))
     .filter((c) => c.cells.length >= 2);
 
+  // ---- R3/R4 (decision record): an entry must come out of the collapse as ONE
+  // connected group. A broken shape is no longer that combo (R4), and a tile is
+  // never left scattered-but-glowing (R3) — the WHOLE entry de-activates. Its
+  // gems stay on the board as plain tiles (conservation untouched); overlapping
+  // entries that survived intact keep their own cells activated, and the
+  // engine's isolation pass banks any de-activated tile the collapse fully cut
+  // off — the standard isolated-tile rule, animated as late isolation. ----
+  const entryConnected = (comboCells: string[]): boolean => {
+    if (comboCells.length <= 1) return true;
+    const set = new Set(comboCells);
+    const seen = new Set<string>([comboCells[0]]);
+    const stack = [comboCells[0]];
+    while (stack.length) {
+      const c = parseKey(stack.pop()!);
+      for (const n of neighbours(c, set)) {
+        const nk = keyOf(n);
+        if (!seen.has(nk)) { seen.add(nk); stack.push(nk); }
+      }
+    }
+    return seen.size === set.size;
+  };
+  const connectedActivated = prunedActivated.filter((c) => entryConnected(c.cells));
+
   // ---- rebuild adjacency for the new board ----
   const adj = new Map<string, string[]>();
   for (const c of target) {
@@ -358,5 +410,5 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
   const orphanedBonus: number[] = [];
   for (const [gem, bc] of before) for (let i = 0; i < bc - (after.get(gem) ?? 0); i++) orphanedBonus.push(gem);
 
-  return { side: toSide, cells: newCells, order: newOrder, adj, mapping, activatedCombos: prunedActivated, obstacles: keptObstacles, orphanedBonus };
+  return { side: toSide, cells: newCells, order: newOrder, adj, mapping, activatedCombos: connectedActivated, obstacles: keptObstacles, orphanedBonus };
 }

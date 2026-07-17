@@ -215,6 +215,30 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   const shrinkAnimatedRef = useRef(false);
   // set by animateSingularity: the SINGULARITY beat has been staged for this action
   const singularityAnimatedRef = useRef(false);
+  // THE PERFORMED-SIDE LEDGER — the last grid side the COLLAPSE beat actually
+  // performed on screen. Only animateShrink and a new game may update it. The
+  // commit-time safety net compares the committed side against THIS, never
+  // against the on-screen photograph: a beat that renders the committed
+  // (already collapsed) board early can swap the scenery, but it can't erase
+  // the debt recorded here.
+  const performedSideRef = useRef(state.side);
+
+  // SNAP DETECTOR — the rendered board's side may never be smaller than the
+  // last side the COLLAPSE beat performed. Any frame that violates this IS the
+  // silent snap, whichever path produced it. Kept on in production (it's one
+  // comparison per frame); the counter feeds the headless simulations.
+  useEffect(() => {
+    const side = (anim.freezeState ?? state).side;
+    if (side < performedSideRef.current) {
+      console.error(
+        `SNAP-DETECT: a side-${side} board reached the screen before its COLLAPSE beat (last performed side ${performedSideRef.current})`
+      );
+      if (typeof window !== "undefined") {
+        (window as unknown as { __glintSnapDetect?: number }).__glintSnapDetect =
+          ((window as unknown as { __glintSnapDetect?: number }).__glintSnapDetect ?? 0) + 1;
+      }
+    }
+  }, [anim.freezeState, state]);
   const earlyBankOfferRef = useRef(earlyBankOffer);
   earlyBankOfferRef.current = earlyBankOffer;
   const offerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -355,6 +379,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       rescueMode: gameOptions.difficulty === "hard" ? "off" : gameOptions.difficulty,
       bonusGems,
     });
+    performedSideRef.current = ns.side; // fresh board: the ledger starts at its full size
     setState(ns);
     sfx.openingTune();
 
@@ -472,11 +497,14 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     // path staged the beat yet, play it now — BEFORE any collapse beat.
     let shown = boardWithout(animRef.current.freezeState ?? prev, animRef.current.hiddenCells);
     shown = await singularityBeat(shown, next.lastResolved);
-    // Compare the GRID SIDE, never cell counts: `shown` has this action's cleared
-    // tiles removed, so a big clear (31+ cells on side 6) could leave fewer shown
-    // cells than the collapsed grid and read as "no contraction" — the one way the
-    // board could still snap smaller without its animation.
-    if (!shrinkAnimatedRef.current && next.side < shown.side) {
+    // Compare against the PERFORMED-SIDE LEDGER, never against the photograph:
+    // a pre-commit beat that renders the committed (already collapsed) board —
+    // the BANK NOW late-isolation frame was one — swaps the scenery early, and
+    // any check that measures the screen reads "no contraction" and goes blind.
+    // The ledger only moves when the COLLAPSE beat actually plays, so an owed
+    // collapse can't hide. (Grid SIDE, never cell counts: a big clear could
+    // leave fewer shown cells than the collapsed grid and read as settled.)
+    if (!shrinkAnimatedRef.current && next.side < performedSideRef.current) {
       // contract exactly what's on screen: the current freeze frame minus the
       // tiles that already flew off during this action. Reveal the committed board
       // as-is — by commit time every flight (incl. late isolation) has played.
@@ -724,11 +752,20 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       setState((s) => (s.score === committed.score && s.banks === committed.banks ? s : { ...s, score: committed.score, banks: committed.banks }));
       await pause(120);
 
+      // SINGULARITY / THE ABYSS COLLAPSES — staged mid-flow, exactly like the
+      // placement-bank and bust paths. This path used to lean on the commit-time
+      // safety net instead, but the late-isolation beat below renders the
+      // committed (already collapsed) board — which both snapped the visual AND
+      // blinded a net that measured the screen (the silent 91→61 snap).
+      const cwEB = withLateTiles(committed);
+      const preShrinkEB = await singularityBeat(boardWithout(st, cleared), res);
+      if (res.shrunk) {
+        await animateShrink(preShrinkEB, res.shrunk.mapping, cwEB, res.shrunk.final);
+      }
       // RESHUFFLE from a Glint clear / nudge during the early bank — always animated,
-      // the word before the tiles move. (A collapse instead is staged by the
-      // commit-time safety net in commitFinal.)
+      // the word before the tiles move.
       if (!res.shrunk && (res.reshuffled || res.nudged.length > 0)) {
-        await animateReshuffle(withLateTiles(committed));
+        await animateReshuffle(cwEB);
       }
 
       // tiles isolated by a collapse / glint-clear reshuffle during the early bank
@@ -809,11 +846,17 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     frozen: GameState,
     _mapping: { from: string; to: string }[],
     revealState: GameState,
-    isFinal = false
+    isFinal = false,
+    keepHidden: Set<string> = new Set() // cells held back on the REVEALED board (e.g. a bust's forced tile, dropped as its own beat afterwards)
   ) => {
     await waitForBoardRelease(); // never start resizing the board under a held finger
     await settleOut(); // collapse runs on a zoomed-OUT board
     shrinkAnimatedRef.current = true; // the commit-time safety net must not replay it
+    performedSideRef.current = revealState.side; // the ledger: this side is now paid for
+    if (typeof window !== "undefined") {
+      (window as unknown as { __glintCollapseBeats?: number }).__glintCollapseBeats =
+        ((window as unknown as { __glintCollapseBeats?: number }).__glintCollapseBeats ?? 0) + 1;
+    }
     const shr = (phase: number, scale: number) => ({ phase, scale, vanishing: new Set<string>(), final: isFinal, fromCells: frozen.order.length, toCells: revealState.order.length });
     // Phase 0: hold the full board, slam the big word in. Clear ALL residual overlays
     // first (banked/activated rings, flying tiles, banner) so the collapse starts on a
@@ -834,7 +877,8 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     await pause(360);
 
     // Reveal the new, smaller board at full size — the tiles reappear, remapped.
-    setAnim((a) => ({ ...a, freezeState: revealState, shrinking: null, hiddenCells: new Set(), redCells: new Set(), shake: false }));
+    // `keepHidden` cells stay held back: they get their own entrance beat after.
+    setAnim((a) => ({ ...a, freezeState: revealState, shrinking: null, hiddenCells: new Set(keepHidden), redCells: new Set(), shake: false }));
     await pause(isFinal ? 260 : 420);
 
     // GLINT RUSH — announce the final round: the title sweeps in from the side with
@@ -1423,6 +1467,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // after another (a soft negative note per gem), before anything reshuffles.
         const discardCells = new Set<string>(frozen.activatedCells);
         if (discardCells.size > 0) {
+          // the doomed combos turn RED first — a clear warning beat before they
+          // fall, so the forfeit reads as a sentence, not a vanishing act
+          setAnim((a) => ({ ...a, flying: [], litCells: new Set(), hiddenCells: new Set([cellKey]), redCells: new Set(discardCells) }));
+          await pause(480);
           const noRings: GameState = { ...placedFrozen, activatedCells: [], activatedCombos: [] };
           setAnim((a) => ({ ...a, freezeState: noRings, flying: [], redCells: new Set(), litCells: new Set(), hiddenCells: new Set([cellKey]), fallCells: discardCells, fallGo: true }));
           sfx.nebForfeit();
@@ -1512,8 +1560,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const preShrinkC = await singularityBeat(boardWithout(frozen, bustCleared), bres);
           if (bres.shrunk) {
             // contract a clean board — the lost activated group and the busted tile are
-            // gone, so no green rings linger and nothing reappears mid-collapse.
-            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final);
+            // gone, so no green rings linger and nothing reappears mid-collapse. The
+            // forced tile stays HELD BACK on the revealed board: it must never simply
+            // materialise inside the collapse reveal — it gets its own drop beat below.
+            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final, new Set(inertKey ? [inertKey] : []));
           }
         }
         if (!bres.shrunk && (bres.reshuffled || bres.nudged.length > 0)) {
@@ -1521,11 +1571,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         }
 
         // The forced next tile is dropped LAST, once every other beat has fully
-        // resolved. Keep it HIDDEN through the reshuffle's discard + isolation
-        // cleanup below, so its inert (red-outlined) cell never flickers into the
-        // frame while the isolated tiles are still being cleared. On a collapse it
-        // already reappeared on the new board, so nothing is held back there.
-        const lateHide = bres.shrunk ? new Set<string>() : hideInert;
+        // resolved. Keep it HIDDEN through the reshuffle / collapse reveal and the
+        // discard + isolation cleanup below, so its inert (red-outlined) cell never
+        // flickers into the frame while the isolated tiles are still being cleared.
+        // On a collapse only its POST-remap cell is held back — the pre-nudge key
+        // may hold a legitimately remapped tile on the new board.
+        const lateHide = bres.shrunk ? new Set<string>(inertKey ? [inertKey] : []) : hideInert;
 
         // Tiles the bust's wake left isolated are DISCARDED — no points: they
         // flash red, then poof off the board.
@@ -1544,15 +1595,20 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
         // NOW the board has fully settled — every discarded / isolated tile is
         // resolved and gone. Drop the forced inert tile cleanly as the final beat,
-        // where it simply lands and stays (skipped on a collapse).
-        if (inertKey && !bres.shrunk) {
+        // where it simply lands and stays — on a collapse too: it was held back
+        // through the reveal, and this entrance (with its negative sting) is the
+        // only way the player learns a tile was forced from their hand.
+        if (inertKey) {
           const inertVal = committed.cells.get(inertKey)?.tile ?? null;
           if (inertVal !== null) {
             const dropFly: FlyingTile[] = [
               { id: "bust-next", value: inertVal as TileVal, fromKey: null, fromXY: handOrigin(), to: "gap", toKey: inertKey, delay: 0 },
             ];
             setAnim({ ...IDLE, playing: true, focused: true, hiddenCells: new Set([inertKey]), flying: dropFly, freezeState: committed });
-            setTimeout(() => sfx.place(), T.bustDropNext - 120); // thud as it lands
+            setTimeout(() => {
+              sfx.place(); // the landing thud…
+              sfx.gainDross(); // …under a negative sting: this tile was forced on you
+            }, T.bustDropNext - 120);
             await pause(T.bustDropNext + 120);
           }
         }
