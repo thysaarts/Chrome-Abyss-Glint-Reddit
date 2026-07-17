@@ -686,8 +686,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       const nTiles = rows.reduce((n, r) => n + r.tiles.length, 0);
       const chainRaw = chainBonus(combosIn.map((c) => c.name)).name;
       const chain = chainRaw ? chainLabel(chainRaw) : null;
-      // a banked special's buried gem shows the moment its cell lifts to the lineup
-      const ebBuried = bankClusterNow(st, cellKey).lastResolved.buriedToHand;
+      // a banked special's buried gem shows the moment its cell lifts to the
+      // lineup — but ONLY for cluster members: a gem buried under an ISOLATED
+      // special stays hidden until that special itself flies off below, or the
+      // departing special looks like it slid out from beneath its own gem
+      const ebClusterSet = new Set(clusterOrder);
+      const ebBuried = bankClusterNow(st, cellKey).lastResolved.buriedToHand.filter((t) => ebClusterSet.has(t.key));
       const ebBuriedKeys = new Set(ebBuried.map((t) => t.key));
       // a joker-Core inside the cluster is COLLECTED — it flies to the wallet
       // rather than leaving silently with the lineup
@@ -1075,6 +1079,9 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // focus in on the placement (the placed gem drops in with a bounce)
         setAnim({ ...IDLE, playing: true, focused: true, dropCell: cellKey, freezeState: placedFrozen, hiddenCells: covered !== null ? new Set([cellKey]) : new Set() });
 
+        const next = place(state, cellKey, choiceIdx);
+        recordMoveTrace(state, next, cellKey, choiceIdx); // dev play-by-play (?debug=1)
+
         if (covered !== null) {
           const flying: FlyingTile[] = [];
           if (covered === CORE) {
@@ -1085,12 +1092,19 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
             flying.push({ id: "tohand", value: covered as TileVal, fromKey: cellKey, to: "hand", delay: 0, fast: true });
             covered === GLINT ? sfx.gainDross() : sfx.tileToHand();
           }
+          // a mineral BURIED beneath the covered Glint/Core follows it out — from
+          // under the placed gem — and flies to the hand. (It used to arrive in
+          // the hand silently, with nothing on screen to explain it.)
+          const coverBuried = next.lastResolved.buriedToHand.filter((t) => t.key === cellKey);
+          coverBuried.forEach((t, i) => {
+            flying.push({ id: `cover-buried-${i}`, value: t.value as TileVal, fromKey: cellKey, to: "hand", delay: 180 + i * 70, fast: true });
+            setTimeout(() => sfx.tileToHand(), 200 + i * 70);
+          });
           setAnim((a) => ({ ...a, focused: true, playing: true, freezeState: placedFrozen, hiddenCells: new Set([cellKey]), flying }));
-          await pause((covered === CORE ? T.specialFly : T.toHandFly) + 100);
+          const mainFly = covered === CORE ? T.specialFly : T.toHandFly;
+          const buriedFly = coverBuried.length > 0 ? 180 + (coverBuried.length - 1) * 70 + T.toHandFly : 0;
+          await pause(Math.max(mainFly, buriedFly) + 100);
         }
-
-        const next = place(state, cellKey, choiceIdx);
-        recordMoveTrace(state, next, cellKey, choiceIdx); // dev play-by-play (?debug=1)
 
         // Sequential activation reveal: BFS the activated combo from the placed cell
         // outward, then light each cell in turn (cells that were already glowing stay
@@ -1251,10 +1265,14 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // Once a cell is in here it stays HIDDEN for the rest of the animation, so a
         // later phase can never un-hide (and briefly flash) an already-removed tile.
         const cleared = new Set<string>(order);
-        // a BANKED special (a Nebulite in the combo) lifts off to the lineup —
-        // its cell must show the buried gem underneath from that very frame,
-        // not fill in later (the gem then flies to the hand from its cell)
-        const bankBuriedKeys = new Set(res.buriedToHand.map((t) => t.key));
+        // ONLY the cluster's specials lift off to the lineup — their cells must
+        // show the buried gems underneath from that very frame. A gem buried
+        // under an ISOLATED special stays hidden until that special itself flies
+        // off (phase F) — revealing it early made the departing Dross look like
+        // it slid out from beneath its own buried gem.
+        const orderSet = new Set(order);
+        const lineupBuried = res.buriedToHand.filter((t) => orderSet.has(t.key));
+        const bankBuriedKeys = new Set(lineupBuried.map((t) => t.key));
         const hiddenNow = () => new Set([...cleared].filter((k) => !bankBuriedKeys.has(k)));
         setAnim((a) => ({
           ...a,
@@ -1266,7 +1284,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           // from the lineup onward the hand already shows the NEXT tile — the
           // player reads their next move while the ceremony resolves, instead
           // of waiting for it (strand/Mother Lode arrivals land on top later).
-          freezeState: revealBuried({ ...placedFrozen, hand: committed.hand }, res.buriedToHand),
+          freezeState: revealBuried({ ...placedFrozen, hand: committed.hand }, lineupBuried),
         }));
         if (outcome.coveredCore || clusterCores.length > 0) sfx.clearCore();
         // form up + read it…
