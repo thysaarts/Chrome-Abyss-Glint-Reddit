@@ -427,8 +427,18 @@ a { color: var(--accent); }
   it is the tripwire, not the mechanism.</p>
 
   <h2 id="s13"><span class="no">13</span>The decision record — agreed direction</h2>
-  <p><em>Status: agreed in principle, <strong>not yet implemented</strong> — pending playtesting
-  of how often the affected situations occur in real games.</em></p>
+  <p><em>Status: <strong>R1, R3 and R4 (base rule) are implemented</strong> in both builds
+  (2026-07-17) — the fallback now attaches stray cells to their entry, and any entry that still
+  comes out disconnected de-activates whole, its gems staying as plain tiles for the standard
+  isolation rules. Guarded by <span class="term">src/game/shrink-cohesion.test.ts</span>: a
+  crafted walled-in Quad, 300 randomised boards and live playthroughs all assert every surviving
+  entry is one connected group. R4's <strong>downgrade refinement</strong> is now implemented
+  too (signed off): a broken entry's surviving connected remainder that still forms a valid
+  combo comes out downgraded — Pentad→Quad, Long Drift→Drift — mirroring the combo rules
+  (Echo only for 2s/6s; never a self-banking Hex/Full Drift; never a duplicate of an entry the
+  ledger's own history already kept). R2 and R5 were already true in code and need nothing —
+  banking only ever fires on a placement, so a collapse-merged 6+ cluster waits, even in
+  Glint Rush.</em></p>
 
   <h3>The rules</h3>
   <ul>

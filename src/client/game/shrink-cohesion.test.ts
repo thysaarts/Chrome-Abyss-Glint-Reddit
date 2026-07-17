@@ -110,6 +110,72 @@ describe("collapse keeps activated combos connected (decision record R1/R3/R4)",
     expect(quad!.cells.length).toBe(4);
   });
 
+  it("R4 downgrade: a one-shot Pentad losing its stray gem becomes a legal Quad", () => {
+    // A Pentad along the q-axis whose E sits on ring 5 (no identity target).
+    // An Echo of 6s shares its first two cells, so the Pentad takes the PINNED
+    // path (identity) and only E needs individual placement — which the walls
+    // deny any attaching cell. The Pentad breaks; its surviving 4-gem remainder
+    // is a valid Quad and must come out as one, still glowing.
+    const { cells, order } = emptyBoard(6);
+    const line = ["1,0", "2,0", "3,0", "4,0"];
+    const eKey = "5,0";
+    for (const k of [...line, eKey]) cells.get(k)!.tile = 6;
+    const wallPairs: string[][] = [
+      ["0,0", "0,1"],
+      ["1,1", "2,1"],
+      ["3,1", "2,2"],
+      ["1,-1", "2,-1"],
+      ["3,-1", "4,-1"],
+    ];
+    for (const pair of wallPairs) for (const k of pair) cells.get(k)!.tile = 2;
+    const combos = [
+      ...wallPairs.map((p) => ({ name: "Echo", cells: p })),
+      { name: "Echo", cells: ["1,0", "2,0"] }, // pins the Pentad's translation
+      { name: "Pentad", cells: [...line, eKey] },
+    ];
+    const before = countValues(cells);
+    const result = shrinkBoard({ fromSide: 6, toSide: 5, cells, order, activatedCombos: combos });
+
+    expect(Object.fromEntries(countValues(result.cells))).toEqual(Object.fromEntries(before));
+    for (const c of result.activatedCombos) {
+      expect(entryConnected(c.cells), `${c.name} [${c.cells.join(" ")}] connected`).toBe(true);
+    }
+    expect(result.activatedCombos.find((c) => c.name === "Pentad")).toBeUndefined();
+    const quad = result.activatedCombos.find((c) => c.name === "Quad");
+    expect(quad, "the 4-gem remainder downgrades to a Quad").toBeTruthy();
+    expect([...quad!.cells].sort()).toEqual([...line].sort());
+  });
+
+  it("R4 downgrade: a Long Drift losing its end gem becomes a legal Drift", () => {
+    const { cells, order } = emptyBoard(6);
+    const line = ["1,0", "2,0", "3,0", "4,0"];
+    const eKey = "5,0";
+    const runVals = [2, 3, 4, 5];
+    line.forEach((k, i) => { cells.get(k)!.tile = runVals[i]; });
+    cells.get(eKey)!.tile = 6; // the run's 6, stranded on ring 5
+    const wallPairs: string[][] = [
+      ["0,0", "0,1"],
+      ["1,1", "2,1"],
+      ["3,1", "2,2"],
+      ["1,-1", "2,-1"],
+      ["3,-1", "4,-1"],
+    ];
+    for (const pair of wallPairs) for (const k of pair) cells.get(k)!.tile = 2;
+    const combos = [
+      ...wallPairs.map((p) => ({ name: "Echo", cells: p })),
+      { name: "Echo", cells: ["0,0", "1,0"] }, // shares 1,0 → pins the drift's translation
+      { name: "LongDrift", cells: [...line, eKey] },
+    ];
+    const result = shrinkBoard({ fromSide: 6, toSide: 5, cells, order, activatedCombos: combos });
+    for (const c of result.activatedCombos) {
+      expect(entryConnected(c.cells), `${c.name} [${c.cells.join(" ")}] connected`).toBe(true);
+    }
+    expect(result.activatedCombos.find((c) => c.name === "LongDrift")).toBeUndefined();
+    const drift = result.activatedCombos.find((c) => c.name === "Drift");
+    expect(drift, "the 2-3-4-5 remainder downgrades to a Drift").toBeTruthy();
+    expect([...drift!.cells].sort()).toEqual([...line].sort());
+  });
+
   it("holds across randomised boards with connected combos (300 runs)", () => {
     let seed = 7;
     const rnd = () => {

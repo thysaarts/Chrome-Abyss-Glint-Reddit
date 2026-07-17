@@ -29,6 +29,7 @@ export interface Cell {
   inert: boolean;
   buried: number | null;
   bonusGem?: number | null; // hidden achievement gem — must travel with its tile
+  zenithFill?: boolean; // Zenith standing in for a missing gem (+6000 at bank) — must survive the remap
 }
 
 export interface ShrinkInput {
@@ -189,6 +190,7 @@ function declusterIsolated(
       const dst = newCells.get(best)!;
       dst.tile = src.tile; dst.inert = src.inert; dst.buried = src.buried;
       if (src.bonusGem) { dst.bonusGem = src.bonusGem; src.bonusGem = null; }
+      if (src.zenithFill) { dst.zenithFill = true; src.zenithFill = false; }
       src.tile = null; src.inert = false; src.buried = null;
       repoint(k, best);
       moved = true;
@@ -255,6 +257,7 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
     dst.inert = src.inert;
     dst.buried = src.buried;
     dst.bonusGem = src.bonusGem ?? null;
+    dst.zenithFill = src.zenithFill; // the pending +6000 rides the tile through the remap
     free.delete(newKey);
     mapping.set(oldKey, newKey);
   };
@@ -388,7 +391,70 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
     }
     return seen.size === set.size;
   };
-  const connectedActivated = prunedActivated.filter((c) => entryConnected(c.cells));
+  // ---- R4 DOWNGRADE (decision record, signed off): when a broken entry's
+  // surviving connected remainder still forms a VALID combo, it downgrades
+  // instead of dying — a Pentad losing one gem is a legal Quad, a Long Drift
+  // losing an end gem is a legal Drift. Entries built incrementally already
+  // downgrade through their own ledger history (the Trips inside a broken
+  // Quad survives as its own entry); synthesis matters for combos formed in a
+  // single placement. Rules mirror combos.ts: Echo is a pair of 2s or 6s ONLY;
+  // sets 3-5 are Trips/Quad/Pentad; runs of 4-5 consecutive distinct values
+  // are Drift/LongDrift. Never a Hex or Full Drift (those self-bank — R5: a
+  // collapse must never trigger a bank), never a duplicate of cells an intact
+  // surviving entry already covers, and only mineral values (1-6) qualify. ----
+  const componentsOf = (comboCells: string[]): string[][] => {
+    const set = new Set(comboCells);
+    const seen = new Set<string>();
+    const comps: string[][] = [];
+    for (const start of comboCells) {
+      if (seen.has(start)) continue;
+      const comp: string[] = [];
+      const stack = [start];
+      seen.add(start);
+      while (stack.length) {
+        const k = stack.pop()!;
+        comp.push(k);
+        for (const n of neighbours(parseKey(k), set)) {
+          const nk = keyOf(n);
+          if (!seen.has(nk)) { seen.add(nk); stack.push(nk); }
+        }
+      }
+      comps.push(comp);
+    }
+    return comps;
+  };
+  const downgradeName = (comp: string[]): string | null => {
+    const values = comp.map((k) => newCells.get(k)?.tile ?? null);
+    if (values.some((v) => v === null || v < 1 || v > 6)) return null;
+    const vs = values as number[];
+    if (vs.every((v) => v === vs[0])) {
+      if (comp.length === 2) return vs[0] === 2 || vs[0] === 6 ? "Echo" : null;
+      if (comp.length === 3) return "Trips";
+      if (comp.length === 4) return "Quad";
+      if (comp.length === 5) return "Pentad";
+      return null;
+    }
+    const sorted = [...vs].sort((a, b) => a - b);
+    const consecutive = new Set(sorted).size === sorted.length && sorted[sorted.length - 1] - sorted[0] === sorted.length - 1;
+    if (consecutive) {
+      if (comp.length === 4) return "Drift";
+      if (comp.length === 5) return "LongDrift";
+    }
+    return null;
+  };
+
+  const connectedActivated: { name: string; cells: string[] }[] = [];
+  const brokenEntries: { name: string; cells: string[] }[] = [];
+  for (const c of prunedActivated) (entryConnected(c.cells) ? connectedActivated : brokenEntries).push(c);
+  for (const b of brokenEntries) {
+    for (const comp of componentsOf(b.cells)) {
+      if (comp.length < 2) continue;
+      const name = downgradeName(comp);
+      if (!name) continue;
+      const covered = connectedActivated.some((e) => comp.every((k) => e.cells.includes(k)));
+      if (!covered) connectedActivated.push({ name, cells: comp });
+    }
+  }
 
   // ---- rebuild adjacency for the new board ----
   const adj = new Map<string, string[]>();
