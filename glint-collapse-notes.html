@@ -258,7 +258,21 @@ a { color: var(--accent); }
   outline, while a huge banner played over it.</p>
 
   <h2 id="s8"><span class="no">08</span>The redesign: a real waiting list + the A–E bust flow</h2>
-  <p><em>Status: agreed direction, not yet implemented.</em></p>
+  <p><em>Status: <b>implemented and verified</b> in the main build (commit <span class="term">bb082dd</span>);
+  the Reddit build still runs the old beats until we port it.</em></p>
+  <div class="callout"><div class="ct">VERIFIED BY SIMULATION (2026-07-17)</div>
+    <p>Engine-level search over 4,000+ seeded quick-start games found exact reproduction
+    scripts: four where a BANK NOW collapses the board leaving late-isolated tiles (snap #1's
+    shape), four where a deliberate bust collapses it with a forced tile (snap #2's shape).
+    Each script was then replayed through the REAL UI in a headless browser, on both builds,
+    with a frame monitor watching the rendered board.
+    <b>Old build:</b> all four BANK NOW scripts snapped 91→61 with no COLLAPSE banner on
+    screen; the forced tile was already sitting on the revealed board at the instant of the
+    collapse reveal. <b>Fixed build:</b> all eight scripts played the banner + contraction
+    (zero silent snaps, snap detector clean), and the forced tile's cell stayed empty through
+    the reveal, receiving its drop — with the negative sting — 1.3–2.1&nbsp;s later as its own
+    beat.</p>
+  </div>
   <div class="callout green"><div class="ct">FIX 1 · ONE OWNER FOR THE COLLAPSE BEAT</div>
     <p>BANK NOW stages the collapse mid-flow exactly like the other two paths (singularity beat,
     then the COLLAPSE beat, <em>then</em> late isolation) — the missing scene, restored where it
