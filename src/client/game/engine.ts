@@ -2420,6 +2420,27 @@ function forceBankFinalCluster(s: GameState, plan: MovePlan): void {
  * points and clear tiles before risking the next placement. Other glowing combos are
  * untouched. Returns the new state (may end the game if the board clears).
  */
+/** THE LEDGER IS HISTORY, NOT A BILL: an incrementally built combo leaves its
+ * earlier stages in the ledger (Trips ⊂ Quad ⊂ Pentad share cells). A bank
+ * scores each build ONCE — entries whose cells are a subset of another
+ * matching entry are the same build's past and drop out; genuinely distinct
+ * combos sharing a single gem (a set crossing a run) both stay, exactly as a
+ * placement bank names them. Exported for the UI: the BANK NOW lineup must
+ * show precisely what bankClusterNow will score. */
+export function clusterCombosFor(state: GameState, cellKey: string): { name: ComboName; cells: string[] }[] {
+  if (!state.activatedCells.includes(cellKey)) return [];
+  const cluster = activatedCluster(state, new Set(state.activatedCells), cellKey);
+  const matching = state.activatedCombos.filter((c) => c.cells.some((k) => cluster.has(k)));
+  return matching.filter((c, i) =>
+    !matching.some(
+      (o, j) =>
+        j !== i &&
+        (o.cells.length > c.cells.length || (o.cells.length === c.cells.length && j > i)) &&
+        c.cells.every((k) => o.cells.includes(k))
+    )
+  );
+}
+
 export function bankClusterNow(state: GameState, cellKey: string): GameState {
   if (state.phase !== "playing") return state;
   if (state.freeBanksLeft <= 0) return state; // no free banks remaining
@@ -2432,12 +2453,20 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   const cluster = activatedCluster(s, new Set(s.activatedCells), cellKey);
   if (cluster.size === 0) return state;
 
-  // combo names within this cluster
-  const names: ComboName[] = [];
-  for (const c of s.activatedCombos) {
-    if (c.cells.some((k) => cluster.has(k))) names.push(c.name);
-  }
+  // combo names within this cluster — DEDUPED: the ledger's overlapping build
+  // history (Trips ⊂ Quad ⊂ Pentad) scores once, as its final form. This used
+  // to walk the raw ledger and bank a Pentad as Trips+Quad+Pentad — 1,200 base
+  // plus a phantom Harmony chain the log never even showed.
+  let names: ComboName[] = clusterCombosFor(s, cellKey).map((c) => c.name);
   if (names.length === 0) return state;
+  // FAILSAFE (mirrors the placement bank): if the named combos still over-count
+  // the actual banked tiles (partial overlaps in a collapse-merged cluster),
+  // re-derive the names from the true tile count.
+  const bankedTilesEB = Math.min(cluster.size, 12);
+  const namedTilesEB = names.reduce((sum, n) => sum + COMBO_SIZE[n], 0);
+  if (namedTilesEB > bankedTilesEB) {
+    names = nameSameValueMerge(bankedTilesEB, dominantClusterValue(s, cluster), 0);
+  }
 
   const scored = scoreBank({ names, multiplier: 1, coveredCore: false, bonusBase: applyClusterQuadriant(s, cluster) });
   const zenithBonusEB = applyClusterZenith(s, cluster);

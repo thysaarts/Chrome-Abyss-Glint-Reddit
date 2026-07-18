@@ -3,6 +3,7 @@ import {
   newGame,
   place,
   bankClusterNow,
+  clusterCombosFor,
   describePlace,
   placeAlternatives,
   logOnly,
@@ -222,6 +223,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   // (already collapsed) board early can swap the scenery, but it can't erase
   // the debt recorded here.
   const performedSideRef = useRef(state.side);
+  // the resolved options of the CURRENT run — what a Beat-my-board link carries
+  const lastStartRef = useRef<{
+    seed: number; side: number; collapseAt1: number; collapseAt2: number;
+    singularityAt: number; revealAt: number; rescueMode: "off" | "easy" | "medium"; handSize: number;
+  } | null>(null);
 
   // SNAP DETECTOR — the rendered board's side may never be smaller than the
   // last side the COLLAPSE beat performed. Any frame that violates this IS the
@@ -346,7 +352,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     }
   }, [confirmChoice, paintChoice, armChoiceTimer]);
 
-  const start = useCallback((opts: NewGameOpts & { countdown?: boolean } = {}) => {
+  const start = useCallback((opts: NewGameOpts & { countdown?: boolean; exact?: boolean } = {}) => {
     clearTrace(); // fresh dev play-by-play per run (?debug=1)
     seqGenRef.current++; // abort any in-flight animation sequence (see `pause`)
     if (choiceRef.current?.timer) clearTimeout(choiceRef.current.timer);
@@ -357,28 +363,56 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     if (offerTimerRef.current) clearTimeout(offerTimerRef.current);
     setEarlyBankOffer(null);
     setSettling(false);
-    // DIFFICULTY: shift the collapse / singularity triggers (easy +2 — the
-    // board comes down sooner; hard −1 — you must clear deeper to progress)
-    const shift = gameOptions.collapseShift;
-    // ACHIEVEMENT BONUS GEMS the player has unlocked seed into this game.
-    const stats = loadStats();
-    const bonusGems = {
-      resurrect: abilityUnlocked("invincible", stats),
-      quadriant: abilityUnlocked("crimsonEndurance", stats),
-      zenith: abilityUnlocked("superluminal", stats),
+    // A resolved seed for EVERY game — Beat-my-board needs to know which board
+    // this was, so the seed is decided here, never left to the engine's default.
+    const seed = opts.seed ?? ((Math.random() * 0x7fffffff) | 0 || 1);
+    let ns: GameState;
+    if (opts.exact) {
+      // BEAT MY BOARD: replay the challenger's board exactly — the payload's
+      // values verbatim, no difficulty shift, and bonus gems OFF on both sides
+      // so an unlocked Zenith never tilts a shared board.
+      ns = buildInitial({
+        side: 6,
+        ...opts,
+        seed,
+        bonusGems: { resurrect: false, quadriant: false, zenith: false },
+      });
+    } else {
+      // DIFFICULTY: shift the collapse / singularity triggers (easy +2 — the
+      // board comes down sooner; hard −1 — you must clear deeper to progress)
+      const shift = gameOptions.collapseShift;
+      // ACHIEVEMENT BONUS GEMS the player has unlocked seed into this game.
+      const stats = loadStats();
+      const bonusGems = {
+        resurrect: abilityUnlocked("invincible", stats),
+        quadriant: abilityUnlocked("crimsonEndurance", stats),
+        zenith: abilityUnlocked("superluminal", stats),
+      };
+      ns = buildInitial({
+        side: 6,
+        ...opts,
+        seed,
+        collapseAt1: Math.max(4, (opts.collapseAt1 ?? 30) + shift),
+        collapseAt2: Math.max(3, (opts.collapseAt2 ?? 15) + shift),
+        singularityAt: Math.max(6, (opts.singularityAt ?? 45) + shift),
+        // the hand-reveal threshold and the bust rescue are difficulty-driven;
+        // the ENGINE owns both (reveal hysteresis + the invisible rescue)
+        revealAt: gameOptions.revealAt,
+        rescueMode: gameOptions.difficulty === "hard" ? "off" : gameOptions.difficulty,
+        bonusGems,
+      });
+    }
+    // what a Beat-my-board link needs to reproduce this run, captured RESOLVED
+    lastStartRef.current = {
+      seed,
+      side: ns.side,
+      collapseAt1: ns.collapseAt1,
+      collapseAt2: ns.collapseAt2,
+      singularityAt: ns.singularityAt,
+      revealAt: ns.revealAt,
+      rescueMode: ns.rescueMode,
+      handSize: ns.startHandSize,
     };
-    const ns = buildInitial({
-      side: 6,
-      ...opts,
-      collapseAt1: Math.max(4, (opts.collapseAt1 ?? 30) + shift),
-      collapseAt2: Math.max(3, (opts.collapseAt2 ?? 15) + shift),
-      singularityAt: Math.max(6, (opts.singularityAt ?? 45) + shift),
-      // the hand-reveal threshold and the bust rescue are difficulty-driven;
-      // the ENGINE owns both (reveal hysteresis + the invisible rescue)
-      revealAt: gameOptions.revealAt,
-      rescueMode: gameOptions.difficulty === "hard" ? "off" : gameOptions.difficulty,
-      bonusGems,
-    });
     performedSideRef.current = ns.side; // fresh board: the ledger starts at its full size
     setState(ns);
     sfx.openingTune();
@@ -677,8 +711,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // named rows under the score, linger, then dive in (same as a placement
       // bank, base value, no multiplier).
       const cleared = new Set<string>(clusterOrder);
-      const clusterSet = new Set(clusterOrder);
-      const combosIn = st.activatedCombos.filter((c) => c.cells.some((k) => clusterSet.has(k)));
+      // the DEDUPED entries the engine will actually score — the lineup and the
+      // chain label must show exactly those (a Pentad's Trips/Quad history is
+      // not three combos, and never a phantom Harmony)
+      const combosIn = clusterCombosFor(st, cellKey);
       const rows = lineupRows(
         combosIn.map((c) => ({ name: prettyCombo(c.name), cells: c.cells, run: isRunCombo(c.name) })),
         st
@@ -1682,7 +1718,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     [state]
   );
 
-  return { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld };
+  return { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld, getLastStart: () => lastStartRef.current };
 }
 
 // ---- helpers ----
