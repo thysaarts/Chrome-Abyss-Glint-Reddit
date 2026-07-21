@@ -5,6 +5,16 @@
  * data-motion), which drive CSS variable overrides and animation freezes in
  * index.css. `sfxVolume` drives the Web Audio master gain (audio/sfx.ts).
  *
+ * MOTION is a master + advanced arrangement. `reduceMotion` is the master; the
+ * four booleans under it (boardZoom / screenShake / boardTilt / ambientFx) are
+ * the per-element toggles behind Settings › Visual › Advanced. They only ever
+ * make things CALMER, never louder: the effective value of each is
+ *   !reducedMotion && toggle
+ * so Reduce Motion (or the OS preference) wins over any of them. That keeps the
+ * relationship monotone — there is no "reduce motion but louder" state to
+ * explain, and the Advanced rows simply grey out while the master is on (the
+ * same pattern the Game tab uses when HARD locks the combo picker).
+ *
  * LIGHT MODE is deliberately NOT a full light theme — the Abyss stays dark. It
  * lifts the board wells, page background and secondary text a notch so the game
  * is readable in daylight / outdoors. See :root[data-theme="light"] in the CSS.
@@ -36,7 +46,13 @@ export interface SceneOverride {
 
 export interface Settings {
   theme: "dark" | "light";
-  reduceMotion: boolean;
+  reduceMotion: boolean; // MASTER — see the motion note at the top of this file
+  // ADVANCED motion toggles (Settings › Visual › Advanced). Each is only in
+  // effect while reduceMotion is off; read the effective values off
+  // `visualOptions`, never these fields directly.
+  boardZoom: boolean; // the camera lean-in on every placement / bank / activation
+  boardTilt: boolean; // the 3D board surface sway + the board's idle "breathe"
+  ambientFx: boolean; // drifting fog, dust, parallax, glimmers, light sweeps
   sfxVolume: number; // 0..1
   musicVolume: number; // 0..1 — the subtle generative background track
   musicGeneric: MusicTheme; // the track for menus / quick games / blank levels (equipped from Collection)
@@ -54,12 +70,18 @@ export interface Settings {
   comboPicker: boolean; // show the combo picker when a placement has >1 combo option; off = auto-bank the best
   choiceTimer: boolean; // timed combo picker: blue auto-confirms after the window; off = the picker waits for a tap
   bankWindow: 3 | 5; // how many seconds the BANK NOW countdown runs
-  screenShake: boolean; // board shudder on busts / collapses / reshuffles
+  // board shudder on busts / collapses / reshuffles. Lives with the ADVANCED
+  // motion toggles in the UI (Visual › Advanced) — it's a comfort setting, not a
+  // gameplay one — but stays in this block for save-file compatibility.
+  screenShake: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   reduceMotion: false,
+  boardZoom: true,
+  boardTilt: true,
+  ambientFx: true,
   sfxVolume: 0.6, // 60 — the balance that reads nicest for a new player
   musicVolume: 0.2, // 20 — subtle background bed by default
   musicGeneric: "generic",
@@ -84,11 +106,34 @@ export const gameOptions = {
   comboPicker: DEFAULT_SETTINGS.comboPicker,
   choiceTimer: DEFAULT_SETTINGS.choiceTimer,
   bankWindow: DEFAULT_SETTINGS.bankWindow as 3 | 5,
-  screenShake: DEFAULT_SETTINGS.screenShake,
+  // NB screenShake is NOT here — it's motion, so it lives on visualOptions where
+  // Reduce Motion can gate it.
   // derived from difficulty (applySettings keeps these current):
   choiceWindowMs: 2000, // combo picker auto-confirm (easy 3000; medium/hard 2000)
   revealAt: 4, // hand-wheel reveal threshold (easy 5 / medium 4 / hard 3)
   collapseShift: 0, // added to collapse/singularity triggers (easy +2 / hard −1)
+};
+
+/** True when the DEVICE asks for reduced motion. The CSS honours this via a
+ *  @media block; JS-driven motion (the board camera) has to ask directly, so
+ *  this is the one place that check lives. */
+export function osPrefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** True when motion should be calmed for ANY reason — the player's master
+ *  toggle OR the device preference. */
+export function motionReduced(s: Pick<Settings, "reduceMotion">): boolean {
+  return s.reduceMotion || osPrefersReducedMotion();
+}
+
+/** Live copy of the EFFECTIVE motion toggles (master + OS preference already
+ *  folded in), for the render paths that can't thread props — the board camera
+ *  in App.tsx and the tutorial's replica of it. Kept current by applySettings.
+ *  Read these; never read the raw Settings booleans at a motion site. */
+export const visualOptions = {
+  boardZoom: true,
+  screenShake: true,
 };
 
 const asTheme = (v: unknown, fallback: MusicTheme): MusicTheme =>
@@ -104,6 +149,9 @@ export function loadSettings(): Settings {
     return {
       theme: parsed.theme === "light" ? "light" : "dark",
       reduceMotion: parsed.reduceMotion === true,
+      boardZoom: parsed.boardZoom !== false,
+      boardTilt: parsed.boardTilt !== false,
+      ambientFx: parsed.ambientFx !== false,
       sfxVolume: typeof parsed.sfxVolume === "number" ? Math.max(0, Math.min(1, parsed.sfxVolume)) : DEFAULT_SETTINGS.sfxVolume,
       musicVolume: typeof parsed.musicVolume === "number" ? Math.max(0, Math.min(1, parsed.musicVolume)) : DEFAULT_SETTINGS.musicVolume,
       musicGeneric: asTheme(parsed.musicGeneric, DEFAULT_SETTINGS.musicGeneric),
@@ -129,14 +177,21 @@ export function saveSettings(s: Settings): void {
 /** Apply settings to the live document + audio. Safe to call before first paint
  *  (the data-* attributes only affect CSS, which reflows harmlessly). */
 export function applySettings(s: Settings): void {
+  // Reduce Motion (or the OS preference) wins over every advanced toggle, so the
+  // effective values are computed once here and mirrored onto <html> / visualOptions.
+  const reduced = motionReduced(s);
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", s.theme);
     document.documentElement.setAttribute("data-motion", s.reduceMotion ? "reduced" : "full");
+    // granular CSS gates — "off" only ever ADDS to what data-motion already freezes
+    document.documentElement.setAttribute("data-tilt", !reduced && s.boardTilt ? "on" : "off");
+    document.documentElement.setAttribute("data-ambient", !reduced && s.ambientFx ? "on" : "off");
   }
+  visualOptions.boardZoom = !reduced && s.boardZoom;
+  visualOptions.screenShake = !reduced && s.screenShake;
   sfx.setVolume(s.sfxVolume);
   music.setVolume(s.musicVolume);
   gameOptions.difficulty = s.difficulty;
-  gameOptions.screenShake = s.screenShake;
   // HARD locks the pressure dials: 3s banking, combo picker + its timer always on.
   gameOptions.bankWindow = s.difficulty === "hard" ? 3 : s.bankWindow;
   gameOptions.comboPicker = s.difficulty === "hard" ? true : s.comboPicker;

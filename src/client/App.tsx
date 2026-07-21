@@ -61,11 +61,11 @@ import { ShopPage } from "./ui/ShopPage";
 import { loadWallet, saveWallet } from "./game/wallet";
 import { Tutorial } from "./ui/Tutorial";
 import { TutorialLevel } from "./ui/TutorialLevel";
-import { Level, LEVELS, LEVEL_DEFS, RunResult } from "./levels/levels";
+import { Level, LEVELS, LEVEL_DEFS, RunResult, levelScoreLabel } from "./levels/levels";
 import { recordScore, completeLevel, recordLevelResult, storedFrontier, levelStatus, tutorialDone, markTutorialDone } from "./levels/progress";
 import { sfx } from "./audio/sfx";
 import { music, MusicTheme } from "./audio/music";
-import { Settings, DEFAULT_SETTINGS, loadSettings, saveSettings, applySettings } from "./ui/settings";
+import { Settings, DEFAULT_SETTINGS, loadSettings, saveSettings, applySettings, visualOptions, osPrefersReducedMotion } from "./ui/settings";
 import { SettingsScreen } from "./ui/SettingsScreen";
 import { DebugTracePanel } from "./ui/DebugTracePanel";
 
@@ -185,6 +185,11 @@ export default function App() {
   }, [settings]);
   const updateSettings = (patch: Partial<Settings>) => {
     sfx.unlock();
+    // Apply SYNCHRONOUSLY as well as in the effect above: the board camera reads
+    // visualOptions during render, and the effect only runs after that render has
+    // committed — so without this the board would lag one frame behind the toggle.
+    // The effect still re-applies (identically) and persists.
+    applySettings({ ...settings, ...patch });
     setSettings((s) => ({ ...s, ...patch }));
   };
 
@@ -313,7 +318,9 @@ export default function App() {
     boardFractionsRef.current = fn;
   }, []);
   useEffect(() => {
-    if (!anim.focused) {
+    // camera off: nothing zooms, so there's nothing to fit or re-pivot. Bail before
+    // the per-cell maths rather than letting it churn on every reveal for no effect.
+    if (!visualOptions.boardZoom || !anim.focused) {
       setFitScale(null);
       return;
     }
@@ -550,10 +557,10 @@ export default function App() {
       }
       return;
     }
-    recordScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
+    recordScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
     // COMMUNITY LEADERBOARD: every run reports its score (the server keeps each
     // redditor's best); fire-and-forget, silently a no-op outside Reddit
-    void submitAllTimeScore(state.finalScore, currentLevel ? currentLevel.title : "Quick Start");
+    void submitAllTimeScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
     // DAILY CHALLENGE run -> submit today's METRIC to the subreddit board.
     // Resource metrics (Nebulite refined/banked, banks) follow the game's own
     // forfeit rule: a true game-over (busted out, no cash-out) banks nothing.
@@ -1068,7 +1075,7 @@ export default function App() {
           <div className="gl-sheen-area" ref={sheenRef}>
           <div style={boardPanel}>
             <div style={boardGlow} />
-            <div ref={boardBoxRef} style={{ position: "relative" }} className={anim.shake && settings.screenShake ? "gl-shake" : undefined}>
+            <div ref={boardBoxRef} style={{ position: "relative" }} className={anim.shake && visualOptions.screenShake ? "gl-shake" : undefined}>
               {/* The board lives inside a clipping perspective viewport: the press-zoom
                   and the 3D tilt stay inside this window instead of growing the page's
                   scroll area (which used to shift the whole page on mobile). */}
@@ -1094,6 +1101,10 @@ export default function App() {
                       // pass has already framed every option; the view holds
                       // one steady position until the pick resolves.
                       if (anim.choice) return;
+                      // Camera off: don't re-anchor the origin either. The board still
+                      // rests at ZOOM_BASE (1.05 on a fine pointer), so moving the pivot
+                      // would nudge it under the cursor — exactly the motion we're killing.
+                      if (!visualOptions.boardZoom) return;
                       focusFromPointer(e);
                       setBoardPressed(true);
                     }}
@@ -1103,7 +1114,9 @@ export default function App() {
                     style={{
                       // press-zoom only on a precise (mouse) pointer; touch stays still on tap
                       // and only zooms once the placement animation runs (anim.focused).
-                      transform: `scale(${anim.focused || (boardPressed && !COARSE_POINTER) ? fitScale ?? ZOOM_IN : ZOOM_BASE})`,
+                      // Reduce Motion / Visual › Advanced holds the board at its resting
+                      // scale — the camera never travels (see visualOptions in settings.ts).
+                      transform: `scale(${visualOptions.boardZoom && (anim.focused || (boardPressed && !COARSE_POINTER)) ? fitScale ?? ZOOM_IN : ZOOM_BASE})`,
                       transformOrigin: `${boardOrigin.x.toFixed(1)}% ${boardOrigin.y.toFixed(1)}%`,
                       // SMOOTH CAMERA: ease BOTH the scale and the pivot (origin). The
                       // fit pass re-targets as cells reveal one-by-one, so a jump-cut
@@ -1745,7 +1758,7 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
   // a true LOST run forfeits its in-run Nebulite; a CASH-OUT (lost + cashedOut) banks it
   const forfeits = state.phase === "lost" && state.cashedOut === 0 && state.coresCollected > 0;
   const doubles = won && state.coresCollected > 0;
-  const reducedMotion = document.documentElement.getAttribute("data-motion") === "reduced" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducedMotion = document.documentElement.getAttribute("data-motion") === "reduced" || osPrefersReducedMotion();
   const [nebShown, setNebShown] = useState(state.coresCollected);
   const [showX2, setShowX2] = useState(false);
 

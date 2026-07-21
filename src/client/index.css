@@ -1320,9 +1320,24 @@ button:disabled:active {
 /* Manual "Reduce motion" (Settings → Visual) — mirrors the OS-preference block
    above, applied via the data-motion attribute so it works regardless of the
    system setting. */
-:root[data-motion="reduced"] .gl-board-tilt { animation: none; transform: none; }
+/* BOARD TILT — the 3D sway of the board surface plus its idle breathe. Frozen by
+   the master toggle, or on its own via Visual › Advanced (data-tilt="off"). */
+:root[data-motion="reduced"] .gl-board-tilt,
+:root[data-tilt="off"] .gl-board-tilt { animation: none; transform: none; }
+:root[data-motion="reduced"] .gl-breathe,
+:root[data-tilt="off"] .gl-breathe { animation: none; }
+
+/* AMBIENT EFFECTS — the drifting, floating, glinting background life. Same deal:
+   the master freezes it, or Visual › Advanced does (data-ambient="off"). */
 :root[data-motion="reduced"] :is(
-  .gl-gem-sit, .gl-breathe, .gl-sheen, .gl-card-tilt, .gl-gloss,
+  .gl-gem-sit, .gl-sheen, .gl-card-tilt, .gl-gloss,
+  .gl-par-a, .gl-par-b, .gl-par-c, .gl-dust, .gl-np-hover, .gl-np-shadow,
+  .gl-island-float, .gl-island-float2, .gl-shadow-pulse, .gl-orbit, .gl-fog-drift,
+  .gl-floaty, .gl-btn-life, .gl-float-y, .gl-halo, .gl-tut-tgt, .gl-tut-nudge,
+  .gl-pulse, .gl-urgent, .gl-slide-pulse, .gl-chev, .gl-board-glint, .gl-cta-breathe
+),
+:root[data-ambient="off"] :is(
+  .gl-gem-sit, .gl-sheen, .gl-card-tilt, .gl-gloss,
   .gl-par-a, .gl-par-b, .gl-par-c, .gl-dust, .gl-np-hover, .gl-np-shadow,
   .gl-island-float, .gl-island-float2, .gl-shadow-pulse, .gl-orbit, .gl-fog-drift,
   .gl-floaty, .gl-btn-life, .gl-float-y, .gl-halo, .gl-tut-tgt, .gl-tut-nudge,
@@ -1398,4 +1413,5 @@ button:disabled:active {
 .gl-dec-pulse { animation: gl-dec-pulse 3.4s ease-in-out infinite; }
 .gl-dec-cross { animation: gl-dec-cross 14s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .gl-decor * { animation: none !important; } }
-:root[data-motion="reduced"] .gl-decor * { animation: none !important; }
+:root[data-motion="reduced"] .gl-decor *,
+:root[data-ambient="off"] .gl-decor * { animation: none !important; }

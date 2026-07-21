@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { theme, bevel, bevelPrimary } from "../theme/theme";
 import { CONTENT } from "../content/content";
-import { LEVELS, Level } from "../levels/levels";
+import { LEVELS, Level, displayScoreLabel } from "../levels/levels";
 import { levelStatus, unlockedIndex, topScores, LevelStatus, levelResult } from "../levels/progress";
 import { REGIONS } from "../theme/regions";
 import { Backdrop } from "./Backdrop";
@@ -887,7 +887,7 @@ export function Leaderboard({ onClose }: { onClose: () => void }) {
                 {rankDiamond(e.rank)}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: theme.fonts.sans, fontWeight: 600, fontSize: 12.5, color: e.username === lb.username ? theme.color.accent : "#c9c4e4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>u/{e.username}</div>
-                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10.5, color: "#6b6690", marginTop: 1 }}>{e.level}</div>
+                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10.5, color: "#6b6690", marginTop: 1 }}>{displayScoreLabel(e.level)}</div>
                 </div>
                 <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980" }}>{e.score.toLocaleString()}</div>
               </div>
@@ -907,7 +907,7 @@ export function Leaderboard({ onClose }: { onClose: () => void }) {
             {scores.map((r, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0", borderBottom: "1px solid #181b2a" }}>
                 {rankDiamond(i + 1)}
-                <div style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: "#9aa0ad" }}>{r.level}</div>
+                <div style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: "#9aa0ad" }}>{displayScoreLabel(r.level)}</div>
                 <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980" }}>{r.score.toLocaleString()}</div>
               </div>
             ))}

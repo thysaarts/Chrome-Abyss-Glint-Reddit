@@ -7,7 +7,7 @@ import { Board } from "./Board";
 import { HUD, Footer, TileLegend, ComboLegend, LogPanel } from "./Panels";
 import { FlyingOverlay } from "./FlyingOverlay";
 import { FlyingTile, Mapper, LINEUP_T } from "./useNebuliteGame";
-import { gameOptions } from "./settings";
+import { gameOptions, visualOptions } from "./settings";
 import { ComboLineupOverlay } from "./ComboLineupOverlay";
 import { RushOverlay } from "./RushOverlay";
 import {
@@ -1482,15 +1482,16 @@ export function TutorialLevel({
           <div className="gl-sheen-area">
             <div style={boardPanel}>
               <div style={boardGlow} />
-              <div style={{ position: "relative" }} className={shake && gameOptions.screenShake ? "gl-shake" : undefined} onClick={onBoardMiss}>
+              <div style={{ position: "relative" }} className={shake && visualOptions.screenShake ? "gl-shake" : undefined} onClick={onBoardMiss}>
                 <div className="gl-board-viewport">
                   <div style={boardCastShadow} />
                   <div className="gl-board-tilt">
                     <div
                       style={{
                         // the game's focus zoom: lean in while the action plays,
-                        // springy settle back out when it resolves
-                        transform: `scale(${focused ? ZOOM_IN : ZOOM_BASE})`,
+                        // springy settle back out when it resolves. Held at the resting
+                        // scale when the camera is off (Reduce Motion / Visual › Advanced).
+                        transform: `scale(${visualOptions.boardZoom && focused ? ZOOM_IN : ZOOM_BASE})`,
                         transformOrigin: "50% 45%",
                         transition: "transform 0.36s cubic-bezier(0.34, 1.26, 0.5, 1)",
                         touchAction: "manipulation",

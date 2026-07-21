@@ -173,6 +173,13 @@ export function toLevel(def: LevelDef, num: number): Level {
   };
 }
 
+/** How a campaign level is named on the score boards — "Lv1: The Academy".
+ *  Non-campaign runs (Quick Start, the daily) have no number and keep their
+ *  own plain label. */
+export function levelScoreLabel(level: Level): string {
+  return `Lv${level.num}: ${level.title}`;
+}
+
 export const LEVEL_DEFS: LevelDef[] = (() => {
   const bundled = raw.levels as LevelDef[];
   if (!isCmsPreview()) return bundled;
@@ -181,3 +188,16 @@ export const LEVEL_DEFS: LevelDef[] = (() => {
 })();
 
 export const LEVELS: Level[] = LEVEL_DEFS.map(toLevel);
+
+const LEVEL_BY_TITLE = new Map(LEVELS.map((l) => [l.title, l]));
+
+/** Score-board labels are frozen into the row (localStorage, and Redis on the
+ *  community board) at the moment a run ends, so rows written before
+ *  `levelScoreLabel` existed read a bare "The Academy". Re-prefix those on the
+ *  way to the screen so old and new entries look alike. Rows that already carry
+ *  a number, and non-campaign labels ("Quick Start", the daily), don't match a
+ *  bare title and pass through untouched — so this is safe to apply twice. */
+export function displayScoreLabel(stored: string): string {
+  const level = LEVEL_BY_TITLE.get(stored.trim());
+  return level ? levelScoreLabel(level) : stored;
+}

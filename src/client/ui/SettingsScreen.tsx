@@ -175,6 +175,10 @@ export function SettingsScreen({
                     }}
                   />
                 </SettingRow>
+                {/* ADVANCED — the per-effect toggles. These only ever calm things
+                    further, so while Reduce motion is on they all read OFF and are
+                    disabled (same treatment HARD gives the combo picker). */}
+                <MotionAdvanced settings={settings} onChange={onChange} />
               </>
             )}
 
@@ -266,15 +270,8 @@ export function SettingsScreen({
                     />
                   </div>
                 </SettingRow>
-                <SettingRow title={S.shakeTitle} desc={S.shakeDesc}>
-                  <Toggle
-                    on={settings.screenShake}
-                    onChange={(on) => {
-                      sfx.click();
-                      onChange({ screenShake: on });
-                    }}
-                  />
-                </SettingRow>
+                {/* Screen shake used to live here; it's motion, not gameplay, so it
+                    moved to Visual › Advanced alongside the other comfort toggles. */}
               </>
             )}
 
@@ -371,6 +368,103 @@ export function SettingsScreen({
 }
 
 /* ---------- pieces ---------- */
+
+/**
+ * VISUAL › ADVANCED — a collapsed disclosure holding the per-effect motion
+ * toggles. It sits under the Reduce motion master, and every row inside it is
+ * subordinate to that master: while Reduce motion is on, each toggle displays
+ * OFF and is disabled, because the effective value really is off. That keeps
+ * the panel honest — it never shows a switch that isn't doing anything.
+ */
+function MotionAdvanced({ settings, onChange }: { settings: Settings; onChange: (patch: Partial<Settings>) => void }) {
+  const S = CONTENT.settingsScreen;
+  const [open, setOpen] = useState(false);
+  const locked = settings.reduceMotion; // the master overrides everything below
+
+  const rows: { key: "boardZoom" | "screenShake" | "boardTilt" | "ambientFx"; title: string; desc: string }[] = [
+    { key: "boardZoom", title: S.zoomTitle, desc: S.zoomDesc },
+    { key: "screenShake", title: S.shakeTitle, desc: S.shakeDesc },
+    { key: "boardTilt", title: S.tiltTitle, desc: S.tiltDesc },
+    { key: "ambientFx", title: S.ambientTitle, desc: S.ambientDesc },
+  ];
+
+  return (
+    <div style={{ paddingBottom: 22, marginBottom: 22, borderBottom: `1px solid ${theme.color.border}` }}>
+      <button
+        onClick={() => {
+          sfx.click();
+          setOpen((o) => !o);
+        }}
+        aria-expanded={open}
+        style={advancedBtn}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}
+        >
+          <path d="M9 5l7 7-7 7" />
+        </svg>
+        {S.advancedShow}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 16, paddingLeft: 14, borderLeft: `1px solid ${theme.color.border}`, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ fontFamily: theme.fonts.sans, fontSize: 12.5, lineHeight: 1.5, color: theme.color.dim, maxWidth: 420 }}>{S.advancedDesc}</div>
+          {rows.map((r) => (
+            <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 8, opacity: locked ? 0.55 : 1 }}>
+              <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 14.5, color: theme.color.text }}>{r.title}</div>
+              <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, lineHeight: 1.5, color: theme.color.dim, maxWidth: 420 }}>
+                {locked ? S.advancedCoveredNote : r.desc}
+              </div>
+              <div style={{ marginTop: 2 }}>
+                <Toggle
+                  on={!locked && settings[r.key]}
+                  disabled={locked}
+                  onChange={(on) => {
+                    sfx.click();
+                    onChange({ [r.key]: on } as Partial<Settings>);
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+          <ResetToStandard
+            onClick={() => {
+              sfx.click();
+              onChange({
+                boardZoom: DEFAULT_SETTINGS.boardZoom,
+                boardTilt: DEFAULT_SETTINGS.boardTilt,
+                ambientFx: DEFAULT_SETTINGS.ambientFx,
+                screenShake: DEFAULT_SETTINGS.screenShake,
+              });
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+const advancedBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 13px",
+  borderRadius: 11,
+  border: `1px solid ${theme.color.border}`,
+  background: "rgba(0,0,0,0.2)",
+  color: theme.color.dim,
+  fontFamily: theme.fonts.sans,
+  fontWeight: 600,
+  fontSize: 12.5,
+  cursor: "pointer",
+};
 
 function SettingRow({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (

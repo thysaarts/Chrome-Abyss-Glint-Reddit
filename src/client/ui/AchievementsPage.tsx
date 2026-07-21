@@ -3,6 +3,7 @@ import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
 import { topScores } from "../levels/progress";
+import { displayScoreLabel } from "../levels/levels";
 import { loadStats } from "../game/stats";
 import { computeAchievements, statValue } from "../game/challenges";
 import { Gem } from "./Gem";
@@ -60,7 +61,7 @@ export function AchievementsPage({ onOpenLeaderboard }: { onOpenLeaderboard?: ()
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 0", borderBottom: i === shown.length - 1 ? "none" : `1px solid ${theme.color.border}` }}>
               <span style={{ width: 26, height: 26, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, transform: "rotate(45deg)", background: bg, color: ink, fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12 }}><span style={{ transform: "rotate(-45deg)" }}>{rank}</span></span>
-              <span style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: theme.color.dim }}>{r.level}</span>
+              <span style={{ flex: 1, fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12, color: theme.color.dim }}>{displayScoreLabel(r.level)}</span>
               <span style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 19, color: "#ffd980", fontVariantNumeric: "tabular-nums" }}>{r.score.toLocaleString()}</span>
             </div>
           );
