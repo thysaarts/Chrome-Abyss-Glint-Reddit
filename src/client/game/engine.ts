@@ -779,6 +779,42 @@ function isSameValueConnected(
   return false;
 }
 
+/**
+ * The full connected SAME-VALUE blob a placement of `placedVal` at `cellKey` forms —
+ * the combo tiles PLUS the overflow tiles that hang off it (the Rule 1 / Mother Lode
+ * strand). Mirrors the bank-time strand walk: an adopted joker-Core reads as the value
+ * it mirrored, so the blob passes through it. The placed cell is treated as already
+ * holding `placedVal` even at PLAN time (before the tile is committed to the board).
+ * `clusterForCore` lets a joker-Core banking in the current cluster count as adopted.
+ */
+function sameValueStrand(s: GameState, cellKey: string, placedVal: number, clusterForCore: Set<string>): Set<string> {
+  const strand = new Set<string>();
+  if (placedVal === GLINT || placedVal === CORE) return strand;
+  const lockedVals = lockedCoreValues(s);
+  const adjToPlaced = new Set(s.adj.get(cellKey) ?? []);
+  const matches = (k: string): boolean => {
+    if (k === cellKey) return true; // the placed tile itself (may not be committed yet)
+    const t = s.cells.get(k)?.tile ?? null;
+    if (t === placedVal) return true;
+    if (t === CORE) {
+      if (clusterForCore.has(k)) return true; // joker-Core banking in this cluster
+      const locked = lockedVals.get(k);
+      if (locked === placedVal) return true; // adopted earlier at this value
+      if (locked === undefined && adjToPlaced.has(k)) return true; // adopted by this placement
+    }
+    return false;
+  };
+  const stack = [cellKey];
+  while (stack.length) {
+    const k = stack.pop()!;
+    if (strand.has(k)) continue;
+    if (!matches(k)) continue;
+    strand.add(k);
+    for (const nb of s.adj.get(k) ?? []) if (!strand.has(nb)) stack.push(nb);
+  }
+  return strand;
+}
+
 // ---- same-value merge naming ------------------------------------------------
 // When pre-activated same-value combos are bridged into ONE banked cluster (e.g. a
 // Pentad + a Trips joined by a placed Duneglass = 9 tiles), the cluster must be
@@ -987,6 +1023,27 @@ function planMoveAs(s: GameState, cellKey: string, placedVal: number, choice = 0
 
   // The connected cluster containing the placed cell determines banking.
   const cluster = activatedCluster(s, activatedAfter, cellKey);
+
+  // OVERFLOW CONDUCTS THE CHAIN. The same-value strand tiles that will overflow to the
+  // hand (Mother Lode) are still physically part of the banked blob, so they bridge the
+  // cluster to any DIFFERENT-value activated combo they touch. A player can't predict
+  // which tiles the engine tags as overflow, so an otherwise-connected combo must not be
+  // dropped from the chain just because the bridge happens to be an overflow tile. (A
+  // SAME-value combo down the strand is left to the overflow rule — it refines, it does
+  // not separately bank.)
+  const strand = sameValueStrand(s, cellKey, placedVal, activatedAfter);
+  if (strand.size > allComboCells.size) {
+    const conductive = new Set<string>([...activatedAfter, ...strand]);
+    const reached = activatedCluster(s, conductive, cellKey);
+    for (const c of s.activatedCombos) {
+      if (c.cells.some((k) => cluster.has(k))) continue; // already chained in directly
+      if (!c.cells.some((k) => reached.has(k))) continue; // not reached, even via overflow
+      const cv = priorComboValue(s, c);
+      if (cv !== null && cv === placedVal) continue; // same value → overflow, not a chain link
+      for (const k of c.cells) cluster.add(k);
+    }
+  }
+
   const clusterCells = [...cluster];
   const totalTiles = cluster.size;
 
