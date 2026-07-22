@@ -36,6 +36,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"
+      },
+      {
+        "label": "Export all-time leaderboard",
+        "description": "DM yourself the all-time scores (for the web import)",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/alltime-export"
       }
     ]
   },
