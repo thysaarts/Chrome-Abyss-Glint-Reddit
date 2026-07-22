@@ -28,16 +28,6 @@
       "domains": ["kszcacyzyveytvjlrohk.supabase.co"]
     }
   },
-  "settings": {
-    "global": {
-      "reddit_import_secret": {
-        "type": "string",
-        "label": "Supabase import secret",
-        "helpText": "Must match REDDIT_IMPORT_SECRET set in the Supabase project. Enables 'Get web code' in Settings.",
-        "isSecret": true
-      }
-    }
-  },
   "menu": {
     "items": [
       {

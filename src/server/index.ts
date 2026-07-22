@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { context, createServer, getServerPort, redis, reddit, settings } from "@devvit/web/server";
+import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
 import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCodeResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
 
 // Supabase edge function that parks a save under a one-time code for the web game.
 const REDDIT_EXPORT_URL = "https://kszcacyzyveytvjlrohk.supabase.co/functions/v1/reddit-export";
+// Shared anti-spam token — MUST match REDDIT_IMPORT_SECRET set in Supabase. A plain
+// constant (not a Devvit setting, which didn't surface for @devvit/web): it's a
+// low-value token — it only gates "park a save"; redeeming needs a valid one-time
+// code + a signed-in web session that only imports into that player's OWN account.
+// This is a private repo; rotate by editing here + Supabase together.
+const REDDIT_IMPORT_SECRET = "PASTE_YOUR_SUPABASE_SECRET_HERE";
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -226,14 +232,13 @@ app.post("/api/export-code", async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? null;
     if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
-    const secret = await settings.get<string>("reddit_import_secret");
-    if (!secret) return c.json<ErrorResponse>({ status: "error", message: "import not configured" }, 500);
+    if (!REDDIT_IMPORT_SECRET || REDDIT_IMPORT_SECRET.startsWith("PASTE_")) return c.json<ErrorResponse>({ status: "error", message: "import not configured" }, 500);
     const body = await c.req.json<{ data?: Record<string, string> }>().catch(() => ({}) as { data?: Record<string, string> });
     const payload = body.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : null;
     if (!payload) return c.json<ErrorResponse>({ status: "error", message: "no save to export" }, 400);
     const res = await fetch(REDDIT_EXPORT_URL, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-import-secret": secret },
+      headers: { "content-type": "application/json", "x-import-secret": REDDIT_IMPORT_SECRET },
       body: JSON.stringify({ payload }),
     });
     const j = (await res.json().catch(() => ({}))) as { code?: string; url?: string; error?: string };
