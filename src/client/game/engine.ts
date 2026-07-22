@@ -2590,14 +2590,18 @@ export const CASHOUT_PER_GEM_VALUE = 100; // hand minerals: face value × this
 /** What a cash-out is worth right now: unspent lives, unused free banks, and the
  *  minerals still in hand (face value × 100, same rate as the board-clear leftover
  *  bonus). Dross and Nebulites in hand convert to nothing. */
-export function cashOutValue(s: GameState): { lives: number; banks: number; gems: number; total: number } {
+export function cashOutValue(s: GameState): { lives: number; banks: number; gems: number; zeniths: number; total: number } {
   const lives = s.livesLeft * CASHOUT_PER_LIFE;
   const banks = s.freeBanksLeft * CASHOUT_PER_FREE_BANK;
-  let gems = 0;
+  // A hand ZENITH converts at its FLAT bonus — its tile value (10) is not a
+  // mineral face; letting it through the gem loop double-paid it (+1000 on top
+  // of the +6000 tallied separately). Ported from the prototype review fix.
+  let gems = 0, zeniths = 0;
   for (const t of s.hand) {
-    if (t !== null && t !== GLINT && t !== CORE) gems += (t as number) * CASHOUT_PER_GEM_VALUE;
+    if (t === ZENITH) zeniths += ZENITH_BONUS;
+    else if (t !== null && t !== GLINT && t !== CORE) gems += (t as number) * CASHOUT_PER_GEM_VALUE;
   }
-  return { lives, banks, gems, total: lives + banks + gems };
+  return { lives, banks, gems, zeniths, total: lives + banks + gems + zeniths };
 }
 
 /**

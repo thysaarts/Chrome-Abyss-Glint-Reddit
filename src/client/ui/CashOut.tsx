@@ -182,7 +182,9 @@ export function CashOutCeremony({
                 <span style={ceremonyNone}>—</span>
               )}
             </div>
-            <div style={ceremonyColVal}>+{v.gems.toLocaleString()}</div>
+            {/* the gem row shows any Zenith tile too, so its flat bonus prints here —
+                keeping lives + banks + this row = the total below */}
+            <div style={ceremonyColVal}>+{(v.gems + v.zeniths).toLocaleString()}</div>
           </div>
         </div>
 
