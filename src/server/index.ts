@@ -292,28 +292,18 @@ internal.post("/menu/post-create", async (c) => {
 });
 
 /** Moderator menu action — export the all-time board for the one-off web import.
- *  DMs the JSON to the moderator who clicked (private, copyable) and always logs
- *  it too (a `devvit logs` backstop, and the sure path if the board is too big
- *  for a single DM). No HTTP/secret needed — reachable only from the mod menu. */
+ *  Writes the JSON to the logs (chunked so a long board can't be truncated);
+ *  read it with `devvit logs` between the BEGIN/END markers. No HTTP/secret
+ *  needed — reachable only from the mod menu. (Reddit blocks app→user DMs for
+ *  non-whitelisted accounts, so logs are the delivery path.) */
 internal.post("/menu/alltime-export", async (c) => {
   const entries = await allTimeExport();
   const json = JSON.stringify({ type: "alltime-export", count: entries.length, entries });
-  // backstop: always in the logs (chunked so a long board can't be truncated)
   console.log("GLINT_ALLTIME_EXPORT_BEGIN");
   for (let i = 0; i < json.length; i += 1500) console.log("GLINT_EXPORT " + json.slice(i, i + 1500));
   console.log("GLINT_ALLTIME_EXPORT_END");
-  let dmed = false;
-  try {
-    const me = await reddit.getCurrentUsername();
-    if (me && json.length < 9000) {
-      await reddit.sendPrivateMessage({ to: me, subject: "Glint all-time export", text: "```\n" + json + "\n```" });
-      dmed = true;
-    }
-  } catch (err) {
-    console.error("export DM failed", err);
-  }
   return c.json({
-    showToast: { text: `Exported ${entries.length} scores` + (dmed ? " — check your Reddit inbox" : " — see: devvit logs") },
+    showToast: { text: `Exported ${entries.length} scores — see: devvit logs` },
   });
 });
 
