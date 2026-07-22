@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
-import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
+import { context, createServer, getServerPort, redis, reddit, settings } from "@devvit/web/server";
+import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCodeResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
+
+// Supabase edge function that parks a save under a one-time code for the web game.
+const REDDIT_EXPORT_URL = "https://kszcacyzyveytvjlrohk.supabase.co/functions/v1/reddit-export";
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -213,6 +216,32 @@ app.post("/api/save", async (c) => {
   } catch (err) {
     console.error("save put failed", err);
     return c.json<ErrorResponse>({ status: "error", message: "save put failed" }, 500);
+  }
+});
+
+// EXPORT to the web game: park THIS player's save under a one-time code via the
+// Supabase reddit-export function (secret-auth'd, server-to-server). The client
+// sends its fresh localStorage snapshot; we add the shared secret and forward it.
+app.post("/api/export-code", async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
+    const secret = await settings.get<string>("reddit_import_secret");
+    if (!secret) return c.json<ErrorResponse>({ status: "error", message: "import not configured" }, 500);
+    const body = await c.req.json<{ data?: Record<string, string> }>().catch(() => ({}) as { data?: Record<string, string> });
+    const payload = body.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : null;
+    if (!payload) return c.json<ErrorResponse>({ status: "error", message: "no save to export" }, 400);
+    const res = await fetch(REDDIT_EXPORT_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-import-secret": secret },
+      body: JSON.stringify({ payload }),
+    });
+    const j = (await res.json().catch(() => ({}))) as { code?: string; url?: string; error?: string };
+    if (!res.ok || !j.code || !j.url) return c.json<ErrorResponse>({ status: "error", message: j.error ?? "export failed" }, 502);
+    return c.json<ImportCodeResponse>({ type: "import-code", code: j.code, url: j.url });
+  } catch (err) {
+    console.error("export-code failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "export failed" }, 500);
   }
 });
 

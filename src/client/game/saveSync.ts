@@ -20,7 +20,7 @@ const PREFIX = "glint.";
 let enabled = false;
 let timer: number | undefined;
 
-function snapshot(): Record<string, string> {
+export function snapshot(): Record<string, string> {
   const out: Record<string, string> = {};
   try {
     for (let i = 0; i < localStorage.length; i++) {

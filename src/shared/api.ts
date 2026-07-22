@@ -63,3 +63,11 @@ export type ErrorResponse = {
   status: "error";
   message: string;
 };
+
+/** Response to POST /api/export-code — a one-time code + deep link to the web game
+ *  that redeems this player's Reddit save into the chromeabyss.com version. */
+export type ImportCodeResponse = {
+  type: "import-code";
+  code: string;
+  url: string;
+};

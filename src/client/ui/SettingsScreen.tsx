@@ -11,6 +11,8 @@ import { NebuliteGem } from "./GameHeader";
 import { resetAcademyTips } from "../game/academy";
 import { resetPuzzleIntro } from "../game/puzzleintro";
 import { clearUnseen } from "../game/unseen";
+import { snapshot } from "../game/saveSync";
+import type { ImportCodeResponse } from "../../shared/api";
 import type { MusicTheme } from "../audio/music";
 import { DEFAULT_SETTINGS } from "./settings";
 import type { Settings, SceneOverride } from "./settings";
@@ -97,6 +99,29 @@ export function SettingsScreen({
 }) {
   const [section, setSection] = useState<Section>(initialSection);
   const [resetDone, setResetDone] = useState(false);
+  // "take your progress to the web" — fetch a one-time code + deep link
+  const [webExport, setWebExport] = useState<{ busy: boolean; code?: string; url?: string; err?: boolean; copied?: boolean }>({ busy: false });
+  const getWebCode = async () => {
+    if (webExport.busy) return;
+    setWebExport({ busy: true });
+    try {
+      const res = await fetch("/api/export-code", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ data: snapshot() }),
+      });
+      const j = (await res.json()) as ImportCodeResponse | { status: "error" };
+      if (!res.ok || !("type" in j) || j.type !== "import-code") { setWebExport({ busy: false, err: true }); return; }
+      sfx.walletGain();
+      setWebExport({ busy: false, code: j.code, url: j.url });
+    } catch {
+      setWebExport({ busy: false, err: true });
+    }
+  };
+  const copyWebLink = async () => {
+    if (!webExport.url) return;
+    try { await navigator.clipboard.writeText(webExport.url); sfx.click(); setWebExport((s) => ({ ...s, copied: true })); setTimeout(() => setWebExport((s) => ({ ...s, copied: false })), 1600); } catch { /* clipboard blocked */ }
+  };
   const S = CONTENT.settingsScreen; // ALL copy on this screen is CMS content
 
   return (
@@ -277,6 +302,24 @@ export function SettingsScreen({
 
 
             {section === "data" && (
+              <>
+              {/* TAKE YOUR PROGRESS TO THE WEB — a one-time code + deep link */}
+              <SettingRow title={S.exportTitle} desc={S.exportDesc}>
+                {!webExport.code ? (
+                  <button onClick={getWebCode} disabled={webExport.busy} style={{ ...webBtn, opacity: webExport.busy ? 0.6 : 1 }}>
+                    {webExport.busy ? S.exportBusy : S.exportButton}
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: theme.fonts.mono, fontSize: 22, fontWeight: 700, letterSpacing: "0.12em", color: theme.color.gold }}>{webExport.code}</span>
+                      <button onClick={copyWebLink} style={{ ...webBtn, padding: "8px 14px", fontSize: 12 }}>{webExport.copied ? S.exportCopied : S.exportCopy}</button>
+                    </div>
+                    <div style={{ fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.dim, wordBreak: "break-all" }}>{webExport.url}</div>
+                  </div>
+                )}
+                {webExport.err && <p style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: "#ff8a9c", margin: "8px 0 0" }}>{S.exportError}</p>}
+              </SettingRow>
               <SettingRow title={S.resetTitle} desc={S.resetDesc}>
                 <button
                   onClick={() => {
@@ -299,6 +342,7 @@ export function SettingsScreen({
                   {resetDone ? S.resetDoneLabel : S.resetButton}
                 </button>
               </SettingRow>
+              </>
             )}
 
             {section === "about" && (
@@ -653,6 +697,17 @@ const closeBtn: React.CSSProperties = {
   border: "1px solid var(--border)",
   background: "rgba(0,0,0,0.2)",
   color: "var(--dim)",
+  cursor: "pointer",
+};
+const webBtn: React.CSSProperties = {
+  padding: "11px 20px",
+  borderRadius: 11,
+  border: "1px solid rgba(157,123,255,0.5)",
+  background: "rgba(157,123,255,0.14)",
+  color: "#fff",
+  fontFamily: theme.fonts.disp,
+  fontWeight: 700,
+  fontSize: 14,
   cursor: "pointer",
 };
 const body: React.CSSProperties = { flex: 1, display: "flex", minHeight: 0 };
