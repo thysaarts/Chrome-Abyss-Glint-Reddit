@@ -10,7 +10,7 @@ const REDDIT_EXPORT_URL = "https://kszcacyzyveytvjlrohk.supabase.co/functions/v1
 // low-value token — it only gates "park a save"; redeeming needs a valid one-time
 // code + a signed-in web session that only imports into that player's OWN account.
 // This is a private repo; rotate by editing here + Supabase together.
-const REDDIT_IMPORT_SECRET = "PASTE_YOUR_SUPABASE_SECRET_HERE";
+const REDDIT_IMPORT_SECRET = "ZQkIhxSPLU0pvRufVtvk";
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -147,6 +147,16 @@ async function allTimeTop(n = 10): Promise<AllTimeEntry[]> {
   return rows.map((r, i) => ({ rank: i + 1, username: r.member, score: r.score, level: labels[i] ?? "Quick Start" }));
 }
 
+/** FULL export of the all-time board (every redditor's best), for the one-off
+ *  manual import into the web app's leaderboard. Secret-gated (the shared token)
+ *  so it isn't publicly scrapable. Read-only; unbounded but the set is small. */
+async function allTimeExport(): Promise<{ username: string; score: number; level: string }[]> {
+  const rows = await redis.zRange(ALLTIME, 0, -1, { by: "rank", reverse: true }); // all, high→low
+  if (rows.length === 0) return [];
+  const labels = await Promise.all(rows.map((r) => redis.hGet(ALLTIME_META, r.member)));
+  return rows.map((r, i) => ({ username: r.member, score: r.score, level: labels[i] ?? "Quick Start" }));
+}
+
 async function allTimeStanding(username: string | null): Promise<{ score: number | null; rank: number | null }> {
   if (!username) return { score: null, rank: null };
   const score = await redis.zScore(ALLTIME, username);
@@ -163,6 +173,22 @@ app.get("/api/leaderboard", async (c) => {
   } catch (err) {
     console.error("leaderboard failed", err);
     return c.json<ErrorResponse>({ status: "error", message: "leaderboard failed" }, 500);
+  }
+});
+
+// ONE-OFF EXPORT for the manual web import. Gate with the shared secret via
+// header (x-import-secret) or ?secret= query. Returns the whole all-time board.
+app.get("/api/alltime-export", async (c) => {
+  try {
+    const provided = c.req.header("x-import-secret") ?? c.req.query("secret") ?? "";
+    if (!REDDIT_IMPORT_SECRET || REDDIT_IMPORT_SECRET.startsWith("PASTE_") || provided !== REDDIT_IMPORT_SECRET) {
+      return c.json<ErrorResponse>({ status: "error", message: "unauthorized" }, 401);
+    }
+    const entries = await allTimeExport();
+    return c.json({ type: "alltime-export", count: entries.length, entries });
+  } catch (err) {
+    console.error("alltime-export failed", err);
+    return c.json<ErrorResponse>({ status: "error", message: "export failed" }, 500);
   }
 });
 
