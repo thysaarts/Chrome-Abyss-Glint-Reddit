@@ -72,6 +72,11 @@ export const LINEUP_T = {
   diveStagger: 35, // per-tile start offset while diving
 };
 
+/** Total length of the Zenith arrival flourish — the hold mid-screen plus the fly
+ *  into the hand. The commitFinal choreography waits this long; the ZenithArrival
+ *  overlay runs its own timeline against the same budget. */
+const ZENITH_ARRIVAL_MS = 2100;
+
 export interface FlyingTile {
   id: string;
   value: TileVal;
@@ -159,6 +164,10 @@ interface AnimState {
   // The dramatic opening count over the board: "3" → "2" → "1" during the rain,
   // "go" slamming in as the last special lands. Null when idle / disabled.
   countdown?: "3" | "2" | "1" | "go" | null;
+  // ZENITH ARRIVAL — after GLINT RUSH, the dealt Zenith floats mid-screen under a
+  // light overlay, then flies into the active hand slot. While true, the footer
+  // hides the (incoming) active gem so the flying one is the only Zenith on screen.
+  zenithArrival?: boolean;
 }
 
 const IDLE: AnimState = {
@@ -558,6 +567,17 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     shrinkAnimatedRef.current = false;
     singularityAnimatedRef.current = false;
     setState(next);
+    // ZENITH ARRIVAL: at GLINT RUSH the Zenith is dealt to the FRONT of the hand.
+    // Play its arrival flourish — it floats mid-screen under a light overlay, then
+    // flies into the active slot (footer hides the incoming gem meanwhile). Detected
+    // from the "hand" reveal with no bonus (a deal, not a bank).
+    const zenithArrived = (next.lastResolved?.bonusRevealed ?? []).some((r) => r.key === "hand" && r.gem === ZENITH && !r.bonus);
+    if (zenithArrived && next.phase === "playing") {
+      setAnim((a) => ({ ...a, playing: true, freezeState: null, zenithArrival: true }));
+      sfx.zenithReveal();
+      await pause(ZENITH_ARRIVAL_MS);
+      setAnim((a) => ({ ...a, playing: false, zenithArrival: false }));
+    }
     // ACHIEVEMENT BONUS GEM reveals: the special sound + a flourish flight to the
     // slot the effect landed in (heart → busts, Quadriant → score, Zenith → score
     // when it banked / already in hand when it was dealt).

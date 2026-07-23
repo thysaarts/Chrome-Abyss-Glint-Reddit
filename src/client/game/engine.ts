@@ -2076,7 +2076,9 @@ function applyClusterQuadriant(s: GameState, cluster: Iterable<string>): number 
 function dealZenith(s: GameState): void {
   if (!s.zenithUnlocked || s.zenithDealt) return;
   s.zenithDealt = true;
-  s.hand.push(ZENITH);
+  // FRONT of the hand so the Zenith becomes the ACTIVE (NOW PLACING) gem the moment
+  // it arrives at GLINT RUSH — its arrival flourish flies it into the active slot.
+  s.hand.unshift(ZENITH);
   s.lastResolved.bonusRevealed.push({ key: "hand", gem: ZENITH, effect: "zenith" });
   pushLog(s, { text: logText("zenithDealt"), kind: "rush", sticky: logIsSticky("zenithDealt") });
 }

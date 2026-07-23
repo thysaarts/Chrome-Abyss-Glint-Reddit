@@ -14,6 +14,7 @@ import { FlyingOverlay } from "./ui/FlyingOverlay";
 import { ComboLineupOverlay } from "./ui/ComboLineupOverlay";
 import { CashOutButton, CashOutCeremony } from "./ui/CashOut";
 import { RushOverlay, RushWind } from "./ui/RushOverlay";
+import { ZenithArrival } from "./ui/ZenithArrival";
 import {
   BigBanner,
   BankedPlate,
@@ -1240,6 +1241,7 @@ export default function App() {
             )}
             {anim.singularity && <SingularityOverlay falling={anim.singularity.phase === 1} />}
             {anim.rushTitle && <RushOverlay />}
+            {anim.zenithArrival && <ZenithArrival handAnchor={anchorOf(handRef)} />}
             {anim.motherLode && <MotherLodeOverlay ml={anim.motherLode} />}
           </div>
 
@@ -1265,6 +1267,7 @@ export default function App() {
             <Footer
               state={state}
               hideNext={anim.playing}
+              hideActiveGem={anim.zenithArrival}
               handRef={handRef}
               onRestart={startGame}
               onInfo={() => setSheet("combos")}

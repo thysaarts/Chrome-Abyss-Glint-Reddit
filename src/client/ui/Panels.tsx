@@ -188,6 +188,7 @@ function HeartPips({ total, on }: { total: number; on: number }) {
 export function Footer({
   state,
   hideNext,
+  hideActiveGem,
   handRef,
   upNextRef,
   onRestart,
@@ -199,6 +200,8 @@ export function Footer({
 }: {
   state: GameState;
   hideNext?: boolean;
+  /** ZENITH ARRIVAL: hide the NOW PLACING gem + name while the Zenith flies in */
+  hideActiveGem?: boolean;
   handRef?: React.RefObject<HTMLDivElement>;
   upNextRef?: React.RefObject<HTMLDivElement>;
   onRestart: () => void;
@@ -328,7 +331,10 @@ export function Footer({
               ‹ SLIDE ›
             </div>
           )}
-          {hideNext ? (
+          {hideActiveGem ? (
+            // the Zenith is flying into this slot — show just the empty ground shadow
+            <div className="gl-np-shadow" style={npGroundShadow} />
+          ) : hideNext ? (
             <span style={{ ...npFallback, fontSize: 26 }}>…</span>
           ) : wheelLive ? (
             <div className="gl-np-shadow" style={npGroundShadow} />
@@ -349,7 +355,7 @@ export function Footer({
             <span style={{ ...npFallback, fontSize: 22 }}>—</span>
           )}
         </div>
-        <div style={npName}>{hideNext ? "resolving…" : tile !== null ? nameOf(tile) : "—"}</div>
+        <div style={npName}>{hideActiveGem ? "" : hideNext ? "resolving…" : tile !== null ? nameOf(tile) : "—"}</div>
       </div>
 
       {/* Combos (ⓘ) */}

@@ -33,11 +33,14 @@ export function RushWheel({
   hand,
   onRotate,
   getStage,
+  dimmed,
 }: {
   hand: TileVal[];
   onRotate: (i: number) => void;
   /** the NOW PLACING stage element — the active slot rides its centre */
   getStage: () => HTMLElement | null;
+  /** ONLINE watcher: grey the wheel's gems and kill its drag (not your turn) */
+  dimmed?: boolean;
 }) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const bandRef = useRef<HTMLDivElement | null>(null);
@@ -70,9 +73,11 @@ export function RushWheel({
   const getStageRef = useRef(getStage);
   getStageRef.current = getStage;
 
-  // wrap so the queue rests LEFT of the apex: everything except the single
-  // half-faded right slot (hand[1]) sits on the left arm (threshold 2; a
-  // two-tile hand keeps its lone companion on the left)
+  // Generic cyclic wrap into the wheel's visible window: map an integer slot
+  // delta into (t-n, t] so the queue rests to one side of the apex with a single
+  // half-faded slot on the other. The DIRECTION (which side the queue rests, and
+  // therefore which way the wheel spins) is set at the call site — see `rel`
+  // below, which negates the argument so hand[1] sits LEFT of the active gem.
   const wrapRel = (x: number, n: number) => {
     const r = ((x % n) + n) % n;
     const t = n <= 2 ? 1 : 2;
@@ -214,7 +219,14 @@ export function RushWheel({
     for (let i = 0; i < tiles.length; i++) {
       const el = tileRefs.current[i];
       if (!el) continue;
-      const rel = n > 1 ? wrapRel(i - anchorNotch, n) + bounce : 0;
+      // REVERSED wheel: negate the slot delta (and the bounce that pairs with it)
+      // so the queue rests to the LEFT in index order — hand[1] directly left of
+      // the active apex, hand[2] beyond it, … — with the wrap tile in the lone
+      // half-faded slot on the RIGHT. Equivalent to position ≈ wrapRel(offset − i):
+      // as the scroll offset rises, tiles slide RIGHT and a HIGHER index becomes
+      // active (paired with the flipped drag sign in onMove, so the finger stays
+      // glued and pulling a left gem to the centre selects that gem).
+      const rel = n > 1 ? wrapRel(anchorNotch - i, n) - bounce : 0;
       // TWO tiles: compress the whole path so the resting gem lives IN the hex
       // (rel −1 draws at the hex, flowing hex↔apex through the floating slot)
       const e = n === 2 ? rel * 2 : rel;
@@ -390,7 +402,10 @@ export function RushWheel({
     if (e.pointerId !== activePointerRef.current || !draggingRef.current) return;
     const now = performance.now();
     const dx = e.clientX - dragState.current.x;
-    const dOff = -dx / PITCH; // finger right → wheel right → earlier tile active
+    // REVERSED wheel (see `rel` in layout): finger right → offset RISES → tiles
+    // slide right with the finger (glued) and a LATER tile becomes active, so
+    // pulling a left-resting gem to the centre selects that gem.
+    const dOff = dx / PITCH;
     // pointerXRef stays pinned to the pointer-DOWN x, so this is total travel
     // (not a per-event delta) — a slow drag still counts as a drag, not a tap
     if (Math.abs(e.clientX - pointerXRef.current) > 3) dragMovedRef.current = true;
@@ -440,7 +455,7 @@ export function RushWheel({
   };
 
   return (
-    <div ref={overlayRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 4 }} aria-hidden>
+    <div ref={overlayRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 4, filter: dimmed ? "grayscale(1) brightness(0.72)" : undefined, opacity: dimmed ? 0.5 : 1 }} aria-hidden>
       {/* the drag band — the only interactive strip, sized between the buttons */}
       <div
         ref={bandRef}
@@ -450,7 +465,7 @@ export function RushWheel({
         onPointerCancel={onUp}
         style={{
           position: "absolute",
-          pointerEvents: "auto",
+          pointerEvents: dimmed ? "none" : "auto",
           touchAction: "pan-y",
           cursor: hand.length > 1 ? "grab" : "default",
           userSelect: "none",
