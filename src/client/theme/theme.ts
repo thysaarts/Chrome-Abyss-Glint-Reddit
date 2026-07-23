@@ -59,6 +59,16 @@ export const theme = {
     glint: { name: "Dross", hue: "#e2b440" },
     /** value 7 — the prize Core / wildcard joker (+500) */
     core: { name: "Nebulite", hue: "#b36bf5" },
+    // achievement BONUS gems (values 8/9/10). Only Zenith is ever dealt to the hand
+    // (so only it reaches the NOW PLACING slot), but all three are here so name/hue
+    // lookups never fall through to theme.minerals (which is only 1–6). Hues match
+    // the TileGem colour map.
+    /** value 8 — Resurrect (Invincible): recover a bust / add a life */
+    resurrect: { name: "Resurrect", hue: "#FF6E8E" },
+    /** value 9 — Quadriant (Crimson Endurance): ×4 the covered tile into the bank */
+    quadriant: { name: "Quadriant", hue: "#FF8496" },
+    /** value 10 — Zenith (Superluminal): +6000 combo filler dealt at GLINT RUSH */
+    zenith: { name: "Zenith", hue: "#E4FF6B" },
   },
 } as const;
 

@@ -467,8 +467,13 @@ const hexCountBadge: React.CSSProperties = {
 };
 
 function nameOf(t: TileVal): string {
-  if (t === GLINT) return "Dross";
-  if (t === CORE) return "Nebulite";
+  if (t === GLINT) return theme.special.glint.name;
+  if (t === CORE) return theme.special.core.name;
+  // achievement bonus gems (Zenith is the only one dealt to the hand, but guard all
+  // three so a name lookup never falls through to theme.minerals, which is only 1–6)
+  if (t === RESURRECT) return theme.special.resurrect.name;
+  if (t === QUADRIANT) return theme.special.quadriant.name;
+  if (t === ZENITH) return theme.special.zenith.name;
   return theme.minerals[t as MineralValue].name;
 }
 
@@ -476,6 +481,9 @@ function nameOf(t: TileVal): string {
 function hueOf(t: TileVal): string {
   if (t === GLINT) return theme.special.glint.hue;
   if (t === CORE) return theme.special.core.hue;
+  if (t === RESURRECT) return theme.special.resurrect.hue;
+  if (t === QUADRIANT) return theme.special.quadriant.hue;
+  if (t === ZENITH) return theme.special.zenith.hue;
   return theme.minerals[t as MineralValue].hue;
 }
 
