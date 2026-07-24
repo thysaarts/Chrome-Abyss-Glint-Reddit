@@ -1868,16 +1868,29 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
         strand.add(k);
         for (const nb of s.adj.get(k) ?? []) if (!strand.has(nb)) stack.push(nb);
       }
-      // leftover = every same-value strand tile NOT in the banked cluster. The strand is
-      // same-value-connected to the placed tile, so ALL of it is this one blob — including
-      // tiles that belong to a separate activated combo (e.g. an Echo) sitting further down
-      // the same strand. Those must overflow to the hand too; previously an `!activatedCells`
-      // guard skipped them, orphaning them on the board (neither banked nor sent to hand). A
-      // genuinely separate combo (a different value, or a same-value blob not touching this
-      // one) is never reached by this flood, so it's unaffected. Cores never overflow.
-      for (const k of strand) {
-        if (!cluster.has(k) && s.cells.get(k)!.tile === placedVal) {
-          strandToHand.push({ key: k, value: placedVal });
+      // RULE 1 PRECONDITION (bug044, ported from the web build): overflow is the
+      // leftover of a same-value blob that banked AT THE HEX CAP — a set family
+      // blob always banks whole (Echo pairs complete at 2; Trips..Hex consume
+      // the group; bridged activated combos merge via the same-value renamer up
+      // to two Hexes), so a strand can only have genuine leftover when a full
+      // HEX of the placed value (joker-Cores included) banked from it. Anything
+      // less — most notably a DRIFT/chain bank carrying one or two tiles of the
+      // placed mineral — banked no overflowing set, and same-mineral neighbours
+      // of the placement stay on the board (they were wrongly swept to the hand).
+      let strandInCluster = 0;
+      for (const k of strand) if (cluster.has(k)) strandInCluster++;
+      if (strandInCluster >= 6) {
+        // leftover = every same-value strand tile NOT in the banked cluster. The strand is
+        // same-value-connected to the placed tile, so ALL of it is this one blob — including
+        // tiles that belong to a separate activated combo (e.g. an Echo) sitting further down
+        // the same strand. Those must overflow to the hand too; previously an `!activatedCells`
+        // guard skipped them, orphaning them on the board (neither banked nor sent to hand). A
+        // genuinely separate combo (a different value, or a same-value blob not touching this
+        // one) is never reached by this flood, so it's unaffected. Cores never overflow.
+        for (const k of strand) {
+          if (!cluster.has(k) && s.cells.get(k)!.tile === placedVal) {
+            strandToHand.push({ key: k, value: placedVal });
+          }
         }
       }
     }
