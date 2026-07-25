@@ -5,7 +5,9 @@ import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCod
 
 // Supabase edge function that parks a save under a one-time code for the web game.
 const REDDIT_EXPORT_URL = "https://kszcacyzyveytvjlrohk.supabase.co/functions/v1/reddit-export";
-// Shared anti-spam token — MUST match REDDIT_IMPORT_SECRET set in Supabase. A plain
+// Shared anti-spam token — MUST match the Supabase secret named EXACTLY
+// `REDDIT_IMPORT_SECRET` (upper-case; Deno env lookups are case-sensitive, and a
+// lower-case `reddit_import_secret` is silently invisible to the function). A plain
 // constant (not a Devvit setting, which didn't surface for @devvit/web): it's a
 // low-value token — it only gates "park a save"; redeeming needs a valid one-time
 // code + a signed-in web session that only imports into that player's OWN account.
@@ -268,7 +270,13 @@ app.post("/api/export-code", async (c) => {
       body: JSON.stringify({ payload }),
     });
     const j = (await res.json().catch(() => ({}))) as { code?: string; url?: string; error?: string };
-    if (!res.ok || !j.code || !j.url) return c.json<ErrorResponse>({ status: "error", message: j.error ?? "export failed" }, 502);
+    if (!res.ok || !j.code || !j.url) {
+      // the client only ever shows "try again in a moment", which reads transient —
+      // log the real upstream verdict so `devvit logs` names a permanent misconfig
+      // (e.g. a 503 "REDDIT_IMPORT_SECRET is not set", or a 401 secret mismatch)
+      console.error(`export-code upstream ${res.status}: ${j.error ?? "(no error field)"}`);
+      return c.json<ErrorResponse>({ status: "error", message: j.error ?? "export failed" }, 502);
+    }
     return c.json<ImportCodeResponse>({ type: "import-code", code: j.code, url: j.url });
   } catch (err) {
     console.error("export-code failed", err);
