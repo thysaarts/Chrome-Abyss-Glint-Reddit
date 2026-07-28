@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
@@ -18,38 +18,52 @@ export interface AbilityUnlock {
   blurb: string; // what the ability does, in one line
 }
 
+// slide order is the gems' canonical order, whatever order they were earned in
+const SLIDE_ORDER: Record<string, number> = { invincible: 0, crimsonEndurance: 1, superluminal: 2 };
+
 export function AbilityReward({ unlocks, onContinue }: { unlocks: AbilityUnlock[]; onContinue: () => void }) {
   const A = CONTENT.achievements.abilityUnlock;
-  const many = unlocks.length > 1;
-  // was revealing silently — sound each unlocked gem's own signature on reveal
+  // ONE gem per slide (Resurrect -> Quadriant -> Zenith): each unlock gets its
+  // own moment, and the blurb gets the card's full width instead of a column
+  const slides = [...unlocks].sort((a, b) => (SLIDE_ORDER[a.key] ?? 9) - (SLIDE_ORDER[b.key] ?? 9));
+  const [page, setPage] = useState(0);
+  const u = slides[Math.min(page, slides.length - 1)];
+  const last = page >= slides.length - 1;
+  // each slide sounds its gem's own reveal signature
   useEffect(() => {
-    const pick = (name: string) =>
-      name.includes("Quadri") ? sfx.quadriantReveal : name.includes("Zenith") ? sfx.zenithReveal : sfx.resurrectReveal;
-    const timers = unlocks.map((u, i) => window.setTimeout(pick(u.gemName), i * 260));
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    const nm = slides[Math.min(page, slides.length - 1)]?.gemName ?? "";
+    (nm.includes("Quadri") ? sfx.quadriantReveal : nm.includes("Zenith") ? sfx.zenithReveal : sfx.resurrectReveal)();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page]);
+  const advance = () => {
+    sfx.click();
+    if (last) onContinue();
+    else setPage((n) => n + 1);
+  };
   return (
     <div style={scrim} className="gl-fade">
       <div style={card} className="gl-screen-in">
         <div style={{ position: "absolute", inset: 0, borderRadius: 22, overflow: "hidden", pointerEvents: "none" }}>
           <div className="gl-gloss" style={{ position: "absolute", top: 0, left: 0, width: "36%", height: "100%", background: "linear-gradient(100deg, transparent, rgba(210,230,255,0.08), transparent)" }} />
         </div>
-        <div style={title}>{many ? A.titleMany : A.titleOne}</div>
+        <div style={title}>{A.titleOne}</div>
         <div style={sub}>{A.sub}</div>
-        <div style={grid}>
-          {unlocks.map((u) => (
-            <div key={u.key} style={item}>
-              <div style={disc}>
-                <TileGem value={u.tileValue as TileVal} size={72} />
-              </div>
-              <div style={name}>{u.gemName}</div>
-              <div style={blurbStyle}>{u.blurb}</div>
-            </div>
-          ))}
+        <div key={u.key} className="gl-rise-in" style={item}>
+          <div style={disc}>
+            <TileGem value={u.tileValue as TileVal} size={72} />
+          </div>
+          <div style={name}>{u.gemName}</div>
+          <div style={blurbStyle}>{u.blurb}</div>
         </div>
+        {slides.length > 1 && (
+          <div style={{ display: "flex", gap: 7, justifyContent: "center", marginBottom: 14 }}>
+            {slides.map((s, i) => (
+              <span key={s.key} style={{ width: 7, height: 7, borderRadius: "50%", background: i === page ? theme.color.accent : "rgba(157,123,255,0.28)" }} />
+            ))}
+          </div>
+        )}
         <div style={{ height: 1, background: theme.color.border, margin: "4px 0 0" }} />
-        <button style={primaryBtn} onClick={() => { sfx.click(); onContinue(); }}>
+        <button style={primaryBtn} onClick={advance}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
           {A.continueBtn}
         </button>
@@ -74,11 +88,10 @@ const card: React.CSSProperties = {
 };
 const title: React.CSSProperties = { fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 25, color: theme.color.accent, letterSpacing: "0.01em" };
 const sub: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.2em", color: theme.color.dim, marginTop: 4 };
-const grid: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center", margin: "22px 0" };
-const item: React.CSSProperties = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: 150 };
+const item: React.CSSProperties = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", margin: "22px 0 18px" };
 const disc: React.CSSProperties = { width: 88, height: 88, borderRadius: "50%", display: "grid", placeItems: "center", background: "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.06), transparent 70%)" };
 const name: React.CSSProperties = { fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 16, color: theme.color.text, lineHeight: 1.1 };
-const blurbStyle: React.CSSProperties = { fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 11, lineHeight: 1.4, color: theme.color.dim };
+const blurbStyle: React.CSSProperties = { fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 12.5, lineHeight: 1.5, color: theme.color.dim, width: "100%" };
 const primaryBtn: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
