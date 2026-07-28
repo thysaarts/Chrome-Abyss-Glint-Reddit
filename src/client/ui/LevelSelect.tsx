@@ -118,23 +118,35 @@ export function LevelSelect({
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    let startY = 0, atTop = false, atBottom = false, fired = false;
+    // the pull ARMS during the drag but FIRES only on release: crossing the wall
+    // while the finger is still down mounts new content under an active native
+    // scroll, which fights the landing (and sticks the view to the wrong end)
+    let startY = 0, dy = 0, atTop = false, atBottom = false;
     const down = (e: TouchEvent) => {
       startY = e.touches[0].clientY;
-      fired = false;
-      atTop = el.scrollTop <= 2;
-      atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 2;
+      dy = 0;
+      // a settled scroll can rest a few px shy of the exact edge — arm within 24px
+      atTop = el.scrollTop <= 24;
+      atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 24;
     };
-    const move = (e: TouchEvent) => {
-      if (fired) return;
-      const dy = e.touches[0].clientY - startY;
+    const move = (e: TouchEvent) => { dy = e.touches[0].clientY - startY; };
+    const end = () => {
       const pr = pullRef.current;
-      if (atTop && dy > 70 && pr.upWallOn) { fired = true; pr.openUp(); }
-      else if (atBottom && dy < -70 && pr.browsing) { fired = true; pr.backToCurrent(); }
+      if (atTop && dy > 70 && pr.upWallOn) pr.openUp();
+      else if (atBottom && dy < -70 && pr.browsing) pr.backToCurrent();
+      dy = 0; atTop = false; atBottom = false;
     };
+    const cancel = () => { dy = 0; atTop = false; atBottom = false; };
     el.addEventListener("touchstart", down, { passive: true });
     el.addEventListener("touchmove", move, { passive: true });
-    return () => { el.removeEventListener("touchstart", down); el.removeEventListener("touchmove", move); };
+    el.addEventListener("touchend", end, { passive: true });
+    el.addEventListener("touchcancel", cancel, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", down);
+      el.removeEventListener("touchmove", move);
+      el.removeEventListener("touchend", end);
+      el.removeEventListener("touchcancel", cancel);
+    };
   }, []);
   // everything still shrouded below the window — the boss counts while hidden
   const hiddenTotal = regular.length - limit + (bossLevel && !showBoss ? 1 : 0);
@@ -286,7 +298,9 @@ export function LevelSelect({
             {/* with the boss revealed, the padding only just clears its fire glow —
                 the finale IS the end of the page. While it's still shrouded, the
                 trail ends in a deep bank of mist instead. */}
-            <div style={{ padding: showBoss ? "96px 0 52px" : "96px 0 150px", maxWidth: 440, margin: "0 auto" }}>
+            {/* while BROWSING history, the down wall IS the end: no dead space
+                below it, so the scroll settles right against the wall */}
+            <div style={{ padding: browsing ? "96px 0 16px" : showBoss ? "96px 0 52px" : "96px 0 150px", maxWidth: 440, margin: "0 auto" }}>
               {(() => {
                 const renderTile = (lv: Level, i: number, hasNext: boolean) => {
                   // celebration overrides: the freshly-unlocked level stays greyed
@@ -597,14 +611,10 @@ function LevelTile({
   }, [completed, best, cleared, level.num, SVGH]);
 
   return (
-    <div
-      data-cur={current ? "1" : "0"}
-      data-lv={level.num}
-      // content-visibility: only tiles actually on screen get rastered, animated
-      // and composited — every completed island runs an infinite float animation
-      // and each one is a GPU compositor layer on iOS (bug045 port)
-      style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", ...({ contentVisibility: "auto", containIntrinsicSize: "auto 190px" } as React.CSSProperties) }}
-    >
+    // NO content-visibility here: its placeholder-size estimates made upward
+    // scrolling jump as tiles materialised at their real heights. The segment
+    // walls already cap the mounted tile count (~25), which is the guard.
+    <div data-cur={current ? "1" : "0"} data-lv={level.num} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{ ...depth, transition: "transform 0.5s, opacity 0.5s, filter 0.5s" }} className={flash ? "gl-unlock-flash" : undefined}>
         <div
           className={[boss || current ? "gl-island-float" : completed ? "gl-island-float2" : "", shaking ? "gl-tile-shake" : ""].join(" ").trim() || undefined}
