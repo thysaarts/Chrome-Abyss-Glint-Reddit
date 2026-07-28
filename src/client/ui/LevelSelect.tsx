@@ -96,37 +96,47 @@ export function LevelSelect({
   const mountEnd = browsing ? Math.min(mountStart + SEG, regular.length) : limit; // exclusive
   const visible = regular.slice(mountStart, mountEnd);
   const upWallOn = mountStart > 0;
+  // an in-flight arrival glide — cancelled the moment the player touches the list
+  const glideCancel = useRef<(() => void) | null>(null);
+  /** scrollTop of `el` that centres `elm` in the viewport */
+  const centerOf = (el: HTMLElement, elm: HTMLElement) => {
+    const r = elm.getBoundingClientRect();
+    return Math.max(0, el.scrollTop + (r.top - el.getBoundingClientRect().top) - (el.clientHeight - r.height) / 2);
+  };
   const openUp = () => {
     const target = (browsing ? (browseSeg as number) : frontierSeg) - 1;
     if (target < 0) return;
     sfx.click();
     setBrowseSeg(target);
     // ARRIVAL FLOURISH: appear at the wall we just broke through, then glide
-    // UPWARD off it onto the previous levels — the same direction the player
-    // was scrolling. (The journey is up the map, so the camera travels up.)
+    // UPWARD off it, easing out onto the segment's last level. (The journey is
+    // up the map, so the camera travels up — slow, not a snap.)
     window.setTimeout(() => {
       const el = listRef.current;
       if (!el) return;
       el.scrollTop = el.scrollHeight; // at the wall (clamps to max)
       window.setTimeout(() => {
         const l = listRef.current;
-        if (l) l.scrollTo({ top: Math.max(0, l.scrollHeight - l.clientHeight - 260), behavior: "smooth" });
+        if (!l) return;
+        const tiles = l.querySelectorAll<HTMLElement>("[data-lv]");
+        const last = tiles[tiles.length - 1];
+        if (last) glideCancel.current = glideTo(l, centerOf(l, last), 1000);
       }, 50);
     }, 60);
   };
   const backToCurrent = () => {
     sfx.click();
     setBrowseSeg(null);
-    // mirrored flourish: we are DESCENDING back to the frontier, so the camera
-    // starts above the current level and glides DOWN onto it
+    // mirrored flourish: we are DESCENDING back to the frontier — start a few
+    // levels ABOVE the current one and travel down past them, easing out onto
+    // it, so the return reads as a real scroll home rather than a jump
     window.setTimeout(() => {
       const el = listRef.current;
       const cur = el?.querySelector('[data-cur="1"]') as HTMLElement | null;
       if (!el || !cur) return;
-      const r = cur.getBoundingClientRect();
-      const target = Math.max(0, el.scrollTop + (r.top - el.getBoundingClientRect().top) - (el.clientHeight - r.height) / 2);
-      el.scrollTop = Math.max(0, target - 260);
-      window.setTimeout(() => el.scrollTo({ top: target, behavior: "smooth" }), 50);
+      const target = centerOf(el, cur);
+      el.scrollTop = Math.max(0, target - 780); // ~3-4 tiles above
+      glideCancel.current = glideTo(el, target, 1100);
     }, 60);
   };
   // PULL-THROUGH: armed only when the gesture STARTS at the edge, so a long
@@ -141,6 +151,9 @@ export function LevelSelect({
     // scroll, which fights the landing (and sticks the view to the wrong end)
     let startY = 0, dy = 0, atTop = false, atBottom = false;
     const down = (e: TouchEvent) => {
+      // the player's finger owns the scroll — stop any in-flight arrival glide
+      glideCancel.current?.();
+      glideCancel.current = null;
       startY = e.touches[0].clientY;
       dy = 0;
       // a settled scroll can rest a few px shy of the exact edge — arm within 24px
@@ -380,6 +393,10 @@ export function LevelSelect({
                       const i = mountStart + j; // ORIGINAL index — keeps the zigzag sides stable
                       return renderTile(lv, i, browsing ? j < visible.length - 1 : (j < visible.length - 1 || hiddenTotal > 0 || showBoss));
                     })}
+                    {/* travel room for the arrival glide: the camera appears at
+                        the wall and rides up THROUGH this space onto the last
+                        level — the gap is what makes the ascent felt */}
+                    {browsing && <div style={{ height: 380 }} aria-hidden />}
                     {browsing && (
                       <button onClick={backToCurrent} style={histWallBtn} data-wall="down">
                         <span style={{ ...histWallText, color: "#fff" }}>DOWN TO LEVEL {LEVELS[frontier]?.num ?? frontier}</span>
@@ -1089,3 +1106,20 @@ const histWallText: React.CSSProperties = {
   textIndent: "0.3em",
   color: theme.color.faint,
 };
+
+/** rAF scroll glide with an ease-out cubic — native smooth scrolling can't be
+ *  slowed down, and the wall arrivals want a long settle, not a snap. Returns a
+ *  cancel (the player's finger always wins). */
+function glideTo(el: HTMLElement, to: number, ms: number): () => void {
+  const from = el.scrollTop;
+  const t0 = performance.now();
+  let raf = 0;
+  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+  const step = (now: number) => {
+    const p = Math.min(1, (now - t0) / ms);
+    el.scrollTop = from + (to - from) * ease(p);
+    if (p < 1) raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(raf);
+}
