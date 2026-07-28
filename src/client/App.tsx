@@ -41,7 +41,7 @@ import { DailyChallengePopup } from "./ui/DailyChallengePopup";
 import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
-import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, computeAchievements } from "./game/challenges";
+import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
@@ -613,12 +613,14 @@ export default function App() {
     // progress isn't even tallied (so a daily can't be silently spent), and the
     // grant/reveal/Nebulite block below is skipped entirely.
     const newDailies = recordRun(finished, tutDone ? (r) => evalDailyForRun(todayKey(), r) : () => []);
-    // BONUS-GEM ABILITIES first unlocked by this run get their own pop-up (before
-    // the collection reveal). Compare pre-run vs post-run earned state.
+    // BONUS-GEM ABILITIES: every EARNED gem whose celebration hasn't been seen
+    // gets the unlock pop-up (before the collection reveal) — persistent until a
+    // Continue actually shows it (Play again / exit / reload used to discard it).
     const postStats = loadStats();
     const abilityTile: Record<string, number> = { invincible: RESURRECT, crimsonEndurance: QUADRIANT, superluminal: ZENITH };
+    const celebrated = celebratedAbilities();
     const newAbilities: AbilityUnlock[] = (CONTENT.achievements.abilityUnlock?.gems ?? [])
-      .filter((g) => !abilityUnlocked(g.key, prevStats) && abilityUnlocked(g.key, postStats))
+      .filter((g) => !celebrated.has(g.key) && abilityAchieved(g.key, postStats))
       .map((g) => ({ key: g.key, gemName: g.gemName, tileValue: abilityTile[g.key], blurb: g.blurb }));
     // record the campaign result + advance the frontier FIRST, so a "level"-trigger
     // Collection item (e.g. a puzzle sticker) sees the just-unlocked level below.
@@ -1451,6 +1453,7 @@ export default function App() {
         <AbilityReward
           unlocks={abilityUnlocks}
           onContinue={() => {
+            markAbilitiesCelebrated(abilityUnlocks.map((u) => u.key)); // seen — never re-offered
             setAbilityUnlocks([]);
             setAbilityRevealOpen(false);
             // chain onward: collection reveal if any, else the unlocked next level

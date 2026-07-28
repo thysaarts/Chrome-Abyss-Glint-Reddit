@@ -238,6 +238,28 @@ function latch(key: string): void {
   writeVersioned(LATCH_KEY, [...s], LATCH_V);
 }
 
+/** GENUINELY earned (never a dev override) — the unlock CELEBRATION must only
+ *  fire for the real thing. */
+export function abilityAchieved(key: string, s: LifetimeStats): boolean {
+  return achievementEarned(key, s);
+}
+
+/** UNLOCK CELEBRATIONS ARE PERSISTENT-UNTIL-SEEN: the popup used to exist only
+ *  in the one run-end that crossed the threshold — Play again / exit / reload
+ *  discarded it forever. Earned-but-uncelebrated gems re-offer their popup at
+ *  every run end until a Continue actually shows it. */
+const CELEB_KEY = "glint.abilitycelebrated.v1";
+const CELEB_V = 1;
+export function celebratedAbilities(): Set<string> {
+  const raw = readVersioned<string[]>(CELEB_KEY, [], CELEB_V);
+  return new Set(Array.isArray(raw) ? raw.filter((k): k is string => typeof k === "string") : []);
+}
+export function markAbilitiesCelebrated(keys: string[]): void {
+  const s = celebratedAbilities();
+  for (const k of keys) s.add(k);
+  writeVersioned(CELEB_KEY, [...s], CELEB_V);
+}
+
 function achievementEarned(key: string, s: LifetimeStats): boolean {
   const live = achievementLive(key, s);
   if (NEVER_LATCH.has(key)) return live;
