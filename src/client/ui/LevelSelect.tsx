@@ -101,10 +101,22 @@ export function LevelSelect({
     if (target < 0) return;
     sfx.click();
     setBrowseSeg(target);
-    // land at the BOTTOM of the opened segment (re-asserted once tile art settles)
-    const land = () => listRef.current?.querySelector('[data-wall="down"]')?.scrollIntoView({ block: "end" });
-    window.setTimeout(land, 60);
-    window.setTimeout(land, 500);
+    // ARRIVAL FLOURISH: park just shy of the bottom, then glide the last stretch
+    // so the boundary level (and the wall under it) animate upwards into place —
+    // the continuation of the scroll that broke the wall, not a hard cut.
+    window.setTimeout(() => {
+      const el = listRef.current;
+      if (!el) return;
+      el.scrollTop = Math.max(0, el.scrollHeight - el.clientHeight - 300);
+      window.setTimeout(() => listRef.current?.querySelector('[data-wall="down"]')?.scrollIntoView({ behavior: "smooth", block: "end" }), 40);
+    }, 60);
+    // late tile-art settles can grow the list under us — quietly re-assert the
+    // resting spot, but only if the wall actually drifted out of view
+    window.setTimeout(() => {
+      const el = listRef.current;
+      const w = el?.querySelector('[data-wall="down"]');
+      if (el && w && w.getBoundingClientRect().bottom > el.getBoundingClientRect().bottom + 8) w.scrollIntoView({ block: "end" });
+    }, 1100);
   };
   const backToCurrent = () => {
     sfx.click();
