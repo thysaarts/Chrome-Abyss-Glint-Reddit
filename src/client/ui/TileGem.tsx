@@ -253,7 +253,8 @@ const GEMS: Record<GemType, JSX.Element> = {
   // that reads apart from every other tile
   superluminal: (
     <>
-      <polygon points="50,1 77,28 77,72 50,99 23,72 23,28" fill="#DBFF66" opacity="0.14" />
+      {/* no full-bleed halo backing: it filled the tile bounds and, with the
+          lime drop-shadow, read as a glowing BOX — the glow hugs the gem now */}
       <polygon points="50,5 74,30 74,70 50,95 26,70 26,30" fill="#9BE00A" />
       <polygon points="26,70 50,95 74,70 63,60 50,72 37,60" fill="#3E5C00" opacity="0.55" />
       <polygon points="50,22 66,38 66,62 50,78 34,62 34,38" fill="#C6FF4D" opacity="0.92" />

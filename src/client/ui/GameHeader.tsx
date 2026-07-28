@@ -83,9 +83,12 @@ export function NebuliteChip({ count, pending, onClick }: { count: number; pendi
   // it only sticks if the run completes (win or cash-out); Replay forfeits it
   const numStyle = pending ? { ...chipNum, color: "#c88bff", textShadow: "0 0 9px rgba(178,105,250,0.65)" } : chipNum;
   const label = onClick ? `${count} Nebulite — open Shop` : `${count} Nebulite`;
+  // 4-digit wallets: tuck the number closer to the edge so the chip doesn't
+  // push the header's buttons off narrow screens
+  const tight = count > 999;
   return (
     <div
-      style={{ ...chipBox, ...(onClick ? { cursor: "pointer" } : null) }}
+      style={{ ...chipBox, ...(tight ? { padding: "0 7px 0 6px", gap: 4 } : null), ...(onClick ? { cursor: "pointer" } : null) }}
       title={label}
       aria-label={label}
       {...(onClick ? { role: "button", tabIndex: 0, onClick, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : null)}
@@ -179,7 +182,7 @@ const kicker: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 9,
 const wordmark: React.CSSProperties = {
   fontFamily: theme.fonts.disp,
   fontWeight: 700,
-  fontSize: 34,
+  fontSize: 32, // matches the menu header — the bars must space identically
   lineHeight: 0.9,
   margin: "2px 0 0",
   letterSpacing: "0.01em",

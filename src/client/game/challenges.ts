@@ -11,6 +11,7 @@
  * the CMS and their thresholds / earn-conditions here.
  */
 import { CONTENT } from "../content/content";
+import { readVersioned, writeVersioned } from "./storage";
 import { LifetimeStats } from "./stats";
 import type { FinishedRun } from "./stats";
 
@@ -215,7 +216,36 @@ const REWARD_TILE: Record<string, number> = {
   superluminal: 10, // SUPERLUMINAL (elongated hex)
 };
 
+/** EARNED IS FOREVER (except "community", by design): several conditions read
+ *  LIVE stats that can go back down — noBustStreak resets on a bust, and the
+ *  Resurrect it unlocked used to vanish with it. Every earned achievement is
+ *  LATCHED to storage the moment any evaluation sees it true. */
+const LATCH_KEY = "glint.achievements.v1";
+const LATCH_V = 1;
+const NEVER_LATCH = new Set(["community"]);
+let latchCache: Set<string> | null = null;
+function latchedSet(): Set<string> {
+  if (!latchCache) {
+    const raw = readVersioned<string[]>(LATCH_KEY, [], LATCH_V);
+    latchCache = new Set(Array.isArray(raw) ? raw.filter((k): k is string => typeof k === "string") : []);
+  }
+  return latchCache;
+}
+function latch(key: string): void {
+  const s = latchedSet();
+  if (s.has(key)) return;
+  s.add(key);
+  writeVersioned(LATCH_KEY, [...s], LATCH_V);
+}
+
 function achievementEarned(key: string, s: LifetimeStats): boolean {
+  const live = achievementLive(key, s);
+  if (NEVER_LATCH.has(key)) return live;
+  if (live) { latch(key); return true; }
+  return latchedSet().has(key);
+}
+
+function achievementLive(key: string, s: LifetimeStats): boolean {
   switch (key) {
     case "firstClear": return s.boardsCleared >= 1;
     case "rushHour": return s.reachedRush;
