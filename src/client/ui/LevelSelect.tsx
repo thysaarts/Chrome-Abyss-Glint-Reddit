@@ -70,13 +70,74 @@ export function LevelSelect({
   const lastLevel = LEVELS[LEVELS.length - 1];
   const bossLevel = lastLevel?.boss ? lastLevel : null;
   const regular = bossLevel ? LEVELS.slice(0, -1) : LEVELS;
-  let limit = 10;
-  while (limit < regular.length && frontier >= limit - 2) limit += 10;
-  if (regular.length - limit < 15) limit = regular.length; // the home stretch: show it all
-  const visible = regular.slice(0, limit);
+  // The FUTURE side is never walled: the player always sees ~AHEAD greyed
+  // upcoming levels below the current one; everything further stays shrouded
+  // (the fog counts it). Near the very end the whole remainder (and the boss)
+  // comes into view.
+  const AHEAD = 5;
+  let limit = Math.min(frontier + 1 + AHEAD, regular.length);
+  if (regular.length - limit <= 3) limit = regular.length; // the home stretch: show it all
   const showBoss = !!bossLevel && limit >= regular.length;
+
+  // FIXED SEGMENT WALLS (ported from the web app's bug045 fix): the map is
+  // partitioned into fixed 20-level segments and only ONE is ever mounted (plus
+  // the upcoming reveal below the frontier) — dozens of animated, blur-filtered
+  // island tiles each cost a GPU compositor layer on iOS, and a long campaign
+  // mounted at once gets the webview killed. While BROWSING an older segment,
+  // ONLY that segment is mounted: the down wall is the literal end of the
+  // scrollable content. Crossing a wall works by tap OR by a second pull once
+  // the scroll has settled against it.
+  const SEG = 20;
+  const frontierSeg = Math.floor(frontier / SEG);
+  const [browseSeg, setBrowseSeg] = useState<number | null>(null);
+  useEffect(() => { setBrowseSeg(null); }, [frontier]);
+  const browsing = browseSeg !== null;
+  const mountStart = (browsing ? (browseSeg as number) : frontierSeg) * SEG;
+  const mountEnd = browsing ? Math.min(mountStart + SEG, regular.length) : limit; // exclusive
+  const visible = regular.slice(mountStart, mountEnd);
+  const upWallOn = mountStart > 0;
+  const openUp = () => {
+    const target = (browsing ? (browseSeg as number) : frontierSeg) - 1;
+    if (target < 0) return;
+    sfx.click();
+    setBrowseSeg(target);
+    // land at the BOTTOM of the opened segment (re-asserted once tile art settles)
+    const land = () => listRef.current?.querySelector('[data-wall="down"]')?.scrollIntoView({ block: "end" });
+    window.setTimeout(land, 60);
+    window.setTimeout(land, 500);
+  };
+  const backToCurrent = () => {
+    sfx.click();
+    setBrowseSeg(null);
+    window.setTimeout(() => listRef.current?.querySelector('[data-cur="1"]')?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+  };
+  // PULL-THROUGH: armed only when the gesture STARTS at the edge, so a long
+  // fling that lands on the wall never fires by itself.
+  const pullRef = useRef({ openUp, backToCurrent, upWallOn, browsing });
+  pullRef.current = { openUp, backToCurrent, upWallOn, browsing };
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    let startY = 0, atTop = false, atBottom = false, fired = false;
+    const down = (e: TouchEvent) => {
+      startY = e.touches[0].clientY;
+      fired = false;
+      atTop = el.scrollTop <= 2;
+      atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 2;
+    };
+    const move = (e: TouchEvent) => {
+      if (fired) return;
+      const dy = e.touches[0].clientY - startY;
+      const pr = pullRef.current;
+      if (atTop && dy > 70 && pr.upWallOn) { fired = true; pr.openUp(); }
+      else if (atBottom && dy < -70 && pr.browsing) { fired = true; pr.backToCurrent(); }
+    };
+    el.addEventListener("touchstart", down, { passive: true });
+    el.addEventListener("touchmove", move, { passive: true });
+    return () => { el.removeEventListener("touchstart", down); el.removeEventListener("touchmove", move); };
+  }, []);
   // everything still shrouded below the window — the boss counts while hidden
-  const hiddenTotal = regular.length - visible.length + (bossLevel && !showBoss ? 1 : 0);
+  const hiddenTotal = regular.length - limit + (bossLevel && !showBoss ? 1 : 0);
 
   // AT THE END: the boss finale is in full view — the bottom fog, fade and
   // scroll chevron part (nothing lies below; you're looking at the end of the
@@ -110,7 +171,7 @@ export function LevelSelect({
   }, []);
   // the boss parts the mist only when it is revealed and in full view
   const parted = atEnd && showBoss;
-  const dense = parted ? 0 : fogDepth;
+  const dense = parted || browsing ? 0 : fogDepth;
 
   // auto-scroll on entry: to the just-played level when celebrating (the "camera"
   // starts there), otherwise to the current (frontier) level
@@ -275,9 +336,28 @@ export function LevelSelect({
                 // then the trail's last connector just runs down into the mist
                 return (
                   <>
-                    {visible.map((lv, i) => renderTile(lv, i, i < visible.length - 1 || hiddenTotal > 0 || showBoss))}
-                    {showBoss && <BossDescent />}
-                    {showBoss && bossLevel && renderTile(bossLevel, visible.length, false)}
+                    {upWallOn && (
+                      <button onClick={openUp} style={histWallBtn} data-wall="up">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
+                          <polyline points="18 15 12 9 6 15" />
+                        </svg>
+                        <span style={histWallText}>SEE PREVIOUS LEVELS</span>
+                      </button>
+                    )}
+                    {visible.map((lv, j) => {
+                      const i = mountStart + j; // ORIGINAL index — keeps the zigzag sides stable
+                      return renderTile(lv, i, browsing ? j < visible.length - 1 : (j < visible.length - 1 || hiddenTotal > 0 || showBoss));
+                    })}
+                    {browsing && (
+                      <button onClick={backToCurrent} style={histWallBtn} data-wall="down">
+                        <span style={{ ...histWallText, color: "#fff" }}>DOWN TO LEVEL {LEVELS[frontier]?.num ?? frontier}</span>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+                    )}
+                    {!browsing && showBoss && <BossDescent />}
+                    {!browsing && showBoss && bossLevel && renderTile(bossLevel, limit, false)}
                   </>
                 );
               })()}
@@ -295,7 +375,7 @@ export function LevelSelect({
           <div className="gl-fog-drift" style={{ ...fogBank, height: 230, background: "radial-gradient(72% 100% at 50% 100%, rgba(124,90,224,0.36), transparent 74%)", opacity: dense, transition: "opacity 300ms ease", animationDelay: "-6s" }} />
           {/* the count of everything still shrouded — sits in the mist above the
               chevron, surfacing only once you are deep into the fog */}
-          {hiddenTotal > 0 && (
+          {!browsing && hiddenTotal > 0 && (
             <div style={{ position: "absolute", left: 0, right: 0, bottom: 36, display: "flex", justifyContent: "center", zIndex: 3, pointerEvents: "none", opacity: Math.min(1, Math.max(0, dense - 0.3) * 1.6), transition: "opacity 250ms ease" }}>
               <span style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.3em", color: "#8a85b8", textShadow: "0 1px 10px rgba(7,8,15,0.95)" }}>
                 {hiddenTotal} MORE {hiddenTotal === 1 ? "LEVEL" : "LEVELS"}
@@ -517,7 +597,14 @@ function LevelTile({
   }, [completed, best, cleared, level.num, SVGH]);
 
   return (
-    <div data-cur={current ? "1" : "0"} data-lv={level.num} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div
+      data-cur={current ? "1" : "0"}
+      data-lv={level.num}
+      // content-visibility: only tiles actually on screen get rastered, animated
+      // and composited — every completed island runs an infinite float animation
+      // and each one is a GPU compositor layer on iOS (bug045 port)
+      style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", ...({ contentVisibility: "auto", containIntrinsicSize: "auto 190px" } as React.CSSProperties) }}
+    >
       <div style={{ ...depth, transition: "transform 0.5s, opacity 0.5s, filter 0.5s" }} className={flash ? "gl-unlock-flash" : undefined}>
         <div
           className={[boss || current ? "gl-island-float" : completed ? "gl-island-float2" : "", shaking ? "gl-tile-shake" : ""].join(" ").trim() || undefined}
@@ -951,3 +1038,26 @@ const medallion: React.CSSProperties = { width: 26, height: 26, borderRadius: "5
 const burstRing: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: 34, height: 34, margin: "-17px 0 0 -17px", borderRadius: "50%", border: "2px solid", pointerEvents: "none" };
 const lbScrim: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 60, background: "rgba(6,7,14,0.72)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 22px" };
 const lbCard: React.CSSProperties = { position: "relative", width: "100%", maxWidth: 400, borderRadius: 26, background: "linear-gradient(180deg,#101320,#0b0d16)", border: "1px solid #262344", boxShadow: "0 40px 80px -20px rgba(0,0,0,0.7)", overflow: "hidden", padding: "24px 22px 26px" };
+
+/* ---------- the history walls (previous-levels gate, bug045 port) ---------- */
+const histWallBtn: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 5,
+  width: "100%",
+  padding: "16px 0 12px",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  color: theme.color.accent,
+  position: "relative",
+  zIndex: 2,
+};
+const histWallText: React.CSSProperties = {
+  fontFamily: theme.fonts.mono,
+  fontSize: 9.5,
+  letterSpacing: "0.3em",
+  textIndent: "0.3em",
+  color: theme.color.faint,
+};
