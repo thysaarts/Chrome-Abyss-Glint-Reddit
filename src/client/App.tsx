@@ -81,6 +81,14 @@ const COARSE_POINTER =
 // action while an action animates — see the `focused` flag in the game hook.
 const ZOOM_BASE = COARSE_POINTER ? 1.0 : 1.05;
 const ZOOM_IN = COARSE_POINTER ? 1.28 : 1.18;
+const ABILITY_TILE: Record<string, number> = { invincible: RESURRECT, crimsonEndurance: QUADRIANT, superluminal: ZENITH };
+function pendingAbilityCelebrations(stats = loadStats()): AbilityUnlock[] {
+  const celebrated = celebratedAbilities();
+  return ((CONTENT.achievements.abilityUnlock?.gems ?? []) as { key: string; gemName: string; blurb: string }[])
+    .filter((g) => !celebrated.has(g.key) && abilityAchieved(g.key, stats))
+    .map((g) => ({ key: g.key, gemName: g.gemName, tileValue: ABILITY_TILE[g.key], blurb: g.blurb }));
+}
+
 export default function App() {
   const { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld } = useNebuliteGame(6);
   // which top-level screen is showing, plus the shared overlays.
@@ -133,6 +141,8 @@ export default function App() {
   // shown before the collection reveal)
   const [abilityUnlocks, setAbilityUnlocks] = useState<AbilityUnlock[]>([]);
   const [abilityRevealOpen, setAbilityRevealOpen] = useState(false);
+  // end-card chain routes onward; an AMBIENT showing (Ascent / run start) just closes
+  const abilityRevealSourceRef = useRef<"endcard" | "ambient">("endcard");
   // PUZZLE BOARD clear: the full revealed image animates up into a pop-up
   const [puzzleReveal, setPuzzleReveal] = useState<string | null>(null);
   // a cleared puzzle board waits for the final tiles to peel off (uncovering the
@@ -519,6 +529,24 @@ export default function App() {
   const [endNav, setEndNav] = useState<{ nextNum: number; fresh: boolean } | null>(null);
   // the level-menu unlock celebration payload (set when Continue is pressed)
   const [celebrate, setCelebrate] = useState<{ played: number; next: number | null } | null>(null);
+
+  // AMBIENT ability celebrations: an unlock pop-up skipped at its run end
+  // resurfaces on the Ascent or shortly after a run starts — until seen
+  useEffect(() => {
+    if (abilityRevealOpen) return;
+    const onAscent = screen === "levels" && homeTab === "ascent" && !celebrate;
+    const atGameStart = screen === "game" && state.phase === "playing" && state.moves === 0;
+    if (!onAscent && !atGameStart) return;
+    const t = window.setTimeout(() => {
+      const pending = pendingAbilityCelebrations();
+      if (!pending.length) return;
+      abilityRevealSourceRef.current = "ambient";
+      setAbilityUnlocks(pending);
+      setAbilityRevealOpen(true);
+    }, atGameStart ? 1800 : 700);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, homeTab, celebrate, state.phase, state.moves, abilityRevealOpen]);
   useEffect(() => {
     if (state.phase === "playing") { recordedRef.current = false; setEndNav(null); setRewards([]); setRevealOpen(false); setAbilityUnlocks([]); setAbilityRevealOpen(false); setPuzzleReveal(null); setPuzzleRevealPending(null); return; }
     if (recordedRef.current) return;
@@ -617,11 +645,7 @@ export default function App() {
     // gets the unlock pop-up (before the collection reveal) — persistent until a
     // Continue actually shows it (Play again / exit / reload used to discard it).
     const postStats = loadStats();
-    const abilityTile: Record<string, number> = { invincible: RESURRECT, crimsonEndurance: QUADRIANT, superluminal: ZENITH };
-    const celebrated = celebratedAbilities();
-    const newAbilities: AbilityUnlock[] = (CONTENT.achievements.abilityUnlock?.gems ?? [])
-      .filter((g) => !celebrated.has(g.key) && abilityAchieved(g.key, postStats))
-      .map((g) => ({ key: g.key, gemName: g.gemName, tileValue: abilityTile[g.key], blurb: g.blurb }));
+    const newAbilities: AbilityUnlock[] = pendingAbilityCelebrations(postStats);
     // record the campaign result + advance the frontier FIRST, so a "level"-trigger
     // Collection item (e.g. a puzzle sticker) sees the just-unlocked level below.
     let endNavNext: { nextNum: number; fresh: boolean } | null = null;
@@ -1305,7 +1329,7 @@ export default function App() {
                 // Continue exists when there's a NEXT STEP, chained in order:
                 // ability unlock pop-up → collection reward reveal → next level.
                 abilityUnlocks.length > 0
-                  ? () => { sfx.click(); setAbilityRevealOpen(true); }
+                  ? () => { sfx.click(); abilityRevealSourceRef.current = "endcard"; setAbilityRevealOpen(true); }
                   : rewards.length > 0
                   ? () => { sfx.click(); setRevealOpen(true); }
                   : endNav && currentLevel
@@ -1456,6 +1480,7 @@ export default function App() {
             markAbilitiesCelebrated(abilityUnlocks.map((u) => u.key)); // seen — never re-offered
             setAbilityUnlocks([]);
             setAbilityRevealOpen(false);
+            if (abilityRevealSourceRef.current !== "endcard") return; // ambient: close in place
             // chain onward: collection reveal if any, else the unlocked next level
             if (rewards.length > 0) setRevealOpen(true);
             else {
