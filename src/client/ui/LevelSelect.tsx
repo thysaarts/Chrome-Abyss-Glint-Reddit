@@ -101,27 +101,33 @@ export function LevelSelect({
     if (target < 0) return;
     sfx.click();
     setBrowseSeg(target);
-    // ARRIVAL FLOURISH: park just shy of the bottom, then glide the last stretch
-    // so the boundary level (and the wall under it) animate upwards into place —
-    // the continuation of the scroll that broke the wall, not a hard cut.
+    // ARRIVAL FLOURISH: appear at the wall we just broke through, then glide
+    // UPWARD off it onto the previous levels — the same direction the player
+    // was scrolling. (The journey is up the map, so the camera travels up.)
     window.setTimeout(() => {
       const el = listRef.current;
       if (!el) return;
-      el.scrollTop = Math.max(0, el.scrollHeight - el.clientHeight - 300);
-      window.setTimeout(() => listRef.current?.querySelector('[data-wall="down"]')?.scrollIntoView({ behavior: "smooth", block: "end" }), 40);
+      el.scrollTop = el.scrollHeight; // at the wall (clamps to max)
+      window.setTimeout(() => {
+        const l = listRef.current;
+        if (l) l.scrollTo({ top: Math.max(0, l.scrollHeight - l.clientHeight - 260), behavior: "smooth" });
+      }, 50);
     }, 60);
-    // late tile-art settles can grow the list under us — quietly re-assert the
-    // resting spot, but only if the wall actually drifted out of view
-    window.setTimeout(() => {
-      const el = listRef.current;
-      const w = el?.querySelector('[data-wall="down"]');
-      if (el && w && w.getBoundingClientRect().bottom > el.getBoundingClientRect().bottom + 8) w.scrollIntoView({ block: "end" });
-    }, 1100);
   };
   const backToCurrent = () => {
     sfx.click();
     setBrowseSeg(null);
-    window.setTimeout(() => listRef.current?.querySelector('[data-cur="1"]')?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+    // mirrored flourish: we are DESCENDING back to the frontier, so the camera
+    // starts above the current level and glides DOWN onto it
+    window.setTimeout(() => {
+      const el = listRef.current;
+      const cur = el?.querySelector('[data-cur="1"]') as HTMLElement | null;
+      if (!el || !cur) return;
+      const r = cur.getBoundingClientRect();
+      const target = Math.max(0, el.scrollTop + (r.top - el.getBoundingClientRect().top) - (el.clientHeight - r.height) / 2);
+      el.scrollTop = Math.max(0, target - 260);
+      window.setTimeout(() => el.scrollTo({ top: target, behavior: "smooth" }), 50);
+    }, 60);
   };
   // PULL-THROUGH: armed only when the gesture STARTS at the edge, so a long
   // fling that lands on the wall never fires by itself.
