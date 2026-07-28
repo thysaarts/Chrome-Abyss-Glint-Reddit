@@ -417,8 +417,10 @@ export function LevelSelect({
               It PARTS only when the REVEALED boss is in full view; while the boss
               is shrouded, the mist instead THICKENS the deeper you scroll below
               your current level (fogDepth). The TOP fade always stays. */}
-          <div style={{ ...fade, bottom: 0, height: 130, background: "linear-gradient(180deg, transparent, rgba(10,8,22,0.88) 62%)", opacity: parted ? 0 : 1, transition: "opacity 500ms ease" }} />
-          <div className="gl-fog-drift" style={{ ...fogBank, opacity: parted ? 0 : 1, transition: "opacity 500ms ease" }} />
+          {/* the base bottom mist means "undiscovered lies below" — BROWSED history
+              sections are all completed ground, so they stay clear of it */}
+          <div style={{ ...fade, bottom: 0, height: 130, background: "linear-gradient(180deg, transparent, rgba(10,8,22,0.88) 62%)", opacity: parted || browsing ? 0 : 1, transition: "opacity 500ms ease" }} />
+          <div className="gl-fog-drift" style={{ ...fogBank, opacity: parted || browsing ? 0 : 1, transition: "opacity 500ms ease" }} />
           {/* the DENSE mist: grows with scroll depth into locked territory */}
           <div style={{ ...fade, bottom: 0, height: 260, background: "linear-gradient(180deg, transparent, rgba(9,7,20,0.97) 74%)", opacity: dense, transition: "opacity 300ms ease" }} />
           <div className="gl-fog-drift" style={{ ...fogBank, height: 230, background: "radial-gradient(72% 100% at 50% 100%, rgba(124,90,224,0.36), transparent 74%)", opacity: dense, transition: "opacity 300ms ease", animationDelay: "-6s" }} />
