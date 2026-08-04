@@ -34,6 +34,13 @@ export interface DailyEntry {
   id: string;
   type: ObjectiveType;
   target: number;
+  // "run" (default) = the target must be hit within one game; "day" = progress
+  // ACCUMULATES across today's runs, from 0 at the daily rollover ("Clear a
+  // board 3 times"). Ported from the web build 2026-08-04 — this is the fix
+  // for the bank's binary-type entries with targets > 1, which could never
+  // complete (progress folded as best-single-run, and clear/rush/cashout/
+  // fulldrift measured 0-or-1 per run).
+  scope?: "run" | "day";
   text: string;
   // the reward on completion: "nebulite" pays +5 Nebulite; the other kinds grant a
   // specific Collection item, referenced by its id/key in rewardId.
@@ -81,7 +88,7 @@ export function measureRun(type: ObjectiveType, run: FinishedRun): number {
     case "score": return run.score;
     case "nebulite": return run.nebulitesAcquired;
     case "banks": return run.banks;
-    case "fulldrift": return run.fullDrift ? 1 : 0;
+    case "fulldrift": return run.fullDrifts ?? (run.fullDrift ? 1 : 0);
     case "clear": return run.won ? 1 : 0;
     case "rush": return run.reachedRush ? 1 : 0;
     case "cashout": return run.cashedOut ? 1 : 0;
@@ -93,9 +100,16 @@ export function measureRun(type: ObjectiveType, run: FinishedRun): number {
   }
 }
 
-/** For recordRun: today's three challenges + what this run scored toward each. */
-export function evalDailyForRun(dateKey: string, run: FinishedRun): { id: string; value: number; target: number }[] {
-  return pickDailyChallenges(dateKey).map((c) => ({ id: c.id, value: measureRun(c.type, run), target: c.target }));
+/** For recordRun: today's three challenges + what this run scored toward each.
+ *  "day"-scope entries fold as a SUM across today's runs; everything else keeps
+ *  the best single-run value. */
+export function evalDailyForRun(dateKey: string, run: FinishedRun): { id: string; value: number; target: number; mode: "max" | "sum" }[] {
+  return pickDailyChallenges(dateKey).map((c) => ({
+    id: c.id,
+    value: measureRun(c.type, run),
+    target: c.target,
+    mode: c.scope === "day" ? "sum" : "max",
+  }));
 }
 
 // ---- milestones (lifetime count-ups) ----

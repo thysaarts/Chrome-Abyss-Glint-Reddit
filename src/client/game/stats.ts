@@ -35,6 +35,12 @@ export interface LifetimeStats {
   // ACHIEVEMENT BONUS-GEM tracking
   noBustStreak: number; // completed games in a row with ZERO busts (Invincible → 30)
   rushCount: number; // lifetime count of runs that reached GLINT RUSH (Superluminal → 100)
+  // lifetime COUNTS behind "total"-scope collectible triggers (the boolean flags
+  // above can't express a target > 1 — this is why rocket/satellite/escapepod
+  // etc. could never grant). Absent in pre-existing saves — readers guard with
+  // ?? 0; both start from 0 (no history to credit).
+  fullDriftTotal: number; // Full Drifts banked, lifetime
+  cashoutCount: number; // runs ended by a cash-out, lifetime
 }
 
 export const ZERO_STATS: LifetimeStats = {
@@ -58,6 +64,8 @@ export const ZERO_STATS: LifetimeStats = {
   turnTotal: 0,
   noBustStreak: 0,
   rushCount: 0,
+  fullDriftTotal: 0,
+  cashoutCount: 0,
 };
 
 /** Everything a finished run contributes — built in App from the final state. */
@@ -71,6 +79,7 @@ export interface FinishedRun {
   reachedRush: boolean;
   cashedOut: boolean;
   fullDrift: boolean;
+  fullDrifts: number; // Full Drifts banked this run (the COUNT behind fulldrift targets)
   levelNum: number; // campaign level, or -1 for a quick game
   shaped: boolean; // the board was a non-hexagon shape (the square counts separately)
   square: boolean; // the board was the full square
@@ -130,13 +139,21 @@ export function markDailyPopupSeen(kind: "new" | "done"): void {
   writeVersioned(DAILY_POPUP_KEY, { ...s, [kind === "new" ? "newDate" : "doneDate"]: todayKey() }, SAVE_V);
 }
 
+/** How one run's value folds into today's progress: "max" (the default) keeps
+ *  the best single-run value; "sum" ACCUMULATES across today's runs — a
+ *  "day"-scope challenge ("Clear a board 3 times") counts every run, starting
+ *  from 0 at the daily rollover. */
+export function foldDaily(prev: number, value: number, mode?: "max" | "sum"): number {
+  return mode === "sum" ? prev + Math.max(0, value) : Math.max(prev, value);
+}
+
 /**
  * Fold a finished run into the lifetime stats, and update today's daily-challenge
  * progress. `evalDaily` maps today's active challenge ids to the value this run
  * achieved toward each (the caller supplies it, since challenge logic lives in
  * challenges.ts). Returns the ids that were newly completed by THIS run.
  */
-export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { id: string; value: number; target: number }[]): string[] {
+export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { id: string; value: number; target: number; mode?: "max" | "sum" }[]): string[] {
   const s = loadStats();
   s.gamesPlayed += 1;
   if (run.won) s.boardsCleared += 1;
@@ -149,8 +166,9 @@ export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { i
   // reaches here, so abandoning doesn't touch the streak.)
   s.noBustStreak = (run.busts ?? 0) === 0 ? (s.noBustStreak ?? 0) + 1 : 0;
   if (run.reachedRush) { s.reachedRush = true; s.rushCount = (s.rushCount ?? 0) + 1; }
-  if (run.cashedOut) s.cashedOut = true;
+  if (run.cashedOut) { s.cashedOut = true; s.cashoutCount = (s.cashoutCount ?? 0) + 1; }
   if (run.fullDrift) s.fullDrift = true;
+  s.fullDriftTotal = (s.fullDriftTotal ?? 0) + Math.max(0, run.fullDrifts ?? 0);
   if (run.won && run.shaped) s.clearedShaped = true;
   if (run.won && run.square) s.clearedSquare = true;
   if (run.harmony) s.bankedHarmony = true;
@@ -165,8 +183,8 @@ export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { i
   // daily progress
   const daily = loadDaily();
   const newly: string[] = [];
-  for (const { id, value, target } of evalDaily(run)) {
-    if (value > (daily.progress[id] ?? 0)) daily.progress[id] = value;
+  for (const { id, value, target, mode } of evalDaily(run)) {
+    daily.progress[id] = foldDaily(daily.progress[id] ?? 0, value, mode);
     if (daily.progress[id] >= target && !daily.done.includes(id)) {
       daily.done.push(id);
       newly.push(id);

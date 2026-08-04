@@ -291,7 +291,8 @@
         "text": "Sweep 2 Dross in one run",
         "rewardKind": "theme",
         "rewardId": "verdant",
-        "icon": "dross"
+        "icon": "dross",
+        "scope": "run"
       },
       {
         "id": "dross8",
@@ -300,7 +301,8 @@
         "text": "Sweep 4 Dross in one run",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "dross"
+        "icon": "dross",
+        "scope": "run"
       },
       {
         "id": "score6k",
@@ -309,7 +311,8 @@
         "text": "Reach 15,000 in one game",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "score"
+        "icon": "score",
+        "scope": "run"
       },
       {
         "id": "score10k",
@@ -318,7 +321,8 @@
         "text": "Reach 20,000 in one game",
         "rewardKind": "sticker",
         "rewardId": "spacedog",
-        "icon": "score"
+        "icon": "score",
+        "scope": "run"
       },
       {
         "id": "fulldrift",
@@ -327,7 +331,8 @@
         "text": "Bank a Full Drift",
         "rewardKind": "sticker",
         "rewardId": "miner",
-        "icon": "fulldrift"
+        "icon": "fulldrift",
+        "scope": "run"
       },
       {
         "id": "nebulite",
@@ -337,7 +342,8 @@
         "rewardKind": "music",
         "rewardId": "sporefall",
         "name": "Refine a Nebulite from overflow",
-        "icon": "nebulite"
+        "icon": "nebulite",
+        "scope": "run"
       },
       {
         "id": "clear",
@@ -346,7 +352,8 @@
         "text": "Clear a board 3 times",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "clear"
+        "icon": "clear",
+        "scope": "day"
       },
       {
         "id": "banks5",
@@ -355,7 +362,8 @@
         "text": "Bank 6 combos in one game",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "gem"
+        "icon": "gem",
+        "scope": "run"
       },
       {
         "id": "rush",
@@ -364,7 +372,8 @@
         "text": "Reach GLINT RUSH 5 times",
         "rewardKind": "music",
         "rewardId": "blacklitany",
-        "icon": ""
+        "icon": "",
+        "scope": "day"
       },
       {
         "id": "cashout",
@@ -373,7 +382,8 @@
         "text": "Cash out during GLINT RUSH 3 times",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": ""
+        "icon": "",
+        "scope": "day"
       },
       {
         "id": "cmr7pkn8i",
@@ -382,7 +392,8 @@
         "text": "Reach 10,000 in one game",
         "rewardKind": "sticker",
         "rewardId": "spacedive",
-        "icon": ""
+        "icon": "",
+        "scope": "run"
       },
       {
         "id": "cmr7pko1f",
@@ -391,7 +402,8 @@
         "text": "Sweep 3 Dross in one run",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "dross"
+        "icon": "dross",
+        "scope": "run"
       },
       {
         "id": "cmr7pkp1r",
@@ -400,7 +412,8 @@
         "text": "Refine two Nebulite from overflow",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "nebulite"
+        "icon": "nebulite",
+        "scope": "run"
       },
       {
         "id": "cmr7pkppu",
@@ -409,7 +422,8 @@
         "text": "Bank 3 Full Drifts",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "fulldrift"
+        "icon": "fulldrift",
+        "scope": "day"
       },
       {
         "id": "cmr7pkqqv",
@@ -418,7 +432,8 @@
         "text": "Clear a board 5 times",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "clear"
+        "icon": "clear",
+        "scope": "day"
       },
       {
         "id": "cmr7pks70",
@@ -427,7 +442,8 @@
         "text": "Bank 9 combos in one game",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "gem"
+        "icon": "gem",
+        "scope": "run"
       },
       {
         "id": "cmr7pku6h",
@@ -436,7 +452,8 @@
         "text": "Reach GLINT RUSH 3 times",
         "rewardKind": "theme",
         "rewardId": "isla",
-        "icon": "rush"
+        "icon": "rush",
+        "scope": "day"
       },
       {
         "id": "cmr7pkv1a",
@@ -445,7 +462,8 @@
         "text": "Cash out during GLINT RUSH 5 times",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": ""
+        "icon": "",
+        "scope": "day"
       }
     ],
     "milestones": [
@@ -1084,7 +1102,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 7,
-        "scope": "total",
+        "scope": "run",
         "source": "collection",
         "price": 0,
         "standard": false,
@@ -1500,7 +1518,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 6,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": 5,
         "puzzleId": "pz-syndicate-of-spires"
       },
@@ -1566,7 +1584,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 16,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": 15,
         "puzzleId": "pz-medusae"
       },
@@ -1632,7 +1650,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 31,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": 30,
         "puzzleId": "pz-scrapyard"
       },
@@ -1672,7 +1690,7 @@
         "unlocked": false,
         "trigger": "score",
         "target": 50000,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": -1
       },
       {
@@ -1698,7 +1716,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 41,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": 40,
         "puzzleId": "pz-sector-05-outpost"
       },
@@ -1764,7 +1782,7 @@
         "unlocked": false,
         "trigger": "level",
         "target": 56,
-        "scope": "total",
+        "scope": "run",
         "unlockLevel": 55,
         "puzzleId": "pz-syndicate-outpost"
       },

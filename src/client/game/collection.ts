@@ -271,9 +271,12 @@ function statTotal(type: ObjectiveType, s: LifetimeStats): number {
     case "nebulite": return s.nebulitesAcquired;
     case "banks": return s.banksTotal;
     case "clear": return s.boardsCleared;
-    case "fulldrift": return s.fullDrift ? 1 : 0;
-    case "rush": return s.reachedRush ? 1 : 0;
-    case "cashout": return s.cashedOut ? 1 : 0;
+    // real lifetime COUNTS (the old boolean flags capped these at 1, silently
+    // killing any target above it — rocket, satellite, escapepod, lastwaltz
+    // and asteroids could never grant)
+    case "fulldrift": return s.fullDriftTotal ?? 0;
+    case "rush": return s.rushCount ?? 0;
+    case "cashout": return s.cashoutCount ?? 0;
     case "score": return 0; // score is only meaningful per-run
     case "bankscore": return s.maxBankScore ?? 0; // lifetime BEST single bank
     case "convergence": return s.convergenceTotal ?? 0;

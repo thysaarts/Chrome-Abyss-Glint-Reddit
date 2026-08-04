@@ -621,6 +621,7 @@ export default function App() {
       reachedRush: state.deathMatch,
       cashedOut: state.cashedOut > 0,
       fullDrift: (state.comboCounts.FullDrift ?? 0) > 0,
+      fullDrifts: state.comboCounts.FullDrift ?? 0, // the COUNT — same skill-feat rule as the flag above
       levelNum: currentLevel?.num ?? -1,
       // Shape Shifter counts any non-hexagon EXCEPT the square — the square has
       // its own achievement (Four Corners)
