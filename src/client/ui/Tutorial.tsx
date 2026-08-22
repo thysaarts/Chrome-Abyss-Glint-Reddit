@@ -4,6 +4,7 @@ import { CONTENT, DEFAULT_CONTENT } from "../content/content";
 import { GameState, TileVal, GLINT, CORE, newGame } from "../game/engine";
 import { Board } from "./Board";
 import { TileGem } from "./TileGem";
+import { renderRich } from "./richText";
 
 /**
  * The how-to-play tutorial (design_handoff_glint_tutorial): a 6-slide swipeable
@@ -388,7 +389,7 @@ function Slide({ title, copy, children }: { title: string; copy: string; childre
     <div style={{ flex: "0 0 100%", padding: "8px 24px 18px", display: "flex", flexDirection: "column" }}>
       {children}
       <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 24, color: theme.color.text, marginTop: 22 }}>{title}</div>
-      <div style={{ fontFamily: theme.fonts.sans, fontSize: 14, lineHeight: 1.55, color: theme.color.dim, marginTop: 8 }}>{copy}</div>
+      <div style={{ fontFamily: theme.fonts.sans, fontSize: 14, lineHeight: 1.55, color: theme.color.dim, marginTop: 8 }}>{renderRich(copy)}</div>
     </div>
   );
 }

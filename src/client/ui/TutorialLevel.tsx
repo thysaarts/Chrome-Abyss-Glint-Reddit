@@ -28,6 +28,7 @@ import {
 import { CashOutButton, CashOutCeremony } from "./CashOut";
 import { TileGem } from "./TileGem";
 import { GameHeader } from "./GameHeader";
+import { renderRich } from "./richText";
 import { sfx } from "../audio/sfx";
 
 /**
@@ -1572,7 +1573,7 @@ export function TutorialLevel({
             </div>
             <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 12, marginTop: 6 }}>
               <div key={step} className="gl-fade" style={panelText}>
-                {TEXTS[step]}
+                {renderRich(TEXTS[step])}
               </div>
               {gateLabel && (
                 // when the button IS the required action, it nudges periodically

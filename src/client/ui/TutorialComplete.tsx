@@ -1,6 +1,7 @@
 import { theme } from "../theme/theme";
 import { sfx } from "../audio/sfx";
 import { Emblem, GLOW } from "./CollectionPage";
+import { renderRich } from "./richText";
 import type { Sticker } from "../game/collection";
 
 /**
@@ -31,7 +32,7 @@ export function TutorialComplete({ copy, sticker, emblem, onContinue }: { copy: 
         <div className="gl-rise-in" style={{ ...title, animationDelay: "130ms" }}>{copy.title}</div>
         <div className="gl-rise-in" style={{ ...lines, animationDelay: "210ms" }}>
           {copy.lines.map((l, i) => (
-            <p key={i} style={line}>{l}</p>
+            <p key={i} style={line}>{renderRich(l)}</p>
           ))}
         </div>
         {sticker && (

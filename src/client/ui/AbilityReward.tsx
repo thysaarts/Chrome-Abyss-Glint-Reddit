@@ -3,6 +3,7 @@ import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
 import { TileGem } from "./TileGem";
+import { renderRich } from "./richText";
 import type { TileVal } from "../game/engine";
 
 /**
@@ -53,7 +54,7 @@ export function AbilityReward({ unlocks, onContinue }: { unlocks: AbilityUnlock[
             <TileGem value={u.tileValue as TileVal} size={72} />
           </div>
           <div style={name}>{u.gemName}</div>
-          <div style={blurbStyle}>{u.blurb}</div>
+          <div style={blurbStyle}>{renderRich(u.blurb)}</div>
         </div>
         {slides.length > 1 && (
           <div style={{ display: "flex", gap: 7, justifyContent: "center", marginBottom: 14 }}>
