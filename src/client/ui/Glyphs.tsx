@@ -1,12 +1,12 @@
 /**
  * GLYPHS — the shared stroke-icon set for challenge rows (and anywhere else a
- * small pictogram is needed). The first eight match the objective types, so an
+ * small pictogram is needed). The first nine match the objective types, so an
  * entry with no explicit icon falls back to its type's glyph naturally. The
  * rest are flavour picks selectable per daily challenge in the CMS.
  */
 
 export const GLYPH_KEYS = [
-  "dross", "score", "nebulite", "fulldrift", "clear", "banks", "rush", "cashout",
+  "dross", "score", "nebulite", "fulldrift", "clear", "banks", "rush", "cashout", "nobust", "versus",
   "gem", "star", "heart", "flame", "snow", "skull", "rocket", "planet",
   "moon", "sun", "clock", "dice", "trophy", "shield", "wave", "music",
   "eye", "hex", "spark", "crown",
@@ -17,10 +17,14 @@ const PATHS: Record<string, React.ReactNode> = {
   score: <><path d="M4 19V5M4 19h16" /><path d="M8 15l3.5-4 3 2.5L20 8" /></>,
   nebulite: <><circle cx="12" cy="12" r="3.4" /><path d="M12 4v3M12 17v3M4 12h3M17 12h3" /></>,
   fulldrift: <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4" />,
-  clear: <path d="M20 6 9 17l-5-5" />,
+  // a BROOM (sweep the board clean) — "clear" used to be a checkmark, which
+  // collided with the done-state check once both sat on the daily rows (2026-08-20)
+  clear: <><path d="M20 4l-7 7" /><path d="M11 9.5 14.5 13 9.5 20.5 3.5 14.5z" /><path d="M12.4 11.6l-5.7 5.7" /></>,
   banks: <path d="M4 10 12 5l8 5M6 10v8h12v-8M9 18v-4h6v4" />,
   rush: <path d="M13 3 4 14h6l-1 7 9-11h-6z" />,
   cashout: <><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 21h16" /></>,
+  nobust: <><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M8.8 12.2l2.2 2.2 4.2-4.6" /></>,
+  versus: <><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" y1="19" x2="19" y2="13" /><line x1="16" y1="16" x2="20" y2="20" /><line x1="19" y1="21" x2="21" y2="19" /><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" y1="14" x2="9" y2="18" /><line x1="7" y1="17" x2="4" y2="20" /><line x1="3" y1="19" x2="5" y2="21" /></>,
   gem: <><path d="M12 3 20 9l-8 12L4 9z" /><path d="M4 9h16M12 3 8.5 9 12 21l3.5-12z" /></>,
   star: <path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9L12 16.4 6.7 19.3l1.2-5.9L3.4 9.3l6-.7z" />,
   heart: <path d="M12 20C6 15.6 3.5 12.6 3.5 9.5 3.5 7 5.5 5 8 5c1.6 0 3.1.8 4 2.1C12.9 5.8 14.4 5 16 5c2.5 0 4.5 2 4.5 4.5 0 3.1-2.5 6.1-8.5 10.5z" />,

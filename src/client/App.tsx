@@ -38,6 +38,9 @@ import { LevelSelect, Leaderboard } from "./ui/LevelSelect";
 import { TabBar, ComingSoon, LockedTab, HomeTab, TAB_BAR_HEIGHT, ShellHeader, HEADER_HEIGHT } from "./ui/Tabs";
 import { ChallengesPage } from "./ui/ChallengesPage";
 import { DailyChallengePopup } from "./ui/DailyChallengePopup";
+import { DailyClearedPopup } from "./ui/DailyClearedPopup";
+import type { DailyClearedSlide } from "./ui/DailyClearedPopup";
+import type { DailyEntry } from "./game/challenges";
 import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, recordVersusWin, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
@@ -110,6 +113,12 @@ export default function App() {
   const [startExiting, setStartExiting] = useState(false);
   // the daily-challenge pop-up shown on the Ascent menu (once/day per kind)
   const [dailyPopup, setDailyPopup] = useState<null | "new" | "done">(null);
+  // DAILY CLEARED — the run-end character celebration queue (one slide per
+  // completed daily; the CHALLENGE COMPLETED finale joins when the set closed).
+  // Session-memory only: a skipped queue resurfaces on the next Ascent visit.
+  const [dailyCleared, setDailyCleared] = useState<{ slides: DailyClearedSlide[]; withSetDone: boolean } | null>(null);
+  const [dailyClearedOpen, setDailyClearedOpen] = useState(false);
+  const dailyClearedSourceRef = useRef<"endcard" | "ambient">("endcard");
   const [endDaily, setEndDaily] = useState<DailyResponse | null>(null);
   const [communityPopup, setCommunityPopup] = useState<DailyResponse | null>(null);
   // the Collection page's two sub-tabs — Customise opens first
@@ -586,27 +595,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brokerDuel, earlyBankOffer, state.versus?.turn]);
 
-  // a completed VERSUS daily pays its reward — mirrors the run-end payout path.
-  // (The DAILY CLEARED celebration pop-up arrives with the daily-characters port;
-  // until then the reward itself is granted here, silently.)
-  const payVersusDailies = (newly: string[]): void => {
-    if (!newly.length) return;
-    const todays = pickDailyChallenges(todayKey());
+  // a completed daily becomes a DAILY CLEARED slide and pays its reward —
+  // shared by the run-end path and the duel settle (web parity)
+  const dailySlidesFor = (todays: DailyEntry[], newly: string[]): { slides: DailyClearedSlide[]; neb: number } => {
     const per = CONTENT.challenges.nebulitePerDaily ?? 5;
+    const slides: DailyClearedSlide[] = [];
     let neb = 0;
     for (const id of newly) {
       const entry = todays.find((e) => e.id === id);
       if (!entry) continue;
-      if (entry.rewardKind === "nebulite") neb += per;
+      if (entry.rewardKind === "nebulite") { neb += per; slides.push({ entry, reward: { kind: "nebulite", amount: per } }); }
       else {
-        const r = earnItem(entry.rewardKind, entry.rewardId);
-        if (r) { markUnseen([r]); setCollectionAlert(true); }
-        else neb += per; // item already owned — the daily still pays
+        const earned = earnItem(entry.rewardKind, entry.rewardId);
+        if (earned) { slides.push({ entry, reward: earned }); markUnseen([earned]); setCollectionAlert(true); }
+        else { neb += per; slides.push({ entry, reward: { kind: "nebulite", amount: per } }); } // item already owned — the daily still pays
       }
     }
-    const doneNow = loadDaily().done;
-    if (todays.length > 0 && todays.every((c) => doneNow.includes(c.id))) neb += SET_BONUS_NEBULITE;
-    if (neb > 0) addNebulite(neb);
+    return { slides, neb };
   };
 
   // SETTLE the duel the moment the result lands: win pays 2x the stake, a tie
@@ -621,7 +626,15 @@ export default function App() {
     else if (r.winner !== -1) setFace("laugh", "sticky"); // the house wins — she savours it
     if (r.winner === pSeat) addNebulite(brokerDuel.bet * 2);
     else if (r.winner === -1) addNebulite(brokerDuel.bet);
-    if (r.winner === pSeat) payVersusDailies(recordVersusWin(pickDailyChallenges(todayKey()), "duel"));
+    if (r.winner === pSeat) {
+      const todays = pickDailyChallenges(todayKey());
+      const { slides, neb } = dailySlidesFor(todays, recordVersusWin(todays, "duel"));
+      const doneNow = loadDaily().done;
+      const setDoneNow = todays.length > 0 && todays.every((c) => doneNow.includes(c.id));
+      const total = neb + (setDoneNow && slides.length ? SET_BONUS_NEBULITE : 0);
+      if (total > 0) addNebulite(total);
+      if (slides.length) setDailyCleared((prev) => ({ slides: [...(prev?.slides ?? []), ...slides], withSetDone: (prev?.withSetDone ?? false) || setDoneNow }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.versus?.result, brokerDuel]);
 
@@ -853,6 +866,20 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, homeTab, celebrate, abilityRevealOpen, revealOpen, brokerPromo]);
 
+  // AMBIENT DAILY CLEARED: a queue skipped at its run end (Play again / exit ✕)
+  // resurfaces once the player lands on the Ascent — this session only, never
+  // across an app restart (the state deliberately lives in memory alone)
+  useEffect(() => {
+    if (!dailyCleared || dailyClearedOpen || abilityRevealOpen || revealOpen) return;
+    if (!(screen === "levels" && homeTab === "ascent" && !celebrate && !dailyPopup && !communityPopup)) return;
+    const t = window.setTimeout(() => {
+      dailyClearedSourceRef.current = "ambient";
+      setDailyClearedOpen(true);
+    }, 450);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyCleared, dailyClearedOpen, screen, homeTab, celebrate, dailyPopup, communityPopup, abilityRevealOpen, revealOpen]);
+
   // AMBIENT ability celebrations: an unlock pop-up skipped at its run end
   // resurfaces on the Ascent or shortly after a run starts — until seen
   useEffect(() => {
@@ -1011,22 +1038,25 @@ export default function App() {
       if (state.phase === "won") neb *= 2;
       if (newDailies.length) {
         const todays = pickDailyChallenges(todayKey());
-        const per = CONTENT.challenges.nebulitePerDaily ?? 5;
-        for (const id of newDailies) {
-          const entry = todays.find((e) => e.id === id);
-          if (!entry) continue;
-          if (entry.rewardKind === "nebulite") neb += per;
-          else {
-            const r = earnItem(entry.rewardKind, entry.rewardId);
-            if (r) earned.push(r);
-            else neb += per; // the item was already owned — the daily still pays
-          }
-        }
+        // each completed daily becomes a DAILY CLEARED slide (the issuing
+        // character celebrates the reward there — item dailies bypass the
+        // generic RewardReveal, which keeps only the non-daily rewards)
+        const cleared = dailySlidesFor(todays, newDailies);
+        const clearedSlides = cleared.slides;
+        neb += cleared.neb;
         // SET BONUS: closing out ALL THREE of today's dailies pays a one-off cherry
-        // (the CHALLENGE COMPLETED pop-up celebrates it). Fires on the run that
+        // (the CHALLENGE COMPLETED finale celebrates it). Fires on the run that
         // completes the last one — a fully-done set completes 0 new dailies.
         const doneNow = loadDaily().done;
-        if (todays.length > 0 && todays.every((c) => doneNow.includes(c.id))) neb += SET_BONUS_NEBULITE;
+        const setDoneNow = todays.length > 0 && todays.every((c) => doneNow.includes(c.id));
+        if (setDoneNow) neb += SET_BONUS_NEBULITE;
+        if (clearedSlides.length) {
+          // append to anything still pending from a skipped earlier run this session
+          setDailyCleared((prev) => ({
+            slides: [...(prev?.slides ?? []), ...clearedSlides],
+            withSetDone: (prev?.withSetDone ?? false) || setDoneNow,
+          }));
+        }
       }
       // MILESTONE tiers this run crossed pay out for real: Nebulite adds to the
       // wallet, a Collection item is granted (skipped silently if already owned)
@@ -1702,8 +1732,10 @@ export default function App() {
               onFreshBoard={!currentLevel && endDaily ? startFresh : undefined}
               onContinue={
                 // Continue exists when there's a NEXT STEP, chained in order:
-                // ability unlock pop-up → collection reward reveal → next level.
-                abilityUnlocks.length > 0
+                // DAILY CLEARED (priority) → ability unlock → reward reveal → next level.
+                dailyCleared
+                  ? () => { sfx.click(); dailyClearedSourceRef.current = "endcard"; setDailyClearedOpen(true); }
+                  : abilityUnlocks.length > 0
                   ? () => { sfx.click(); abilityRevealSourceRef.current = "endcard"; setAbilityRevealOpen(true); }
                   : rewards.length > 0
                   ? () => { sfx.click(); setRevealOpen(true); }
@@ -1824,8 +1856,41 @@ export default function App() {
           entries={pickDailyChallenges(todayKey())}
           daily={loadDaily()}
           onQuickPlay={startQuick}
+          onPlayVersus={() => {
+            // a versus daily's Quick Play deals into the house, not a solo run
+            setDailyPopup(null);
+            if (loadWallet() >= DUEL_MIN_BET && storedFrontier() >= 2) startBrokerDuel(DUEL_MIN_BET);
+          }}
           onClose={() => setDailyPopup(null)}
           onOpenReward={openReward}
+        />
+      )}
+      {/* DAILY CLEARED — the run-end celebration for completed dailies (one slide
+          per daily; the CHALLENGE COMPLETED card joins as the finale when the run
+          closed the set). Backdrop dismissal keeps the queue pending — it
+          resurfaces on the next Ascent visit of THIS session only. */}
+      {dailyCleared && dailyClearedOpen && (
+        <DailyClearedPopup
+          slides={dailyCleared.slides}
+          showSetDone={dailyCleared.withSetDone && loadDailyPopupSeen().doneDate !== todayKey()}
+          entries={pickDailyChallenges(todayKey())}
+          daily={loadDaily()}
+          doneCount={loadDaily().done.length}
+          onOpenReward={openReward}
+          onDismiss={() => setDailyClearedOpen(false)}
+          onDone={() => {
+            if (dailyCleared.withSetDone) markDailyPopupSeen("done"); // the finale WAS the daily-done pop-up
+            setDailyCleared(null);
+            setDailyClearedOpen(false);
+            if (dailyClearedSourceRef.current !== "endcard") return; // ambient showing — just close
+            // continue the end-card chain: ability unlock → reward reveal → onward
+            if (abilityUnlocks.length > 0) { abilityRevealSourceRef.current = "endcard"; setAbilityRevealOpen(true); }
+            else if (rewards.length > 0) setRevealOpen(true);
+            else {
+              if (endNav && currentLevel) setCelebrate({ played: currentLevel.num, next: endNav.fresh ? endNav.nextNum : null });
+              setScreen("levels");
+            }
+          }}
         />
       )}
       {exitConfirm && (

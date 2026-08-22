@@ -9,6 +9,7 @@ import { pickDailyChallenges, computeMilestones } from "../game/challenges";
 import { itemName } from "../game/collection";
 import { DailyRow, RewardPill, ResetCountdownLabel } from "./DailyRow";
 import { HouseDuelCard, TogetherSlider, DUEL_MIN_BET } from "./HouseDuel";
+import { DailyDetailPopup } from "./DailyDetailPopup";
 import { SET_BONUS_NEBULITE } from "../game/challenges";
 import { NebuliteGem } from "./GameHeader";
 import type { RewardNav } from "./DailyRow";
@@ -42,6 +43,8 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
   const playVersusDaily = onPlayDuel && frontier >= 2 && nebulite >= DUEL_MIN_BET
     ? () => onPlayDuel(DUEL_MIN_BET)
     : undefined;
+  // tapping a daily row opens the character DETAIL pop-up on that challenge
+  const [dailyDetail, setDailyDetail] = useState<number | null>(null);
 
   return (
     <div style={page}>
@@ -72,10 +75,13 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
       </div>
       <div style={stack}>
         {today.length === 0 && <div style={emptyCard}>{C.emptyBank}</div>}
-        {today.map((c) => (
-          <DailyRow key={c.id} entry={c} done={daily.done.includes(c.id)} best={daily.progress[c.id] ?? 0} onQuickPlay={onQuickPlay} onPlayVersus={playVersusDaily} onOpenReward={onOpenReward} />
+        {today.map((c, i) => (
+          <DailyRow key={c.id} entry={c} done={daily.done.includes(c.id)} best={daily.progress[c.id] ?? 0} onQuickPlay={onQuickPlay} onPlayVersus={playVersusDaily} onOpenReward={onOpenReward} onOpen={() => setDailyDetail(i)} />
         ))}
       </div>
+      {dailyDetail !== null && today.length > 0 && (
+        <DailyDetailPopup entries={today} daily={daily} startIndex={dailyDetail} onClose={() => setDailyDetail(null)} />
+      )}
 
       {/* MILESTONES */}
       <div style={eyebrow}><span>{C.milestonesLabel}</span><span style={{ color: theme.color.faint }}>{C.milestonesSub}</span></div>
