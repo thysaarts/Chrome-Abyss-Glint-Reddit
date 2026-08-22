@@ -304,9 +304,9 @@ export default function App() {
   const handRef = useRef<HTMLDivElement | null>(null);
   // the CASH OUT ceremony overlay (GLINT RUSH only; nothing commits until CONFIRM)
   const [cashCeremony, setCashCeremony] = useState(false);
-  // THE ACADEMY (Level 1): the paged tips briefing. Auto-opens on the very
-  // first Academy launch (Nebulite page) and on the first GLINT RUSH there
-  // (rush page); the TIP pill re-opens it any time in the Academy.
+  // SECTOR 01 OUTPOST (Level 2): the paged tips briefing. Auto-opens on the very
+  // first launch of that level (Nebulite page) and on the first GLINT RUSH there
+  // (rush page); the TIP pill re-opens it any time on that level.
   const [academyTips, setAcademyTips] = useState<{ open: boolean; page: number; solo?: boolean }>({ open: false, page: 0 });
   // the OPENING CHOREOGRAPHY (rain, specials dropping, GO!) releases the anim —
   // board-start pop-ups wait on this, so none can land before the Dross arrives
@@ -339,7 +339,7 @@ export default function App() {
   // Nebulite from the start, Clearing after the first bank, GLINT RUSH once rush hits.
   const academyPageUnlocked = (key: string) =>
     key === "clearing" ? academyFlags().seenBankTip
-    : key === "rush" ? academyFlags().rushReached || (currentLevel?.num === 1 && state.deathMatch)
+    : key === "rush" ? academyFlags().rushReached || (currentLevel?.num === 2 && state.deathMatch)
     : true; // nebulite (the opening slide) is always available
   const academyCycle = CONTENT.academyTips.pages.filter((pg) => academyPageUnlocked(pg.key));
   // the LAUNCH intro is the Nebulite page alone; every other opening shows the cycle
@@ -773,9 +773,10 @@ export default function App() {
     // — i.e. the NEXT level unlocks via "Acquire N Nebulite". Guarantees a 12-tile
     // Duneglass + Vigilite setup so the refine is achievable.
     const nebuliteRig = LEVEL_DEFS[level.num + 1]?.unlockRule?.type === "nebuliteAcquired";
-    // THE ACADEMY (level 1) opens with the Nebulite tip, not the 3-2-1-GO count-in —
-    // the briefing IS the intro there, so the count-in would just talk over it.
-    const countdown = level.num === 1 ? false : level.countdown;
+    // The teaching levels (1 The Academy, 2 Sector 01 Outpost) skip the 3-2-1-GO
+    // count-in — they carry `countdown: false` in their defs, because their tips
+    // briefings ARE their intros and the count-in would just talk over them.
+    const countdown = level.countdown;
     // EXTRA GEMS: the depth reward (content achievements.extraGem tiers). The
     // LEVEL decides the reward, not the frontier — replaying an old board plays
     // it as it was. (The per-level `extraTiles` param is retired, matching web.)
@@ -789,10 +790,10 @@ export default function App() {
       ...extra,
     });
     setScreen("game");
-    // THE ACADEMY (Level 1) introduces the Nebulite — its explainer pops over the
-    // fresh board before play begins (only on a fresh launch, not on Restart).
-    // the Nebulite briefing auto-opens on the FIRST Academy launch only
-    if (level.num === 1 && !extra && !academyFlags().seenIntro) {
+    // SECTOR 01 OUTPOST (Level 2) introduces the Nebulite — its explainer pops over
+    // the fresh board before play begins (only on a fresh launch, not on Restart).
+    // the Nebulite briefing auto-opens on the FIRST Sector 01 Outpost launch only
+    if (level.num === 2 && !extra && !academyFlags().seenIntro) {
       markIntroSeen();
       setAcademyTips({ open: true, page: 0, solo: true });
     }
@@ -1138,10 +1139,10 @@ export default function App() {
     return () => clearTimeout(t);
   }, [puzzleRevealPending, anim.playing, settling]);
 
-  // THE ACADEMY, beat two: after the FIRST bank fully resolves, the briefing
+  // SECTOR 01 OUTPOST, beat two: after the FIRST bank fully resolves, the briefing
   // returns (the cycle — now leading with Clearing) exactly once per player.
   useEffect(() => {
-    if (screen !== "game" || currentLevel?.num !== 1) return;
+    if (screen !== "game" || currentLevel?.num !== 2) return;
     if (state.banks < 1 || anim.playing || state.phase !== "playing") return;
     if (academyTips.open || academyFlags().seenBankTip || !academyFlags().seenIntro) return;
     markBankTipSeen(); // unlocks the Clearing slide
@@ -1151,10 +1152,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.banks, anim.playing, screen, currentLevel, state.phase]);
 
-  // First GLINT RUSH in the Academy: auto-open the rush tips page (once the
+  // First GLINT RUSH in Sector 01 Outpost: auto-open the rush tips page (once the
   // rush announcement animation has finished).
   useEffect(() => {
-    if (screen !== "game" || currentLevel?.num !== 1) return;
+    if (screen !== "game" || currentLevel?.num !== 2) return;
     if (!state.deathMatch || anim.playing || state.phase !== "playing") return;
     if (academyFlags().seenRush) return;
     markRushSeen(); // unlocks the GLINT RUSH slide
@@ -1683,12 +1684,11 @@ export default function App() {
               {/* THE THIRD BUST — the final heart flies to centre and bursts */}
               {anim.finalHeart && <FinalHeartOverlay phase={anim.finalHeart as "fly" | "break"} from={anchorOf(bustRef)()} />}
 
-              {/* THE ACADEMY's TIP pill — reopen the briefing any time (Level 1 only) */}
               {/* QUICK PLAY new-starter TIP pill — until Tutorial + Academy are done */}
               {(quickTipsEligible || onAcademyBoard) && state.phase === "playing" && !quickTips.open && (
                 <button
                   onClick={() => { sfx.click(); setQuickTips({ open: true, page: 0 }); }}
-                  style={{ ...tipPill, bottom: 64 }}
+                  style={tipPill}
                   aria-label="Open the quick play tips"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1697,7 +1697,8 @@ export default function App() {
                   {(CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).tipLabel}
                 </button>
               )}
-              {currentLevel?.num === 1 && state.phase === "playing" && !academyTips.open && (
+              {/* SECTOR 01 OUTPOST's TIP pill — reopen the briefing any time (Level 2 only) */}
+              {currentLevel?.num === 2 && state.phase === "playing" && !academyTips.open && (
                 <button
                   onClick={() => { sfx.click(); setAcademyTips({ open: true, page: 0 }); }}
                   style={tipPill}
