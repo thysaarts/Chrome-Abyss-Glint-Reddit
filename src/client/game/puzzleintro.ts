@@ -9,20 +9,26 @@
  * makes it robust to that. (v2 key — the old v1 global boolean is intentionally
  * abandoned so a reorganised puzzle level shows the briefing again.)
  */
-import { readStored, writeStored, removeStored } from "./storage";
+import { readVersioned, writeVersioned, removeStored } from "./storage";
+import { SAVE_NUMBERING_V } from "../levels/renumber";
 
 const KEY = "glint.puzzleintro.v2";
+// envelope v2: version PARITY with the web build. This build was born after the
+// 2026-07 renumbering, so v1 payloads here already hold NEW campaign numbers —
+// the migrate is a pure stamp-up, NO remap (see levels/progress.ts).
+const migrate = (d: unknown, _from: number): unknown => d;
+const load = (): Flags => readVersioned<Flags>(KEY, { seenLevels: [] }, SAVE_NUMBERING_V, migrate);
 
 interface Flags {
   seenLevels: number[];
 }
 
 export function puzzleIntroSeen(levelNum: number): boolean {
-  return readStored<Flags>(KEY, { seenLevels: [] }).seenLevels.includes(levelNum);
+  return load().seenLevels.includes(levelNum);
 }
 export function markPuzzleIntroSeen(levelNum: number): void {
-  const f = readStored<Flags>(KEY, { seenLevels: [] });
-  if (!f.seenLevels.includes(levelNum)) writeStored(KEY, { seenLevels: [...f.seenLevels, levelNum] });
+  const f = load();
+  if (!f.seenLevels.includes(levelNum)) writeVersioned(KEY, { seenLevels: [...f.seenLevels, levelNum] }, SAVE_NUMBERING_V);
 }
 /** Reset progress → replay every puzzle level's intro briefing from scratch. */
 export function resetPuzzleIntro(): void {

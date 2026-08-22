@@ -21,7 +21,25 @@
       "title": "The Academy",
       "region": null,
       "theme": "blank",
-      "unlockText": "Complete tutorial to unlock",
+      "unlockText": "Complete the Tutorial to unlock",
+      "unlockRule": {
+        "type": "always"
+      },
+      "params": {
+        "side": 5,
+        "nebulites": 0,
+        "dross": 2,
+        "collapseAt1": 30,
+        "collapseAt2": 15,
+        "extraTiles": 0
+      },
+      "countdown": false
+    },
+    {
+      "title": "Sector 01 Outpost",
+      "region": null,
+      "theme": "blank",
+      "unlockText": "Complete The Academy to unlock",
       "unlockRule": {
         "type": "always"
       },
@@ -32,10 +50,11 @@
         "collapseAt1": 30,
         "collapseAt2": 18,
         "extraTiles": 0
-      }
+      },
+      "countdown": false
     },
     {
-      "title": "The Outpost",
+      "title": "The Fortress",
       "region": "Military Bastion",
       "theme": "regions",
       "unlockText": "Clear the board to unlock",
@@ -194,28 +213,6 @@
         "singularityAt": 45,
         "obstacles": 15,
         "gaps": 6,
-        "extraTiles": 0
-      }
-    },
-    {
-      "title": "The Fortress",
-      "region": "Military Bastion",
-      "theme": "regions",
-      "unlockText": "Earn 30,000 points to unlock",
-      "unlockRule": {
-        "type": "score",
-        "value": 30000
-      },
-      "params": {
-        "side": 6,
-        "nebulites": 1,
-        "dross": 4,
-        "collapseAt1": 30,
-        "collapseAt2": 15,
-        "boardShape": "tr-bl",
-        "singularityAt": 50,
-        "obstacles": 0,
-        "gaps": 0,
         "extraTiles": 0
       }
     },
@@ -640,14 +637,14 @@
       },
       "params": {
         "side": 6,
-        "dross": 4,
-        "nebulites": 2,
+        "dross": 5,
+        "nebulites": 3,
         "collapseAt1": 26,
         "collapseAt2": 12,
         "boardShape": "square",
         "singularityAt": 45,
-        "obstacles": 5,
-        "gaps": 5,
+        "obstacles": 0,
+        "gaps": 0,
         "extraTiles": 0
       },
       "puzzleBoard": true,
@@ -664,7 +661,7 @@
       },
       "params": {
         "side": 6,
-        "dross": 6,
+        "dross": 3,
         "nebulites": 3,
         "collapseAt1": 26,
         "collapseAt2": 11,
@@ -679,7 +676,7 @@
       "title": "Nebula Haven",
       "region": null,
       "theme": "blank",
-      "unlockText": "Sweep all 3 Dross to unlock",
+      "unlockText": "Sweep 3 Dross in one game to unlock",
       "unlockRule": {
         "type": "drossCleared",
         "value": 3
@@ -709,7 +706,7 @@
       "params": {
         "side": 6,
         "dross": 3,
-        "nebulites": 2,
+        "nebulites": 3,
         "collapseAt1": 25,
         "collapseAt2": 12,
         "boardShape": "tr-bl",
@@ -789,15 +786,15 @@
         "type": "boardCleared"
       },
       "params": {
-        "side": 6,
-        "dross": 4,
+        "side": 5,
+        "dross": 2,
         "nebulites": 2,
         "collapseAt1": 25,
         "collapseAt2": 10,
-        "boardShape": "square",
+        "boardShape": "hexagon",
         "singularityAt": 45,
-        "obstacles": 3,
-        "gaps": 5,
+        "obstacles": 1,
+        "gaps": 1,
         "extraTiles": 0
       }
     },
@@ -805,10 +802,10 @@
       "title": "Quantum Loop",
       "region": "Digital Nexus",
       "theme": "regions",
-      "unlockText": "Earn 32,500 points to unlock",
+      "unlockText": "Earn 36,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 32500
+        "value": 36000
       },
       "params": {
         "side": 6,
@@ -825,10 +822,10 @@
       "title": "Radiant Enclave",
       "region": "Divinity Enclave",
       "theme": "regions",
-      "unlockText": "Earn 33,000 points to unlock",
+      "unlockText": "Earn 37,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 33000
+        "value": 37000
       },
       "params": {
         "side": 6,
@@ -847,21 +844,21 @@
       "title": "Sector 05 Outpost",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 33,500 points to unlock",
+      "unlockText": "Earn 40,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 33500
+        "value": 40000
       },
       "params": {
         "side": 6,
-        "dross": 5,
+        "dross": 8,
         "nebulites": 2,
         "collapseAt1": 24,
         "collapseAt2": 12,
         "boardShape": "hexagon",
         "singularityAt": 45,
-        "gaps": 10,
-        "obstacles": 2,
+        "gaps": 0,
+        "obstacles": 0,
         "extraTiles": 0
       },
       "puzzleBoard": true,
@@ -877,12 +874,12 @@
         "type": "boardCleared"
       },
       "params": {
-        "side": 6,
+        "side": 5,
         "dross": 5,
         "nebulites": 3,
         "collapseAt1": 25,
         "collapseAt2": 12,
-        "boardShape": "square",
+        "boardShape": "hexagon",
         "singularityAt": 40,
         "gaps": 3,
         "obstacles": 3,
@@ -893,10 +890,10 @@
       "title": "Nebula Cave",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 34,000 points to unlock",
+      "unlockText": "Earn 37,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 34000
+        "value": 37500
       },
       "params": {
         "side": 6,
@@ -914,10 +911,10 @@
       "title": "Phantom Cellar",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 34,500 points to unlock",
+      "unlockText": "Earn 42,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 34500
+        "value": 42500
       },
       "params": {
         "side": 6,
@@ -936,10 +933,10 @@
       "title": "Grace Reliquary",
       "region": "Divinity Enclave",
       "theme": "regions",
-      "unlockText": "Earn 35,000 points to unlock",
+      "unlockText": "Earn 47,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 35000
+        "value": 47500
       },
       "params": {
         "side": 6,
@@ -997,10 +994,10 @@
       "title": "Echo Loop",
       "region": "Digital Nexus",
       "theme": "regions",
-      "unlockText": "Earn 35,000 points to unlock",
+      "unlockText": "Earn 49,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 35000
+        "value": 49000
       },
       "params": {
         "side": 6,
@@ -1018,7 +1015,7 @@
       "title": "Whisper Warren",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Bank all 6 Nebulite to unlock",
+      "unlockText": "Bank all 5 Nebulite to unlock",
       "unlockRule": {
         "type": "coreBanked"
       },
@@ -1059,10 +1056,10 @@
       "title": "Smuggler Arcade",
       "region": "Fringe Market",
       "theme": "regions",
-      "unlockText": "Earn 35,000 points to unlock",
+      "unlockText": "Earn 49,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 35000
+        "value": 49500
       },
       "params": {
         "side": 6,
@@ -1099,10 +1096,10 @@
       "title": "Shroud Cellar",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 36,000 points to unlock",
+      "unlockText": "Earn 50,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 36000
+        "value": 50000
       },
       "params": {
         "side": 6,
@@ -1142,10 +1139,10 @@
       "title": "Shroud Underpass",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 36,500 points to unlock",
+      "unlockText": "Earn 50,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 36500
+        "value": 50000
       },
       "params": {
         "side": 6,
@@ -1164,10 +1161,10 @@
       "title": "Syndicate Outpost",
       "region": "Corporate Spire",
       "theme": "regions",
-      "unlockText": "Earn 35,500 points to unlock",
+      "unlockText": "Earn 50,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 35500
+        "value": 50500
       },
       "params": {
         "side": 6,
@@ -1210,10 +1207,10 @@
       "title": "Cinder Assembly",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 37,000 points to unlock",
+      "unlockText": "Earn 50,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 37000
+        "value": 50500
       },
       "params": {
         "side": 6,
@@ -1232,10 +1229,10 @@
       "title": "Chrome Yard",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 37,500 points to unlock",
+      "unlockText": "Earn 51,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 37500
+        "value": 51000
       },
       "params": {
         "side": 6,
@@ -1260,13 +1257,13 @@
       },
       "params": {
         "side": 6,
-        "dross": 5,
-        "nebulites": 1,
+        "dross": 3,
+        "nebulites": 3,
         "collapseAt1": 21,
         "collapseAt2": 10,
         "boardShape": "hexagon",
-        "obstacles": 5,
-        "gaps": 5,
+        "obstacles": 3,
+        "gaps": 3,
         "extraTiles": 0
       }
     },
@@ -1274,10 +1271,10 @@
       "title": "Meridian Terrace",
       "region": "Corporate Spire",
       "theme": "regions",
-      "unlockText": "Earn 37,500 points to unlock",
+      "unlockText": "Earn 51,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 37500
+        "value": 51000
       },
       "params": {
         "side": 6,
@@ -1318,10 +1315,10 @@
       "title": "Ironside Garrison",
       "region": "Military Bastion",
       "theme": "regions",
-      "unlockText": "Earn 37,500 points to unlock",
+      "unlockText": "Earn 51,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 37500
+        "value": 51500
       },
       "params": {
         "side": 6,
@@ -1358,10 +1355,10 @@
       "title": "Veiled Cellar",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 38,000 points to unlock",
+      "unlockText": "Earn 51,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 38000
+        "value": 51500
       },
       "params": {
         "side": 6,
@@ -1401,10 +1398,10 @@
       "title": "Votive Reliquary",
       "region": "Divinity Enclave",
       "theme": "regions",
-      "unlockText": "Earn 38,500 points to unlock",
+      "unlockText": "Earn 52,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 38500
+        "value": 52000
       },
       "params": {
         "side": 6,
@@ -1444,10 +1441,10 @@
       "title": "Cog Assembly",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 39,000 points to unlock",
+      "unlockText": "Earn 52,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 39000
+        "value": 52000
       },
       "params": {
         "side": 6,
@@ -1466,10 +1463,10 @@
       "title": "Vanguard Barracks",
       "region": "Military Bastion",
       "theme": "regions",
-      "unlockText": "Earn 39,500 points to unlock",
+      "unlockText": "Earn 52,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 39500
+        "value": 52500
       },
       "params": {
         "side": 6,
@@ -1507,10 +1504,10 @@
       "title": "Umbral Passage",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 52,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 52500
       },
       "params": {
         "side": 6,
@@ -1528,10 +1525,10 @@
       "title": "Vantage Exchange",
       "region": "Corporate Spire",
       "theme": "regions",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 53,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 53000
       },
       "params": {
         "side": 6,
@@ -1584,10 +1581,10 @@
       "title": "Cog Yard",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 53,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 53000
       },
       "params": {
         "side": 6,
@@ -1627,10 +1624,10 @@
       "title": "Nebulite Assembly",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 53,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 53500
       },
       "params": {
         "side": 6,
@@ -1671,10 +1668,10 @@
       "title": "Cinder Foundry",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 53,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 53500
       },
       "params": {
         "side": 6,
@@ -1714,10 +1711,10 @@
       "title": "Nebula Core",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 40,000 points to unlock",
+      "unlockText": "Earn 54,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 40000
+        "value": 54000
       },
       "params": {
         "side": 6,
@@ -1757,15 +1754,15 @@
       "title": "Zenith Sanctum",
       "region": "Divinity Enclave",
       "theme": "regions",
-      "unlockText": "Earn 41,000 points to unlock",
+      "unlockText": "Earn 54,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 41000
+        "value": 54000
       },
       "params": {
         "side": 5,
-        "dross": 6,
-        "nebulites": 2,
+        "dross": 0,
+        "nebulites": 5,
         "collapseAt1": 17,
         "collapseAt2": 9,
         "extraTiles": 0
@@ -1795,10 +1792,10 @@
       "title": "Smuggler Court",
       "region": "Fringe Market",
       "theme": "regions",
-      "unlockText": "Earn 42,000 points to unlock",
+      "unlockText": "Earn 54,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 42000
+        "value": 54000
       },
       "params": {
         "side": 6,
@@ -1817,10 +1814,10 @@
       "title": "Hollow Cellar",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 43,000 points to unlock",
+      "unlockText": "Earn 54,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 43000
+        "value": 54500
       },
       "params": {
         "side": 6,
@@ -1839,10 +1836,10 @@
       "title": "Cyber Node",
       "region": "Digital Nexus",
       "theme": "regions",
-      "unlockText": "Earn 44,000 points to unlock",
+      "unlockText": "Earn 55,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 44000
+        "value": 55000
       },
       "params": {
         "side": 6,
@@ -1858,10 +1855,10 @@
       "title": "Nebulite Citadel",
       "region": null,
       "theme": "blank",
-      "unlockText": "Earn 45,000 points to unlock",
+      "unlockText": "Earn 55,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 45000
+        "value": 55500
       },
       "params": {
         "side": 6,
@@ -1900,21 +1897,21 @@
       "title": "Copper Alley",
       "region": "Fringe Market",
       "theme": "regions",
-      "unlockText": "Earn 45,000 points to unlock",
+      "unlockText": "Earn 55,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 45000
+        "value": 55500
       },
       "params": {
         "side": 6,
-        "dross": 4,
-        "nebulites": 1,
+        "dross": 3,
+        "nebulites": 2,
         "collapseAt1": 16,
         "collapseAt2": 9,
         "boardShape": "tr-bl",
         "singularityAt": 45,
-        "obstacles": 6,
-        "gaps": 6,
+        "obstacles": 5,
+        "gaps": 5,
         "extraTiles": 0
       }
     },
@@ -1922,10 +1919,10 @@
       "title": "Warden Bunker",
       "region": "Military Bastion",
       "theme": "regions",
-      "unlockText": "Earn 46,000 points to unlock",
+      "unlockText": "Earn 56,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 46000
+        "value": 56000
       },
       "params": {
         "side": 6,
@@ -1950,22 +1947,23 @@
       },
       "params": {
         "side": 6,
-        "dross": 5,
-        "nebulites": 2,
+        "dross": 3,
+        "nebulites": 3,
         "collapseAt1": 16,
-        "collapseAt2": 8,
-        "gaps": 5,
-        "extraTiles": 0
+        "collapseAt2": 9,
+        "gaps": 3,
+        "extraTiles": 0,
+        "obstacles": 3
       }
     },
     {
       "title": "Slag Yard",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 47,000 points to unlock",
+      "unlockText": "Earn 56,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 47000
+        "value": 56000
       },
       "params": {
         "side": 6,
@@ -1984,10 +1982,10 @@
       "title": "Iron Line",
       "region": "Machina Forge",
       "theme": "regions",
-      "unlockText": "Earn 48,000 points to unlock",
+      "unlockText": "Earn 56,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 48000
+        "value": 56500
       },
       "params": {
         "side": 6,
@@ -2006,10 +2004,10 @@
       "title": "Warden Trench",
       "region": "Military Bastion",
       "theme": "regions",
-      "unlockText": "Earn 49,000 points to unlock",
+      "unlockText": "Earn 57,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 49000
+        "value": 57000
       },
       "params": {
         "side": 6,
@@ -2047,10 +2045,10 @@
       "title": "Trinket Quarter",
       "region": "Fringe Market",
       "theme": "regions",
-      "unlockText": "Earn 50,000 points to unlock",
+      "unlockText": "Earn 57,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 50000
+        "value": 57500
       },
       "params": {
         "side": 6,
@@ -2069,10 +2067,10 @@
       "title": "Wraith Cellar",
       "region": "Shadow Sector",
       "theme": "regions",
-      "unlockText": "Earn 52,500 points to unlock",
+      "unlockText": "Earn 62,500 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 52500
+        "value": 62500
       },
       "params": {
         "side": 6,
@@ -2091,10 +2089,10 @@
       "title": "Lumen Basilica",
       "region": "Divinity Enclave",
       "theme": "regions",
-      "unlockText": "Earn 55,000 points to unlock",
+      "unlockText": "Earn 65,000 points to unlock",
       "unlockRule": {
         "type": "score",
-        "value": 55000
+        "value": 65000
       },
       "params": {
         "side": 6,
@@ -2128,8 +2126,9 @@
         "extraTiles": 0
       },
       "boss": true,
-      "puzzleBoard": false,
-      "puzzleImage": "/puzzles/lvl100.webp"
+      "puzzleBoard": true,
+      "puzzleImage": "/puzzles/lvl100.webp",
+      "puzzleId": "pz-the-master-core"
     }
   ]
 }

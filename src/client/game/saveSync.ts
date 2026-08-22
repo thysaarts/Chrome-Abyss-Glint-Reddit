@@ -16,7 +16,11 @@
  * disables itself, and the game stays purely local — exactly as before.
  */
 
+import { mergeSave, SYNC_KEYS } from "./importSave";
+import { LEVELS } from "../levels/levels";
+
 const PREFIX = "glint.";
+const SYNC_SET = new Set<string>(SYNC_KEYS);
 let enabled = false;
 let timer: number | undefined;
 
@@ -56,8 +60,16 @@ export function scheduleSavePush(): void {
 }
 
 /** Pull the account's save and apply it over localStorage. Call ONCE, before
- *  the app mounts (main.tsx awaits this). The server copy wins: pushes happen
- *  on every write, so it is at least as fresh as any other device's state. */
+ *  the app mounts (main.tsx awaits this).
+ *
+ *  MERGE, never lose ground (web parity, ported 2026-08): the PROGRESS-BEARING
+ *  keys (SYNC_KEYS — frontier, results, scores, wallet, stats, collection,
+ *  achievements, tutorial, academy tips) combine per-field — max/OR/union,
+ *  wallet newest-wins — so a stale device coming back online can no longer
+ *  wipe fresher progress another device pushed. Every OTHER glint.* key keeps
+ *  the old rule: the account snapshot wins wholesale (settings, daily state
+ *  and popup flags simply follow the account). If the merge kept anything the
+ *  server didn't have, the result is pushed straight back up. */
 export async function hydrateSave(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
@@ -67,15 +79,27 @@ export async function hydrateSave(): Promise<void> {
     if (body.type !== "save") return;
     enabled = true;
     if (body.data && typeof body.data === "object") {
-      // remove local glint.* keys the server doesn't have, then apply the rest —
-      // the account's snapshot becomes THE state, not a merge
-      const local = snapshot();
-      for (const k of Object.keys(local)) {
-        if (!(k in body.data)) localStorage.removeItem(k);
-      }
+      const server: Record<string, string> = {};
       for (const [k, v] of Object.entries(body.data)) {
-        if (k.startsWith(PREFIX) && typeof v === "string") localStorage.setItem(k, v);
+        if (k.startsWith(PREFIX) && typeof v === "string") server[k] = v;
       }
+      const local = snapshot();
+      const merged = mergeSave(local, server, LEVELS.length);
+      let differsFromServer = false;
+      // progress-bearing keys: the merged value lands locally
+      for (const k of SYNC_SET) {
+        if (merged[k] === undefined) continue;
+        localStorage.setItem(k, merged[k]);
+        if (merged[k] !== server[k]) differsFromServer = true;
+      }
+      // everything else: the account snapshot wins wholesale, as before
+      for (const k of Object.keys(local)) {
+        if (!SYNC_SET.has(k) && !(k in server)) localStorage.removeItem(k);
+      }
+      for (const [k, v] of Object.entries(server)) {
+        if (!SYNC_SET.has(k)) localStorage.setItem(k, v);
+      }
+      if (differsFromServer) scheduleSavePush(); // teach the server what the merge kept
     } else {
       // first ever boot for this account: adopt whatever this device has
       scheduleSavePush();
