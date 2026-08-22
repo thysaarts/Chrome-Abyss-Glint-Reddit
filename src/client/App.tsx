@@ -1353,9 +1353,9 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.deathMatch, anim.playing, screen, state.phase]);
 
-  // THE TEACHING HINT — on the Tutorial level's real run (first two turns,
-  // after 1s) and in The Academy (first turn and the turn after each bust,
-  // after 3s), the best available placement glows tutorial-blue. Runs favour
+  // THE TEACHING HINT — on the tutorial levels' real runs (Levels 0 and 1, first
+  // two turns, after 2s) and in Sector 01 Outpost (first turn and the turn after
+  // each bust, after 3s), the best placement glows tutorial-blue. Runs favour
   // Drifts: clearing runs early pays; sets keep.
   const [autoHint, setAutoHint] = useState<Set<string> | null>(null);
   const prevBustsRef = useRef(0);
@@ -1368,10 +1368,10 @@ export default function App() {
     setAutoHint(null);
     if (screen !== "game" || state.phase !== "playing" || anim.playing || anim.choice) return;
     const lvl = currentLevel?.num;
-    const tutorialTurn = lvl === 0 && state.moves < 2;
-    const academyTurn = lvl === 1 && (state.moves === 0 || bustHintArmedRef.current);
+    const tutorialTurn = (lvl === 0 || lvl === 1) && state.moves < 2; // both tutorial levels' boards open with hints
+    const academyTurn = lvl === 2 && (state.moves === 0 || bustHintArmedRef.current);
     if (!tutorialTurn && !academyTurn) return;
-    const delay = lvl === 0 ? 2000 : 3000;
+    const delay = lvl === 0 || lvl === 1 ? 2000 : 3000;
     const t = setTimeout(() => {
       const cells = bestPlacementHint(state);
       if (cells) {

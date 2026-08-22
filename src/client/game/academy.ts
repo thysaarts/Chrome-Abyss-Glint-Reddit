@@ -1,8 +1,8 @@
 /**
- * THE ACADEMY's tips — which briefings the player has already been shown.
- * The Nebulite intro auto-opens on the FIRST Academy launch only; the GLINT
- * RUSH page auto-opens the first time the rush is reached in the Academy (and
- * joins the cycle afterwards). The TIP pill re-opens the briefing any time.
+ * SECTOR 01 OUTPOST's tips — which briefings the player has already been shown.
+ * The Nebulite intro auto-opens on the FIRST launch of that level only; the GLINT
+ * RUSH page auto-opens the first time the rush is reached there (and joins the
+ * cycle afterwards). The TIP pill re-opens the briefing any time.
  */
 import { readStored, writeStored, removeStored } from "./storage";
 
