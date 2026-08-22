@@ -13,6 +13,18 @@
 
 const v = (name: string) => `var(${name})`;
 
+// ONLINE SEAT COLOURS — the one source of truth for "seat 0 is green, seat 1 is
+// purple" (name tags, log prefixes, toasts, join chips). Index by seat.
+export const SEAT_GREEN = "#22e39a";
+export const SEAT_PURPLE = "#e14dff";
+export const SEAT_COLORS: readonly [string, string] = [SEAT_GREEN, SEAT_PURPLE];
+
+/** Real touch device? (used to pick tap-vs-mouse behaviours — one definition,
+ *  not four copies of the matchMedia dance) */
+export function isCoarsePointer(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+}
+
 export const theme = {
   fonts: {
     /** display face — Chakra Petch */
@@ -110,4 +122,7 @@ export const cardFace = {
 } as const;
 
 export type MineralValue = 1 | 2 | 3 | 4 | 5 | 6;
+
+// (Reddit-only) the mineral glyph shapes — kept here because ThemePreview and the
+// gem renderers type against it; the web build inlined it away.
 export type MineralShape = "circle" | "almond" | "triangle" | "diamond" | "pentagon" | "hexagon";

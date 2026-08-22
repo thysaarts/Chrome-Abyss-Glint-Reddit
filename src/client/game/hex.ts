@@ -49,8 +49,14 @@ export function hexCells(side: number): Axial[] {
  * corner space. Each wedge is ~6 cells; the full square uses all four (115).
  * The SINGULARITY event later drops every wedge cell into the abyss, reducing
  * the board to the standard hexagon.
+ *
+ * "squareTall" is the MULTIPLAYER board: the full square plus one extra row of
+ * 11 cells along the bottom edge (126). Two players share the tile bag, so the
+ * board grows with it; the singularity takes the extra row with the wedges
+ * (it drops everything outside the hexagon). Solo levels never use it — its
+ * bigger bag would lift scores ~10% past the tuned unlock targets.
  */
-export type BoardShape = "hexagon" | "tl" | "tr" | "bl" | "br" | "tl-br" | "tr-bl" | "square";
+export type BoardShape = "hexagon" | "tl" | "tr" | "bl" | "br" | "tl-br" | "tr-bl" | "square" | "squareTall";
 
 export const SHAPE_CORNERS: Record<BoardShape, ("tl" | "tr" | "bl" | "br")[]> = {
   hexagon: [],
@@ -61,6 +67,7 @@ export const SHAPE_CORNERS: Record<BoardShape, ("tl" | "tr" | "bl" | "br")[]> = 
   "tl-br": ["tl", "br"],
   "tr-bl": ["tr", "bl"],
   square: ["tl", "tr", "bl", "br"],
+  squareTall: ["tl", "tr", "bl", "br"],
 };
 
 /** The corner wedge: every cell OUTSIDE the side-6 hexagon whose rendered
@@ -87,7 +94,15 @@ export function wedgeCells(corner: "tl" | "tr" | "bl" | "br"): Axial[] {
 export function shapeCells(side: number, shape: BoardShape): Axial[] {
   const base = hexCells(side);
   if (side !== 6 || shape === "hexagon") return base;
-  return [...base, ...SHAPE_CORNERS[shape].flatMap(wedgeCells)];
+  const cells = [...base, ...SHAPE_CORNERS[shape].flatMap(wedgeCells)];
+  if (shape === "squareTall") {
+    // one extra row below the square's bottom edge: the next cell down in each
+    // column (even columns sit at y=6, odd at y=5.5 — the usual hex stagger)
+    for (let q = -5; q <= 5; q++) {
+      cells.push({ q, r: q % 2 === 0 ? 6 - q / 2 : (11 - q) / 2 });
+    }
+  }
+  return cells;
 }
 
 export function neighbours(c: Axial, cellSet: Set<string>): Axial[] {

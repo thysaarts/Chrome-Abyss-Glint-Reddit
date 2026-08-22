@@ -68,7 +68,7 @@ export const BOARD_CLEAR_BONUS_SQUARE = 10000; // the biggest board — the full
  *  hexagon (or a smaller board) pays 5000; a corner-wedge board pays 7500; the
  *  full square — the biggest board there is — pays 10000. */
 export function boardClearBonus(startShape: string): number {
-  if (startShape === "square") return BOARD_CLEAR_BONUS_SQUARE;
+  if (startShape === "square" || startShape === "squareTall") return BOARD_CLEAR_BONUS_SQUARE;
   if (startShape && startShape !== "hexagon") return BOARD_CLEAR_BONUS_BIG;
   return BOARD_CLEAR_BONUS;
 }

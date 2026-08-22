@@ -1,8 +1,12 @@
 /**
- * GAME ENGINE — Chrome Abyss: Nebulite
+ * GAME ENGINE — Chrome Abyss: Glint
  * =====================================
  * Pure, framework-free game state and rules. The UI calls these functions and
- * renders the returned state. No randomness except in `newGame` (seedable).
+ * renders the returned state. All randomness is SEEDED and deterministic:
+ * `newGame` seeds the board, and in-play events (reshuffle drift, Nebulite
+ * respawn, bust nudges) draw from the state-carried RNG (`stateRng`) — so the
+ * same seed + the same moves always reproduce the same game (replays and the
+ * server-side daily verification depend on this).
  *
  * THE CORE RULE (Interpretation C, per the design):
  * --------------------------------------------------
@@ -72,6 +76,14 @@ export type TileVal = MineralValue | typeof GLINT | typeof CORE | BonusGem;
  *  penalties (`unbanked`, `tiles`) subtract. */
 export type EndTallyKind = "boardTiles" | "busts" | "banks" | "hand" | "zenith" | "clear" | "unbanked" | "tiles";
 
+/** A player's end-of-game summary: the board-banked base, the ordered conversion
+ *  steps the pop-up reveals one-by-one, and the floored final it lands on. */
+export interface EndSummary {
+  scoreBase: number;
+  tally: { kind: EndTallyKind; delta: number }[];
+  finalScore: number;
+}
+
 // MOTHER LODE: banking a long same-value chain overflows the leftover tiles to the
 // hand. Each overflow tile is worth a score bonus, and every full 6 of them are
 // REFINED into one Nebulite (Core) in the hand.
@@ -103,6 +115,7 @@ function emptyResolved(): GameState["lastResolved"] {
     singularity: null,
     nudged: [],
     inertAt: null,
+    versusTransfer: null,
     lateIsolated: { banked: [], toHand: [], buried: [] },
     lateDiscarded: [],
     bonusRevealed: [],
@@ -178,6 +191,9 @@ export interface LogEntry {
   text: string;
   kind: "bank" | "bust" | "info" | "core" | "glint" | "rush" | "lode";
   sticky?: boolean; // CMS-flagged: the floating toast holds until the next entry
+  // VERSUS: which seat this entry belongs to (0/1), so the UI can prefix the acting
+  // player's name in their colour. Tagged in pushLog from the active turn.
+  seat?: number;
 }
 
 export interface GameState {
@@ -190,6 +206,72 @@ export interface GameState {
   /** how many of the starting hand were EXTRA GEMS (progression + Easy) — the
    *  opening animation flies exactly these into the hand. */
   startExtraGems: number;
+  // GLINT CO-OP (Glint Together, leg 2): `hand` is always the ACTIVE player's;
+  // the waiting partner's tiles sit here. Every hand-touching rule (placement,
+  // overflow, buried recoveries, the forced bust tile) therefore lands on the
+  // player whose move caused it — cause-based, like everything else.
+  coop?: {
+    partnerHand: TileVal[];
+    turn: 0 | 1; // whose hand `hand` currently is (0 starts — the GREEN player)
+    names: [string, string]; // [green, purple]
+    moved: boolean; // the active player has placed this turn (one placement per turn)
+    // PER-PLAYER CONTRIBUTION (the end-card's second slide): each player's share of
+    // the shared totals, credited at each turn boundary to the player who just
+    // acted (co-op shares score/banks/cores, so this is the only per-seat split).
+    // turnStart* snapshot the shared counters at the start of the current turn.
+    contrib: [number, number]; // points banked
+    contribBanks: [number, number]; // times banked
+    contribCores: [number, number]; // Nebulite collected
+    contribMaxBank: [number, number]; // highest single bank
+    turnStartScore: number;
+    turnStartBanks: number;
+    turnStartCores: number;
+    turnStartMaxBank: number;
+    // the WAITING player's own hand-reveal state (the active player's is s.handRevealed).
+    // Per-player: reaching the reveal threshold shows the wheel for THAT player only.
+    partnerHandRevealed: boolean;
+  };
+  // GLINT VERSUS (Glint Together, leg 3): the same active-seat trick as co-op,
+  // widened to EVERY split resource — score, free banks, lives, busts, banked
+  // Nebulite, cash-out — the engine's own fields are always the ACTIVE
+  // player's; the waiting seat's copies live here and versusEndTurn swaps them.
+  // Scoring paths need no changes at all: whoever acts, owns the result.
+  versus?: {
+    partnerHand: TileVal[];
+    partnerScore: number;
+    partnerMaxBank: number;
+    partnerBanks: number;
+    partnerFreeBanks: number;
+    partnerLives: number;
+    partnerBusts: number;
+    partnerCores: number; // banked Nebulite
+    partnerCashedOut: number;
+    partnerHandRevealed: boolean; // the waiting seat's own reveal state (per-player)
+    turn: 0 | 1; // seat 0 is GREEN and always opened the game
+    names: [string, string]; // seat-ordered [green, purple]
+    moved: boolean;
+    // THE CLAIM: one per player. Made after your activating placement; the
+    // opponent cannot take or extend it; bank it by the end of your NEXT turn
+    // (grace) or it dissolves at that turn's end.
+    claims: [{ cells: string[]; graceUsed: boolean } | null, { cells: string[]; graceUsed: boolean } | null];
+    done: [boolean, boolean]; // cashed out — still in the score race, no more turns
+    // HOUSE RULE (duels): the board-clear bonus goes WHOLLY to the clearer —
+    // no split, no +1,000 premium (Thys ruling 2026-08-22). Online versus
+    // keeps the 50/50 split; absent/false = the classic split.
+    clearWinnerTakesAll?: boolean;
+    ritual: { gems: [TileVal, TileVal]; redraws: number }; // the opening reveal, seat-ordered
+    // ONLINE seat map: the ritual can swap who opens (seat 0 = green), so record
+    // which SEAT each ENTRY landed in. seatByEntry[0] = the seat of the first name
+    // passed to newGame (the host), [1] = the second (the guest). [0,1] = no swap,
+    // [1,0] = the second player opened. Lets each device know "which seat am I?"
+    seatByEntry: [number, number];
+    // PER-SEAT END SUMMARY (seat-ordered) — each player's own live end tally for the
+    // first end-card slide: scoreBase + the conversion steps → finalScore. Computed
+    // for BOTH seats at game end so each device shows its own; the winner is decided
+    // on these finalScores.
+    summary?: [EndSummary, EndSummary];
+    result?: { winner: 0 | 1 | -1; reason: "busts" | "score"; scores: [number, number] }; // -1 = tie
+  };
 
   // Per-game collapse triggers (a level generator can override these). side-6 collapses
   // to side-5 at collapseAt1 occupied; side-5 collapses to side-4 at collapseAt2. A board
@@ -260,12 +342,19 @@ export interface GameState {
   // CASH OUT — the player ended the run by choice during GLINT RUSH, converting
   // unspent lives / free banks into points. 0 = the run wasn't cashed out.
   cashedOut: number;
+  // ONLINE co-op/versus: a cash-out is a MUTUAL end the other player can block. When
+  // one player offers, this holds the offering seat; the other has ~4s to block
+  // ("Continue playing") — otherwise BOTH cash out (all resources counted) and the
+  // game ends. Null when no offer is pending.
+  // `deferred` (co-op only): the other player chose "Continue playing", so they
+  // take ONE more move and then the cash-out auto-commits — the offer stays live
+  // (and the offerer keeps their pending overlay) until that move ends the turn.
+  pendingCashout: { by: number; deferred?: boolean } | null;
 
   // Rule 2: when the Core is cleared, it respawns ONE placement later. This counts
   // down: when the Core is cleared it's set to 1; after the next placement resolves
   // the Core respawns and it resets to 0.
   coreRespawnPending: number;
-
   // A Nebulite placed FROM THE HAND knows exactly which mineral value planWild
   // chose for it (a Drift's missing value has no same-value neighbours to derive
   // it from). cell key -> that value; entries are only read while the cell still
@@ -317,6 +406,7 @@ export interface GameState {
     singularity: { cells: { key: string; tile: number | null }[] } | null;
     nudged: { from: string; to: string }[]; // tiles drifted by one cell (bust reshuffle)
     inertAt: string | null; // final cell of a bust's forced inert tile (after shrink + nudge)
+    versusTransfer: { points: number; cells: string[] } | null; // VERSUS: a bust banked these to the opponent
     // tiles left isolated by a COLLAPSE or RESHUFFLE (resolved AFTER those, so the UI
     // animates them once the board has settled). Same shape as the immediate records.
     lateIsolated: {
@@ -376,6 +466,12 @@ export interface NewGameOpts {
    *  them; this only pins their identity. */
   extraGems?: number;
   seed?: number;
+  /** GLINT CO-OP: two hands dealt from the same bag (handEach each, default 6);
+   *  player 0 (green) holds the first and starts. */
+  coop?: { names: [string, string]; handEach?: number };
+  /** GLINT VERSUS: two hands (handEach each, default 6) on the standard board;
+   *  the HIGHEST OPENING GEM starts (ties reshuffle) and becomes seat 0, green. */
+  versus?: { names: [string, string]; handEach?: number; clearWinnerTakesAll?: boolean };
   nebulites?: number; // Cores buried on the board at start (default 1)
   dross?: number; // Dross/Glint traps buried on the board at start (default 2)
   collapseAt1?: number; // side-6 → side-5 trigger (default 30)
@@ -412,6 +508,38 @@ export interface NewGameOpts {
   // client. Nothing about the RULES changes; the luck is simply on the beginner's
   // side while they're learning.
   tutorialRig?: boolean;
+}
+
+/** How FRIENDLY a candidate deal's board portion looks: +2 for every adjacent
+ *  pair of equal minerals (a set is already half-built), +1 for every adjacent
+ *  pair of consecutive ones (a straight is one tile away). `boardTiles` is laid
+ *  onto `coords` exactly as newGame lays it — in order, skipping the gap cells,
+ *  which is why the gaps must already be drawn when this is called. */
+function dealFriendliness(boardTiles: readonly MineralValue[], coords: Axial[], gapKeys: Set<string>): number {
+  const cellSet = new Set(coords.map(keyOf));
+  const tileAt = new Map<string, number>();
+  let idx = 0;
+  for (const c of coords) {
+    const k = keyOf(c);
+    if (gapKeys.has(k)) continue; // gap cells start empty — the deal skips them
+    const t = boardTiles[idx++];
+    if (typeof t === "number") tileAt.set(k, t);
+  }
+  let score = 0;
+  for (const c of coords) {
+    const k = keyOf(c);
+    const a = tileAt.get(k);
+    if (a === undefined) continue;
+    for (const n of neighbours(c, cellSet)) {
+      const nk = keyOf(n);
+      if (nk <= k) continue; // count each unordered pair once
+      const b = tileAt.get(nk);
+      if (b === undefined) continue;
+      if (a === b) score += 2;
+      else if (Math.abs(a - b) === 1) score += 1;
+    }
+  }
+  return score;
 }
 
 /** Seed a guaranteed MOTHER-LODE setup for one mineral `gem`, CAMOUFLAGED as a
@@ -525,41 +653,10 @@ function seedRefineRigs(
   return allPath;
 }
 
-/** How FRIENDLY a candidate deal's board portion looks: +2 for every adjacent
- *  pair of equal minerals (a set is already half-built), +1 for every adjacent
- *  pair of consecutive ones (a straight is one tile away). `boardTiles` is laid
- *  onto `coords` exactly as newGame lays it — in order, skipping the gap cells,
- *  so the score reads the board the player would actually see. */
-function dealFriendliness(boardTiles: readonly MineralValue[], coords: Axial[], gapKeys: Set<string>): number {
-  const cellSet = new Set(coords.map(keyOf));
-  const tileAt = new Map<string, number>();
-  let idx = 0;
-  for (const c of coords) {
-    const k = keyOf(c);
-    if (gapKeys.has(k)) continue; // gap cells start empty — the deal skips them
-    const t = boardTiles[idx++];
-    if (typeof t === "number") tileAt.set(k, t);
-  }
-  let score = 0;
-  for (const c of coords) {
-    const k = keyOf(c);
-    const a = tileAt.get(k);
-    if (a === undefined) continue;
-    for (const n of neighbours(c, cellSet)) {
-      const nk = keyOf(n);
-      if (nk <= k) continue; // count each unordered pair once
-      const b = tileAt.get(nk);
-      if (b === undefined) continue;
-      if (a === b) score += 2;
-      else if (Math.abs(a - b) === 1) score += 1;
-    }
-  }
-  return score;
-}
-
 export function newGame(opts: NewGameOpts = {}): GameState {
   const side = opts.side ?? 6;
-  const handSize = opts.handSize ?? 9;
+  const tg = opts.coop ?? opts.versus;
+  const handSize = tg ? 2 * (tg.handEach ?? 6) : opts.handSize ?? 9;
   const seed = opts.seed ?? Math.floor(Math.random() * 1e9);
   const nebulites = Math.max(0, opts.nebulites ?? 1);
   const dross = Math.max(0, opts.dross ?? 2);
@@ -678,14 +775,15 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     shuffled = shuffle(pool, rng);
   }
   const boardTiles = shuffled.slice(0, seededCells);
-  const hand: TileVal[] = shuffled.slice(seededCells, seededCells + baseHand) as MineralValue[];
-  // EXTRA GEMS: guaranteed-DIFFERENT bonus minerals appended to the dealt hand
+  const dealt: TileVal[] = shuffled.slice(seededCells, seededCells + baseHand) as MineralValue[];
+  // EXTRA GEMS — appended to the hand, always DIFFERENT minerals from each other
   // (two of a kind would blunt the gift). Drawn weighted by the same rarity
-  // ladder as the pool, without replacement, off an OWN rng stream derived from
-  // the seed: drawing these must not advance the main stream, or the gaps and
-  // obstacles carved later would shift and the level would lay out differently
-  // the moment a player crossed a reward tier.
+  // ladder as the pool, without replacement, off the SAME seeded stream — so a
+  // replay reproduces them exactly.
   if (extraGems > 0) {
+    // OWN rng stream, derived from the seed: drawing these must not advance the
+    // main stream, or the gaps/obstacles carved later would shift and the level
+    // would lay out differently the moment a player crossed a reward tier.
     const gemRng = makeRng((seed ^ 0x5eed1e) >>> 0);
     const bag = (Object.keys(MINERAL_QTY).map(Number) as MineralValue[]).slice();
     const picks: MineralValue[] = [];
@@ -697,13 +795,52 @@ export function newGame(opts: NewGameOpts = {}): GameState {
       picks.push(pick);
       bag.splice(bag.indexOf(pick), 1); // never the same mineral twice
     }
-    for (const v of picks) hand.push(v);
+    for (const v of picks) dealt.push(v);
+  }
+  const handEach = tg ? (tg.handEach ?? 6) : handSize;
+  let hand: TileVal[] = tg ? dealt.slice(0, handEach) : dealt;
+  // VERSUS OPENING RITUAL: highest opening gem starts (ties reshuffle both
+  // hands and look again); the starter takes seat 0 — green moves first.
+  let versusInit: GameState["versus"] = undefined;
+  if (opts.versus) {
+    let pool = dealt.slice();
+    let h0 = pool.slice(0, handEach);
+    let h1 = pool.slice(handEach);
+    let redraws = 0;
+    while ((h0[0] ?? 0) === (h1[0] ?? 0) && redraws < 20) {
+      pool = shuffle(pool, rng) as TileVal[];
+      h0 = pool.slice(0, handEach);
+      h1 = pool.slice(handEach);
+      redraws++;
+    }
+    let names: [string, string] = [opts.versus.names[0], opts.versus.names[1]];
+    // seatByEntry[entry] = seat. No swap → entry 0 (host) opens at seat 0.
+    let seatByEntry: [number, number] = [0, 1];
+    if ((h1[0] ?? 0) > (h0[0] ?? 0)) {
+      [h0, h1] = [h1, h0];
+      names = [names[1], names[0]];
+      seatByEntry = [1, 0]; // the second player (guest) opened
+    }
+    hand = h0;
+    versusInit = {
+      partnerHand: h1,
+      partnerScore: 0, partnerMaxBank: 0, partnerBanks: 0,
+      partnerFreeBanks: 3, partnerLives: 3, partnerBusts: 0,
+      partnerCores: 0, partnerCashedOut: 0, partnerHandRevealed: false,
+      turn: 0, names, moved: false,
+      claims: [null, null], done: [false, false],
+      clearWinnerTakesAll: opts.versus.clearWinnerTakesAll === true,
+      ritual: { gems: [h0[0] ?? 0, h1[0] ?? 0] as [TileVal, TileVal], redraws },
+      seatByEntry,
+    };
   }
 
   const cells = new Map<string, Cell>();
   const order: string[] = [];
   const cellSetLocal = new Set<string>(coords.map(keyOf));
-  // which cells start as GAPS (empty but playable)
+  // which cells start as GAPS (empty but playable). A tutorial-rigged deal already
+  // drew them (it had to, to score the candidates) — reuse that draw rather than
+  // spending the stream twice.
   const gapKeys = riggedGapKeys ?? new Set(shuffle(coords.map(keyOf), rng).slice(0, gaps));
   let tileIdx = 0;
   coords.forEach((c) => {
@@ -790,6 +927,12 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     hand,
     startHandSize: handSize,
     startExtraGems: extraGems,
+    coop: opts.coop
+      ? { partnerHand: dealt.slice(handEach) as TileVal[], turn: 0 as const, names: [opts.coop.names[0], opts.coop.names[1]] as [string, string], moved: false,
+          contrib: [0, 0] as [number, number], contribBanks: [0, 0] as [number, number], contribCores: [0, 0] as [number, number], contribMaxBank: [0, 0] as [number, number],
+          turnStartScore: 0, turnStartBanks: 0, turnStartCores: 0, turnStartMaxBank: 0, partnerHandRevealed: false }
+      : undefined,
+    versus: versusInit,
     collapseAt1,
     collapseAt2,
     shape,
@@ -819,6 +962,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     endTally: [],
     maxBankScore: 0,
     deathMatch: false,
+    pendingCashout: null,
     zenithUnlocked: !!opts.bonusGems?.zenith,
     zenithDealt: false,
     cashedOut: 0,
@@ -875,12 +1019,36 @@ export function lockedCoreValues(s: GameState): Map<string, number> {
   return m;
 }
 
+/** VERSUS: the cells of the OPPONENT'S claim — a boundary, not a blocker. Your
+ *  combos form right next to a claim but can never include or bridge it, your
+ *  cluster count stops at its edge, your banks leave it standing — and so does
+ *  your BUST (the claim is protected from your wipe; see bustSafeCells). */
+export function opponentClaimSet(s: GameState): Set<string> {
+  const c = s.versus?.claims[s.versus.turn === 0 ? 1 : 0];
+  return c ? new Set(c.cells) : new Set();
+}
+
+/** VERSUS: the activated cells a bust at `cellKey` will NOT wipe — the
+ *  opponent's claim survives your bust (Thys ruling 2026-08-21). Your OWN
+ *  claim is never protected from your own bust. Solo/co-op: nothing is safe.
+ *  The cellKey-inside-the-claim branch is DEFENSIVE ONLY: no real move can
+ *  target a claimed cell (claimed ⊆ activated, and taps on activated cells are
+ *  refused before the engine — same for the Broker AI and remote replays), but
+ *  place() itself accepts any cell, so a programmatic hit degrades to the old
+ *  total wipe instead of leaving a half-broken claim behind. */
+function bustSafeCells(s: GameState, cellKey: string): Set<string> {
+  const safe = s.versus ? opponentClaimSet(s) : new Set<string>();
+  return safe.has(cellKey) ? new Set<string>() : safe;
+}
+
 function boardViewFor(s: GameState) {
   const locked = lockedCoreValues(s);
+  const claimWall = opponentClaimSet(s);
   return makeBoardView(
     s.order,
     s.adj,
     (k) => {
+      if (claimWall.has(k)) return null; // the opponent's claim is invisible to YOUR combos
       const lv = locked.get(k);
       if (lv !== undefined) return lv; // locked joker-Core reads as its mirrored value
       const c = s.cells.get(k);
@@ -1251,6 +1419,9 @@ function planMoveAs(s: GameState, cellKey: string, placedVal: number, choice = 0
   // Build the hypothetical full activated set (existing + all new combo cells).
   const activatedAfter = new Set<string>(existing);
   for (const k of allComboCells) activatedAfter.add(k);
+  // VERSUS: the opponent's claim splits the cluster — adjacency to it neither
+  // merges, counts toward the bank threshold, nor banks it
+  for (const k of opponentClaimSet(s)) activatedAfter.delete(k);
 
   // The connected cluster containing the placed cell determines banking.
   const cluster = activatedCluster(s, activatedAfter, cellKey);
@@ -1265,6 +1436,7 @@ function planMoveAs(s: GameState, cellKey: string, placedVal: number, choice = 0
   const strand = sameValueStrand(s, cellKey, placedVal, activatedAfter);
   if (strand.size > allComboCells.size) {
     const conductive = new Set<string>([...activatedAfter, ...strand]);
+    for (const k of opponentClaimSet(s)) conductive.delete(k);
     const reached = activatedCluster(s, conductive, cellKey);
     for (const c of s.activatedCombos) {
       if (c.cells.some((k) => cluster.has(k))) continue; // already chained in directly
@@ -1389,11 +1561,179 @@ function clone(s: GameState): GameState {
     comboCounts: { ...s.comboCounts },
     chainCounts: { ...s.chainCounts },
     coreLocks: { ...s.coreLocks },
+    coop: s.coop
+      ? { partnerHand: s.coop.partnerHand.slice(), turn: s.coop.turn, names: [s.coop.names[0], s.coop.names[1]], moved: s.coop.moved,
+          contrib: [s.coop.contrib[0], s.coop.contrib[1]], contribBanks: [s.coop.contribBanks[0], s.coop.contribBanks[1]],
+          contribCores: [s.coop.contribCores[0], s.coop.contribCores[1]], contribMaxBank: [s.coop.contribMaxBank[0], s.coop.contribMaxBank[1]],
+          turnStartScore: s.coop.turnStartScore, turnStartBanks: s.coop.turnStartBanks, turnStartCores: s.coop.turnStartCores, turnStartMaxBank: s.coop.turnStartMaxBank, partnerHandRevealed: s.coop.partnerHandRevealed }
+      : undefined,
+    versus: s.versus
+      ? {
+          ...s.versus,
+          partnerHand: s.versus.partnerHand.slice(),
+          names: [s.versus.names[0], s.versus.names[1]],
+          claims: [s.versus.claims[0] ? { cells: s.versus.claims[0].cells.slice(), graceUsed: s.versus.claims[0].graceUsed } : null,
+                   s.versus.claims[1] ? { cells: s.versus.claims[1].cells.slice(), graceUsed: s.versus.claims[1].graceUsed } : null],
+          done: [s.versus.done[0], s.versus.done[1]],
+          ritual: { gems: [s.versus.ritual.gems[0], s.versus.ritual.gems[1]], redraws: s.versus.ritual.redraws },
+          result: s.versus.result ? { ...s.versus.result, scores: [s.versus.result.scores[0], s.versus.result.scores[1]] } : undefined,
+        }
+      : undefined,
   };
 }
 
+/** CO-OP/VERSUS: total tiles across both hands — the run only exhausts when
+ *  both seats are dry. */
+function teamTilesLeft(s: GameState): number {
+  return s.hand.length + (s.coop?.partnerHand.length ?? 0) + (s.versus?.partnerHand.length ?? 0);
+}
+
+/** VERSUS: swap every split resource between the seats — the state's own
+ *  fields are always the ACTIVE player's. */
+function versusSwapSeats(s: GameState): void {
+  const v = s.versus!;
+  const swap = <K extends keyof GameState, P extends keyof NonNullable<GameState["versus"]>>(sk: K, pk: P) => {
+    const tmp = s[sk] as never;
+    (s[sk] as unknown) = v[pk] as unknown;
+    (v[pk] as unknown) = tmp;
+  };
+  swap("hand", "partnerHand");
+  swap("score", "partnerScore");
+  swap("maxBankScore", "partnerMaxBank");
+  swap("banks", "partnerBanks");
+  swap("freeBanksLeft", "partnerFreeBanks");
+  swap("livesLeft", "partnerLives");
+  swap("busts", "partnerBusts");
+  swap("coresCollected", "partnerCores");
+  swap("cashedOut", "partnerCashedOut");
+  swap("handRevealed", "partnerHandRevealed"); // per-player reveal follows the seat
+  v.turn = v.turn === 0 ? 1 : 0;
+  v.moved = false;
+}
+
+/** VERSUS: drop any claim whose cells stopped being one activated piece of the
+ *  board (banked, busted away, or broken by a collapse — R3/R4 for claims). */
+function pruneVersusClaims(s: GameState): void {
+  if (!s.versus) return;
+  s.versus.claims = s.versus.claims.map((c) =>
+    c && c.cells.length >= 2 && c.cells.every((k) => s.activatedCells.includes(k)) ? c : null
+  ) as GameState["versus"] extends undefined ? never : [typeof s.versus.claims[0], typeof s.versus.claims[1]];
+}
+
+/** CO-OP: the active hand emptied mid-action. If the partner still holds tiles,
+ *  they take over immediately (a forced pass); only a dry TEAM ends the run.
+ *  Returns the ended state, or null to continue. */
+function handExhausted(s: GameState): GameState | null {
+  if (s.hand.length > 0) return null;
+  if (s.coop && s.coop.partnerHand.length > 0) {
+    creditCoopTurn(s); // credit the finished turn before the forced pass
+    s.hand = s.coop.partnerHand;
+    s.coop.partnerHand = [];
+    const rev = s.handRevealed;
+    s.handRevealed = s.coop.partnerHandRevealed;
+    s.coop.partnerHandRevealed = rev;
+    s.coop.turn = s.coop.turn === 0 ? 1 : 0;
+    s.coop.moved = false;
+    updateHandReveal(s);
+    return null;
+  }
+  if (s.versus) {
+    const other = s.versus.turn === 0 ? 1 : 0;
+    if (!s.versus.done[other] && s.versus.partnerHand.length > 0) {
+      versusSwapSeats(s); // forced pass — the opponent plays on; the race continues
+      updateHandReveal(s);
+      return null;
+    }
+  }
+  return endGame(s, false);
+}
+
+/** GLINT CO-OP: the explicit turn handoff — the UI calls this at the PASS beat
+ *  (after the placement and any BANK NOW resolved). Swaps the hands, flips the
+ *  turn, clears the one-placement-per-turn latch. If the partner is out of
+ *  tiles the active player simply carries on. */
+/** GLINT VERSUS: the explicit handoff. Ages the passing player's claim — the
+ *  first pass after claiming arms the grace ("bank it by the end of your next
+ *  turn"), the second dissolves it — then swaps every split resource. A done
+ *  (cashed-out) or dry opponent gets skipped: the active player races on. */
+export function versusEndTurn(state: GameState): GameState {
+  if (!state.versus || state.phase !== "playing") return state;
+  const s = clone(state);
+  const v = s.versus!;
+  const mine = v.claims[v.turn];
+  if (mine) {
+    if (mine.graceUsed) {
+      v.claims[v.turn] = null; // the promise broke — the combo unlocks for everyone
+      pushLog(s, { text: logText("versusClaimLapsed"), kind: "info" });
+    } else {
+      mine.graceUsed = true;
+    }
+  }
+  v.moved = false;
+  const other = v.turn === 0 ? 1 : 0;
+  if (!v.done[other] && v.partnerHand.length > 0) {
+    versusSwapSeats(s);
+  }
+  updateHandReveal(s);
+  return s;
+}
+
+/** GLINT VERSUS: claim the activated cluster at `cellKey` — after your own
+ *  activating placement, one claim at a time, never over the opponent's. */
+export function claimCluster(state: GameState, cellKey: string): GameState {
+  const v0 = state.versus;
+  if (!v0 || state.phase !== "playing" || !v0.moved) return state;
+  if (v0.claims[v0.turn]) return state; // one claim, strictly — no swapping
+  if (!state.activatedCells.includes(cellKey)) return state;
+  const claimable = new Set(state.activatedCells);
+  for (const k of opponentClaimSet(state)) claimable.delete(k);
+  const cluster = activatedCluster(state, claimable, cellKey);
+  if (cluster.size < 2) return state;
+  const s = clone(state);
+  s.versus!.claims[s.versus!.turn] = { cells: [...cluster], graceUsed: false };
+  pushLog(s, { text: logText("versusClaimed", { name: s.versus!.names[s.versus!.turn] }), kind: "info", sticky: true });
+  return s;
+}
+
+/** CO-OP: credit the just-finished turn's share of the shared totals to the player
+ *  who acted, then re-snapshot for the incoming player (the second-slide breakdown). */
+function creditCoopTurn(s: GameState): void {
+  const c = s.coop!;
+  c.contrib[c.turn] += s.score - c.turnStartScore;
+  c.contribBanks[c.turn] += s.banks - c.turnStartBanks;
+  c.contribCores[c.turn] += s.coresCollected - c.turnStartCores;
+  if (s.maxBankScore > c.turnStartMaxBank) c.contribMaxBank[c.turn] = Math.max(c.contribMaxBank[c.turn], s.maxBankScore);
+  c.turnStartScore = s.score;
+  c.turnStartBanks = s.banks;
+  c.turnStartCores = s.coresCollected;
+  c.turnStartMaxBank = s.maxBankScore;
+}
+
+export function coopEndTurn(state: GameState): GameState {
+  if (!state.coop || state.phase !== "playing") return state;
+  // DEFERRED CASH-OUT: the other player took their promised extra move — now that
+  // the turn is ending, the offerer's cash-out commits (both hands convert).
+  if (state.pendingCashout?.deferred) return resolveCashOut(state, true);
+  const s = clone(state);
+  s.coop!.moved = false;
+  if (s.coop!.partnerHand.length === 0) return s; // no swap — the same player carries on
+  creditCoopTurn(s); // credit the finished turn, re-snapshot for the incoming player
+  const mine = s.hand;
+  s.hand = s.coop!.partnerHand;
+  s.coop!.partnerHand = mine;
+  const rev = s.handRevealed; // per-player reveal follows the hand
+  s.handRevealed = s.coop!.partnerHandRevealed;
+  s.coop!.partnerHandRevealed = rev;
+  s.coop!.turn = s.coop!.turn === 0 ? 1 : 0;
+  updateHandReveal(s);
+  return s;
+}
+
 function pushLog(s: GameState, e: LogEntry) {
-  s.log = [e, ...s.log].slice(0, 40);
+  // VERSUS: attribute the entry to the acting seat (the active player) unless it
+  // already carries one — the UI prefixes their name, in their colour.
+  const tagged = s.versus && e.seat === undefined ? { ...e, seat: s.versus.turn } : e;
+  s.log = [tagged, ...s.log].slice(0, 40);
 }
 
 function isEmptyBoard(s: GameState): boolean {
@@ -1508,6 +1848,14 @@ function maybeShrink(s: GameState, rng: () => number): void {
   // pending covered refs no longer valid after a remap
   s.pendingCoveredKey = null;
   s.pendingCoveredVal = null;
+  // VERSUS claims travel through the remap like everything else; cells the
+  // collapse dropped disappear from the claim (the prune finishes the job)
+  if (s.versus) {
+    const cmap = new Map(result.mapping);
+    s.versus.claims = s.versus.claims.map((c) =>
+      c ? { ...c, cells: c.cells.map((k) => cmap.get(k)).filter((k): k is string => !!k) } : null
+    ) as typeof s.versus.claims;
+  }
 
   // record the movement for the UI animation
   s.lastResolved.shrunk = {
@@ -1741,13 +2089,13 @@ function resolveIsolatedTiles(s: GameState): {
     pushLog(s, { text, kind: "bank", sticky: logIsSticky("isolatedBanked") });
   }
   if (toHand.length > 0) {
-    pushLog(s, { text: logText("isolatedPair"), kind: "info", sticky: logIsSticky("isolatedPair") });
+    pushLog(s, { text: logText("isolatedPair"), kind: "info", sticky: logIsSticky("isolatedPair"), seat: s.coop?.turn });
   }
   if (banked.some((b) => b.value === GLINT)) {
     pushLog(s, { text: logText("drossIsolated"), kind: "glint", sticky: logIsSticky("drossIsolated") });
   }
   if (buriedToHand.length > 0) {
-    pushLog(s, { text: logText("buriedRecovered", { count: buriedToHand.length, plural: buriedToHand.length === 1 ? "" : "s" }), kind: "info", sticky: logIsSticky("buriedRecovered") });
+    pushLog(s, { text: logText("buriedRecovered", { count: buriedToHand.length, plural: buriedToHand.length === 1 ? "" : "s" }), kind: "info", sticky: logIsSticky("buriedRecovered"), seat: s.coop?.turn });
   }
 
   return { banked, toHand, buriedToHand, glintCleared, coreCleared };
@@ -2017,6 +2365,8 @@ function comboLabel(names: ComboName[]): string {
  * persists across turns until it banks (6+ tiles) or the player busts.
  */
 export function place(state: GameState, cellKey: string, choice = 0, opts?: { preview?: boolean; zenithValue?: number }): GameState {
+  // CO-OP: strict one placement per turn — the UI blocks taps once `moved` is
+  // set and only coopEndTurn clears it (previews never latch it).
   if (state.phase !== "playing") return state;
   // PREVIEW: describePlace commits internally to read the outcome — it must not
   // apply a hidden Quadriant's ×4 (that would leak the gem's presence via the
@@ -2040,6 +2390,10 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
         })()
       : planMove(state, cellKey, choice);
   const s = clone(state);
+  if (!preview) {
+    if (s.coop) s.coop.moved = true; // the turn's one placement is spent
+    if (s.versus) s.versus.moved = true;
+  }
   ageInertTiles(s); // last turn's forced tiles lose their red outline / become normal
   s.moves += 1;
 
@@ -2143,15 +2497,15 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
         strand.add(k);
         for (const nb of s.adj.get(k) ?? []) if (!strand.has(nb)) stack.push(nb);
       }
-      // RULE 1 PRECONDITION (bug044, ported from the web build): overflow is the
-      // leftover of a same-value blob that banked AT THE HEX CAP — a set family
-      // blob always banks whole (Echo pairs complete at 2; Trips..Hex consume
-      // the group; bridged activated combos merge via the same-value renamer up
-      // to two Hexes), so a strand can only have genuine leftover when a full
-      // HEX of the placed value (joker-Cores included) banked from it. Anything
-      // less — most notably a DRIFT/chain bank carrying one or two tiles of the
-      // placed mineral — banked no overflowing set, and same-mineral neighbours
-      // of the placement stay on the board (they were wrongly swept to the hand).
+      // RULE 1 PRECONDITION (bug044): overflow is the leftover of a same-value
+      // blob that banked AT THE HEX CAP — a set family blob always banks whole
+      // (Echo pairs complete at 2; Trips..Hex consume the group; bridged
+      // activated combos merge via nameSameValueMerge up to two Hexes), so a
+      // strand can only have genuine leftover when a full HEX of the placed
+      // value (joker-Cores included) banked from it. Anything less — most
+      // notably a DRIFT/chain bank carrying one or two tiles of the placed
+      // mineral — banked no overflowing set, and same-mineral neighbours of the
+      // placement stay on the board (they were wrongly swept to the hand).
       let strandInCluster = 0;
       for (const k of strand) if (cluster.has(k)) strandInCluster++;
       if (strandInCluster >= 6) {
@@ -2242,12 +2596,12 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
         const remTxt = remainder.length > 0 ? ` (+${remainder.length} to hand)` : "";
         pushLog(s, {
           text: logText("motherLode", { count: overflowCount, mineral, nebulites: nebTxt, remainder: remTxt, bonus: overflowBonus }),
-          kind: "lode",
+          kind: "lode", seat: s.coop?.turn, // CO-OP: name whose hand it landed in
         });
       } else {
         pushLog(s, {
           text: logText("overflow", { count: overflowCount, mineral, bonus: overflowBonus }),
-          kind: "lode",
+          kind: "lode", seat: s.coop?.turn,
         });
       }
     }
@@ -2278,7 +2632,7 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
 
     // RULE 3: if this was the player's LAST tile and it formed a combo that did
     // not reach the bank threshold, bank that cluster anyway (even a lone Echo).
-    if (s.hand.length === 0 && !isEmptyBoard(s)) {
+    if (teamTilesLeft(s) === 0 && !isEmptyBoard(s)) {
       forceBankFinalCluster(s, plan);
     }
   }
@@ -2299,9 +2653,13 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
   }
 
   if (!preview) revealBonusGems(s);
+  pruneVersusClaims(s);
   updateHandReveal(s);
   if (isEmptyBoard(s)) return endGame(s, true);
-  if (s.hand.length === 0) return endGame(s, false);
+  {
+    const endedByTiles = handExhausted(s);
+    if (endedByTiles) return endedByTiles;
+  }
   return s;
 }
 
@@ -2360,10 +2718,23 @@ function applyClusterQuadriant(s: GameState, cluster: Iterable<string>): number 
   return bonusBase;
 }
 
-/** Deal the one ZENITH into the hand the moment GLINT RUSH arms (once per run). */
-function dealZenith(s: GameState): void {
+/** Deal the one ZENITH into the hand the moment GLINT RUSH arms (once per run).
+ *  VERSUS: the Zenith belongs to the player whose ACHIEVEMENTS armed it — ENTRY 0,
+ *  the device owner (the Broker / a hot-seat guest is entry 1; online games force
+ *  bonus gems off entirely, so this only ever runs on one device). The hot-seat
+ *  mirror may have that player WAITING when the rush arms: the gem then lands in
+ *  the parked partnerHand (no active-slot flourish — their hand isn't on screen)
+ *  so it is theirs on the turn flip, instead of being gifted to the opponent
+ *  whose turn happened to arm the rush. Exported for the entitlement test. */
+export function dealZenith(s: GameState): void {
   if (!s.zenithUnlocked || s.zenithDealt) return;
   s.zenithDealt = true;
+  const v = s.versus;
+  if (v && v.seatByEntry[0] !== v.turn) {
+    v.partnerHand.unshift(ZENITH);
+    pushLog(s, { text: logText("zenithDealt"), kind: "rush", sticky: logIsSticky("zenithDealt") });
+    return;
+  }
   // FRONT of the hand so the Zenith becomes the ACTIVE (NOW PLACING) gem the moment
   // it arrives at GLINT RUSH — its arrival flourish flies it into the active slot.
   s.hand.unshift(ZENITH);
@@ -2371,26 +2742,38 @@ function dealZenith(s: GameState): void {
   pushLog(s, { text: logText("zenithDealt"), kind: "rush", sticky: logIsSticky("zenithDealt") });
 }
 
-/** ZENITH filled into a banking cluster grants a flat bonus (added AFTER the
- *  multiplier). Clears the flag and records it for the UI. Returns the bonus. */
-function applyClusterZenith(s: GameState, cluster: Iterable<string>): number {
-  let bonus = 0;
-  for (const k of cluster) {
-    const cc = s.cells.get(k)!;
-    if (!cc.zenithFill) continue;
-    cc.zenithFill = false;
-    bonus += ZENITH_PLAYED_BONUS;
-    s.lastResolved.bonusRevealed.push({ key: k, gem: ZENITH, effect: "zenith", bonus: ZENITH_PLAYED_BONUS });
-    pushLog(s, { text: logText("zenithBanked", { bonus: ZENITH_PLAYED_BONUS }), kind: "core", sticky: logIsSticky("zenithBanked") });
-  }
-  return bonus;
-}
-
-/** THE GUIDED LEVELS' HAND RIG (see NewGameOpts.tutorialRig): the moment the
- *  hand wheel reveals, quietly nudge the UNDRAWN stack toward what the board
- *  wants — at most two swaps to the board's hungriest mineral, then a helpful
- *  sort. Runs once per run (the reveal is hysteretic), always BEFORE the stack
- *  is on screen, and is a pure function of the state — the replay derives it. */
+/**
+ * TUTORIAL RIG at the HAND REVEAL (see NewGameOpts.tutorialRig): quietly tilt the
+ * UNDRAWN hand towards what the board is asking for, so a guided level's endgame
+ * rewards rather than teaches. No-op unless the run is rigged.
+ *
+ * TIMING — the help arrives WITH the reveal, never after it. It runs at whichever
+ * reveal comes first: the difficulty threshold (hand down to revealAt) or GLINT
+ * RUSH, whichever the run reaches. Rigging after the stack was already on screen
+ * would swap gems the player had seen and planned around, so updateHandReveal
+ * calls this immediately before flipping handRevealed — and that flag's
+ * hysteresis makes it once per run, for free.
+ *
+ * needScore reads the board's appetite for each mineral: every visible cell
+ * holding it counts 2 when it already touches its own kind (a set half-built) and
+ * 1 when it sits alone (a seed to build on). Buried minerals don't count — the
+ * player can't see them.
+ *
+ * Up to TWO of the weakest undrawn minerals become the hungriest value — but only
+ * where that is a genuine improvement, never a sideways shuffle. The rest is
+ * ordering: the undrawn minerals sort by appetite, best first, so the reveal
+ * simply looks lucky. The tile already in the placing slot is never touched, and
+ * neither are Zenith / bonus gems / Cores — they keep their exact positions and
+ * the minerals sort around them. PURE and DETERMINISTIC: no rng, no clock, so the
+ * server's replay lands on the identical hand.
+ *
+ * THE ZENITH is safe twice over on the rush path. Every resolve settles the
+ * collapse (settleCollapse → maybeShrink → dealZenith) BEFORE it calls
+ * updateHandReveal, so by the time this runs the Zenith is already unshifted into
+ * slot 0 — which is never touched. And that isn't load-bearing: slot 0 is guarded
+ * because it is the tile the player is placing, while the Zenith is skipped
+ * wherever it sits, being no mineral at all (only 1..6 are).
+ */
 export function rigRevealHand(s: GameState): void {
   if (!s.tutorialRig) return;
   const isMineral = (t: TileVal | null | undefined): t is MineralValue => typeof t === "number" && t >= 1 && t <= 6;
@@ -2430,6 +2813,21 @@ export function rigRevealHand(s: GameState): void {
     .sort((a, b) => needOf(b.tile) - needOf(a.tile) || a.rank - b.rank)
     .map((x) => x.tile);
   slots.forEach((i, n) => { s.hand[i] = sorted[n]; });
+}
+
+/** ZENITH filled into a banking cluster grants a flat bonus (added AFTER the
+ *  multiplier). Clears the flag and records it for the UI. Returns the bonus. */
+function applyClusterZenith(s: GameState, cluster: Iterable<string>): number {
+  let bonus = 0;
+  for (const k of cluster) {
+    const cc = s.cells.get(k)!;
+    if (!cc.zenithFill) continue;
+    cc.zenithFill = false;
+    bonus += ZENITH_PLAYED_BONUS;
+    s.lastResolved.bonusRevealed.push({ key: k, gem: ZENITH, effect: "zenith", bonus: ZENITH_PLAYED_BONUS });
+    pushLog(s, { text: logText("zenithBanked", { bonus: ZENITH_PLAYED_BONUS }), kind: "core", sticky: logIsSticky("zenithBanked") });
+  }
+  return bonus;
 }
 
 /** Flip the hand-reveal hysteresis (once true it stays): at the difficulty
@@ -2653,9 +3051,35 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
     clicked.buried = null;
   }
 
-  // lose the whole activated group (clear it, unscored). A buried mineral under a
-  // Glint/Core in that group still returns to the hand (and is animated).
+  // VERSUS: busting is a GIFT, not sabotage — the lost activated combos bank at
+  // face value INTO THE OPPONENT'S score before the cells clear. But the
+  // OPPONENT'S CLAIM is PROTECTED from your bust (Thys ruling 2026-08-21): their
+  // claimed cluster stays on the board — activated, claim intact — and pays
+  // nothing here (kept, so never also gifted). Your OWN claim gets no such
+  // mercy: your bust forfeits it with the rest.
+  const bustSafe = bustSafeCells(s, cellKey);
+  if (s.versus && s.activatedCells.length > 0) {
+    let transfer = 0;
+    const giftCells: string[] = [];
+    for (const k of s.activatedCells) {
+      if (bustSafe.has(k)) continue; // the opponent keeps this — no face-value payout
+      const t = s.cells.get(k)!.tile;
+      if (t === null) continue;
+      giftCells.push(k);
+      transfer += t === GLINT ? 0 : t === CORE ? CORE_BONUS : t === ZENITH ? ZENITH_BONUS : (t as number) * 100;
+    }
+    if (transfer > 0) {
+      s.versus.partnerScore += transfer;
+      s.lastResolved.versusTransfer = { points: transfer, cells: giftCells };
+      pushLog(s, { text: logText("versusBustTransfer", { name: s.versus.names[s.versus.turn === 0 ? 1 : 0], points: transfer }), kind: "bust", sticky: true });
+    }
+  }
+  // lose the whole activated group (clear it, unscored) — minus the opponent's
+  // protected claim. A buried mineral under a Glint/Core in the lost group still
+  // returns to the hand (and is animated).
+  let lost = 0;
   for (const k of s.activatedCells) {
+    if (bustSafe.has(k)) continue;
     const cc = s.cells.get(k)!;
     if ((cc.tile === CORE || cc.tile === GLINT) && cc.buried !== null && cc.buried !== GLINT && cc.buried !== CORE) {
       s.hand.push(cc.buried);
@@ -2664,10 +3088,14 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
     cc.tile = null;
     cc.inert = false;
     cc.buried = null;
+    lost += 1;
   }
-  const lost = s.activatedCells.length;
-  s.activatedCombos = [];
-  s.activatedCells = [];
+  // the protected claim survives as activated board: keep the combos wholly
+  // inside it (protection reaches exactly the claim's own cells — a combo the
+  // owner later grew PAST the claim is lost whole, its outside tiles gifted
+  // above). Solo/co-op: bustSafe is empty, so everything clears as before.
+  s.activatedCombos = s.activatedCombos.filter((c) => c.cells.every((k) => bustSafe.has(k)));
+  s.activatedCells = s.activatedCells.filter((k) => s.activatedCombos.some((c) => c.cells.includes(k)));
   s.pendingCoveredVal = null;
   s.pendingCoveredKey = null;
 
@@ -2766,11 +3194,15 @@ function doBust(s: GameState, cellKey: string, respawnDue: boolean, wasForced = 
   }
 
   revealBonusGems(s);
+  pruneVersusClaims(s);
   updateHandReveal(s);
   // Out of lives -> game over (a loss). Otherwise continue if tiles/board remain.
   if (s.livesLeft <= 0) return endGame(s, false);
   if (isEmptyBoard(s)) return endGame(s, true);
-  if (s.hand.length === 0) return endGame(s, false);
+  {
+    const endedByTiles = handExhausted(s);
+    if (endedByTiles) return endedByTiles;
+  }
   return s;
 }
 
@@ -2826,7 +3258,10 @@ function forceBankFinalCluster(s: GameState, plan: MovePlan): void {
  * show precisely what bankClusterNow will score. */
 export function clusterCombosFor(state: GameState, cellKey: string): { name: ComboName; cells: string[] }[] {
   if (!state.activatedCells.includes(cellKey)) return [];
-  const cluster = activatedCluster(state, new Set(state.activatedCells), cellKey);
+  // VERSUS: names stop at the opponent's claim boundary, like the bank itself
+  const reachable = new Set(state.activatedCells);
+  for (const k of opponentClaimSet(state)) reachable.delete(k);
+  const cluster = activatedCluster(state, reachable, cellKey);
   const matching = state.activatedCombos.filter((c) => c.cells.some((k) => cluster.has(k)));
   return matching.filter((c, i) =>
     !matching.some(
@@ -2847,7 +3282,11 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   s.lastResolved = emptyResolved();
   s.freeBanksLeft -= 1;
 
-  const cluster = activatedCluster(s, new Set(s.activatedCells), cellKey);
+  // VERSUS: the opponent's claim is a boundary — your bank takes your side of
+  // the cluster and leaves the claim standing (a claimed start banks nothing)
+  const bankable = new Set(s.activatedCells);
+  for (const k of opponentClaimSet(s)) bankable.delete(k);
+  const cluster = activatedCluster(s, bankable, cellKey);
   if (cluster.size === 0) return state;
 
   // combo names within this cluster — DEDUPED: the ledger's overlapping build
@@ -2899,34 +3338,58 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   // defer the collapse to a later move (see settleCollapse)
   settleCollapse(s, resolveLateIsolation);
   revealBonusGems(s);
+  pruneVersusClaims(s);
   updateHandReveal(s); // an early bank can trigger the FINAL collapse — GLINT RUSH must reveal the hand NOW, not one placement late
 
   if (isEmptyBoard(s)) return endGame(s, true);
-  if (s.hand.length === 0) return endGame(s, false);
+  {
+    const endedByTiles = handExhausted(s);
+    if (endedByTiles) return endedByTiles;
+  }
   return s;
 }
 
+/**
+ * (Formerly RULE 5, no moves.) UNUSED since CASH OUT landed: a last tile with no
+ * legal move no longer auto-ends the game — ending the run is always the player's
+ * decision (cash out during GLINT RUSH, or place the tile and take the bust).
+ * Kept for reference should a stuck-detection prompt ever return.
+ */
 // CASH OUT conversion rates: unspent resources become points when the player
 // banks the run during GLINT RUSH.
 export const CASHOUT_PER_LIFE = 250;
 export const CASHOUT_PER_FREE_BANK = 150;
 export const CASHOUT_PER_GEM_VALUE = 100; // hand minerals: face value × this
 
-/** What a cash-out is worth right now: unspent lives, unused free banks, and the
+/** What a cash-out is worth right now: unspent lives, unused free banks, the
  *  minerals still in hand (face value × 100, same rate as the board-clear leftover
- *  bonus). Dross and Nebulites in hand convert to nothing. */
+ *  bonus), and any unused Zenith at its FLAT bonus (its tile value is not a
+ *  mineral face — same valuation as endConvert / the mutual cash-out). Dross and
+ *  Nebulites in hand convert to nothing. */
 export function cashOutValue(s: GameState): { lives: number; banks: number; gems: number; zeniths: number; total: number } {
   const lives = s.livesLeft * CASHOUT_PER_LIFE;
   const banks = s.freeBanksLeft * CASHOUT_PER_FREE_BANK;
-  // A hand ZENITH converts at its FLAT bonus — its tile value (10) is not a
-  // mineral face; letting it through the gem loop double-paid it (+1000 on top
-  // of the +6000 tallied separately). Ported from the prototype review fix.
   let gems = 0, zeniths = 0;
   for (const t of s.hand) {
     if (t === ZENITH) zeniths += ZENITH_BONUS;
     else if (t !== null && t !== GLINT && t !== CORE) gems += (t as number) * CASHOUT_PER_GEM_VALUE;
   }
   return { lives, banks, gems, zeniths, total: lives + banks + gems + zeniths };
+}
+
+/** The per-PLAYER end conversion of unspent resources → points, plus the special
+ *  tiles the caller banks separately. Same rates as a cash-out. Used to build each
+ *  versus seat's end summary and to count a co-op partner's leftover hand. */
+function endConvert(hand: TileVal[], livesLeft: number, freeBanksLeft: number): { lives: number; banks: number; gems: number; cores: number; zeniths: number } {
+  const lives = livesLeft * CASHOUT_PER_LIFE;
+  const banks = freeBanksLeft * CASHOUT_PER_FREE_BANK;
+  let gems = 0, cores = 0, zeniths = 0;
+  for (const t of hand) {
+    if (t === CORE) cores++;
+    else if (t === ZENITH) zeniths++;
+    else if (t !== null && t !== GLINT) gems += (t as number) * CASHOUT_PER_GEM_VALUE;
+  }
+  return { lives, banks, gems, cores, zeniths };
 }
 
 /**
@@ -2971,10 +3434,168 @@ export function cashOut(state: GameState): GameState {
     text: logText("cashedOut", { total: v.total, lives: v.lives, banks: v.banks, gems: v.gems }),
     kind: "bank",
   });
+  // VERSUS: cash-out is PERSONAL — your conversion lands in your score, you're
+  // done, and the opponent plays the board out; scores compare at the true end.
+  if (s.versus) {
+    // Score the conversion NOW (v.total includes any Zenith's flat bonus) — solo
+    // consumes endTally in the end card, but versus wipes it here (no card until
+    // the true end), so the value must land directly or it's lost.
+    s.score += v.total;
+    s.endTally = [];
+    s.versus.done[s.versus.turn] = true;
+    const ended = handExhausted(s);
+    return ended ?? s;
+  }
+  return endGame(s, false);
+}
+
+/** ONLINE co-op/versus: OFFER a mutual cash-out. The game does NOT end — the
+ *  active player waits ("Pending") while the other has a window to block. */
+export function offerCashOut(state: GameState): GameState {
+  if (state.phase !== "playing" || !state.deathMatch) return state;
+  if (!state.versus && !state.coop) return state;
+  if (state.pendingCashout) return state;
+  const s = clone(state);
+  s.lastResolved = emptyResolved();
+  const by = s.versus?.turn ?? s.coop?.turn ?? 0;
+  s.pendingCashout = { by };
+  const names = s.versus?.names ?? s.coop?.names ?? ["", ""];
+  pushLog(s, { text: logText("cashoutOffered", { name: names[by] }), kind: "info", sticky: true });
+  return s;
+}
+
+/** VERSUS clear-bonus shares, [clearer, other]. Classic: 50/50 with the odd
+ *  point and a +1,000 premium to the clearer. House rule (duels): the clearer
+ *  takes it all. Exported for the share tests. */
+export function versusClearShares(bonus: number, winnerTakesAll: boolean): [number, number] {
+  return winnerTakesAll ? [bonus, 0] : [Math.floor(bonus / 2) + 1000, Math.ceil(bonus / 2)];
+}
+
+/** Resolve a pending mutual cash-out: ACCEPTED → BOTH players cash out (every
+ *  unspent resource counted) and the game ends; DECLINED → the offer is blocked,
+ *  a log line notes it, and play resumes. */
+export function resolveCashOut(state: GameState, accepted: boolean): GameState {
+  if (!state.pendingCashout) return state;
+  const s = clone(state);
+  s.lastResolved = emptyResolved();
+  const by = s.pendingCashout!.by;
+  s.pendingCashout = null;
+  const names = s.versus?.names ?? s.coop?.names ?? ["", ""];
+  if (!accepted) {
+    const blocker = by === 0 ? 1 : 0;
+    // CO-OP: "Continue playing" no longer cancels the cash-out — it grants the
+    // other player ONE more move, then it auto-commits (see coopEndTurn). Hand the
+    // turn to that player and keep the offer live (deferred) so the offerer's
+    // pending overlay stays up while the last move plays out.
+    if (s.coop) {
+      const mine = s.hand;
+      s.hand = s.coop.partnerHand;
+      s.coop.partnerHand = mine;
+      const rev = s.handRevealed;
+      s.handRevealed = s.coop.partnerHandRevealed;
+      s.coop.partnerHandRevealed = rev;
+      s.coop.turn = s.coop.turn === 0 ? 1 : 0;
+      s.coop.moved = false;
+      updateHandReveal(s);
+      s.pendingCashout = { by, deferred: true };
+      pushLog(s, { text: logText("cashoutDeferred", { blocker: names[blocker], offerer: names[by] }), kind: "core", sticky: true });
+      return s;
+    }
+    pushLog(s, { text: logText("cashoutBlocked", { name: names[blocker] }), kind: "bust", sticky: true });
+    return s; // play resumes — the active player's turn carries on
+  }
+  // ACCEPTED — both players convert every unspent resource
+  const convScore = (c: { lives: number; banks: number; gems: number; zeniths: number }) => c.lives + c.banks + c.gems + c.zeniths * ZENITH_BONUS;
+  if (s.versus) {
+    const a = endConvert(s.hand, s.livesLeft, s.freeBanksLeft);
+    const p = endConvert(s.versus.partnerHand, s.versus.partnerLives, s.versus.partnerFreeBanks);
+    s.score += convScore(a); s.cashedOut = convScore(a); s.coresCollected += a.cores;
+    s.versus.partnerScore += convScore(p); s.versus.partnerCashedOut = convScore(p); s.versus.partnerCores += p.cores;
+    s.hand = []; s.versus.partnerHand = [];
+    s.versus.done = [true, true];
+    return endGame(s, false);
+  }
+  // CO-OP: shared lives/banks convert once; both hands convert into the shared score
+  const a = endConvert(s.hand, s.livesLeft, s.freeBanksLeft);
+  const p = endConvert(s.coop!.partnerHand, 0, 0);
+  s.score += convScore(a) + p.gems + p.zeniths * ZENITH_BONUS;
+  s.cashedOut = convScore(a) + p.gems + p.zeniths * ZENITH_BONUS;
+  s.coresCollected += a.cores + p.cores;
+  s.hand = []; s.coop!.partnerHand = [];
   return endGame(s, false);
 }
 
 function endGame(s: GameState, won: boolean): GameState {
+  // CO-OP: credit the final (unpassed) turn to the acting player, completing the
+  // per-player contribution breakdown for the second card slide.
+  if (s.coop) creditCoopTurn(s);
+  // GLINT VERSUS: clear bonus splits 50/50, the clearer takes +1,000 and doubles
+  // their banked Nebulite; each seat converts its own leftovers on a win; three
+  // busts lose on the spot; otherwise the higher (converted) score wins.
+  // HOUSE RULE (clearWinnerTakesAll — duels): the clearer takes the WHOLE bonus.
+  if (s.versus) {
+    const v = s.versus;
+    const other = v.turn === 0 ? 1 : 0;
+    const bonus = boardClearBonus(s.startShape);
+    // Build a seat's live end summary. `pending` combos (only the active seat can
+    // hold any at the end) cost their base value; on a WIN each seat converts its
+    // own leftover hand / lives / free-banks (match single-player: NO conversions
+    // on a loss), plus its half of the clear split. NO board-tile deduction in
+    // versus (shared competitive board). Cash-out conversions already landed in the
+    // seat's banked total during play, so they simply sit in scoreBase.
+    const buildSummary = (scoreBase: number, hand: TileVal[], lives: number, freeBanks: number, pending: ActivatedCombo[], clearHalf: number): EndSummary => {
+      const tally: { kind: EndTallyKind; delta: number }[] = [];
+      if (pending.length > 0) {
+        let pen = 0;
+        for (const c of pending) pen += COMBO_POINTS[c.name];
+        if (pen > 0) tally.push({ kind: "unbanked", delta: -pen });
+      }
+      if (won) {
+        const c = endConvert(hand, lives, freeBanks);
+        if (c.lives > 0) tally.push({ kind: "busts", delta: c.lives });
+        if (c.banks > 0) tally.push({ kind: "banks", delta: c.banks });
+        if (c.gems > 0) tally.push({ kind: "hand", delta: c.gems });
+        if (c.zeniths > 0) tally.push({ kind: "zenith", delta: c.zeniths * ZENITH_BONUS });
+        if (clearHalf > 0) tally.push({ kind: "clear", delta: clearHalf });
+      }
+      return { scoreBase, tally, finalScore: Math.max(0, scoreBase + tally.reduce((n, t) => n + t.delta, 0)) };
+    };
+    // the active seat is the one that ended the game — on a WIN, the clearer (their
+    // half carries the +1,000 clear bonus; their banked Nebulite doubles)
+    const shares = versusClearShares(bonus, v.clearWinnerTakesAll === true);
+    const activeSummary = buildSummary(s.score, s.hand, s.livesLeft, s.freeBanksLeft, s.activatedCombos, won ? shares[0] : 0);
+    const partnerSummary = buildSummary(v.partnerScore, v.partnerHand, v.partnerLives, v.partnerFreeBanks, [], won ? shares[1] : 0);
+    if (won) {
+      s.coresCollected *= 2; // the clearer's banked Nebulite doubles
+      pushLog(s, { text: logText(v.clearWinnerTakesAll ? "versusClearTaken" : "versusClearSplit", { bonus, name: v.names[v.turn] }), kind: "bank", sticky: true });
+    }
+    // seat-order the summaries and keep state.* (the active seat's) consistent so the
+    // existing card fields still work
+    v.summary = (v.turn === 0 ? [activeSummary, partnerSummary] : [partnerSummary, activeSummary]) as [EndSummary, EndSummary];
+    s.scoreBase = activeSummary.scoreBase;
+    s.endTally = activeSummary.tally.slice();
+    s.finalScore = activeSummary.finalScore;
+    v.partnerScore = partnerSummary.finalScore; // the other seat's final (incl. their conversions/split)
+    s.activatedCombos = [];
+    s.activatedCells = [];
+    const bustedOut = !won && s.livesLeft <= 0;
+    const seatScores: [number, number] = [v.summary[0].finalScore, v.summary[1].finalScore];
+    const winner: 0 | 1 | -1 = bustedOut
+      ? (other as 0 | 1)
+      : seatScores[0] === seatScores[1]
+      ? -1
+      : seatScores[0] > seatScores[1]
+      ? 0
+      : 1;
+    v.result = { winner, reason: bustedOut ? "busts" : "score", scores: seatScores };
+    s.phase = won ? "won" : "lost";
+    pushLog(s, {
+      text: winner === -1 ? logText("versusTie") : logText("versusWinner", { name: v.names[winner] }),
+      kind: won ? "bank" : "bust",
+      sticky: true,
+    });
+    return s;
+  }
   // cashOut() begins the tally (its conversion steps) BEFORE calling endGame; a natural
   // end starts it here. scoreBase = everything banked from the board during play — the
   // score the header shows through the end animation. Every end-of-run adjustment below
@@ -3008,14 +3629,19 @@ function endGame(s: GameState, won: boolean): GameState {
     // cash-out would — remaining busts, free banks AND hand minerals — at the
     // same rates, with the breakdown recorded for the run summary.
     const v = cashOutValue(s);
-    const handCores = s.hand.filter((t) => t === CORE).length;
+    // CO-OP: the shared lives/banks convert once (above); the PARTNER's leftover
+    // hand converts too (its gems add to the tally, its Nebulites/Zeniths bank).
+    const pc = s.coop ? endConvert(s.coop.partnerHand, 0, 0) : { lives: 0, banks: 0, gems: 0, cores: 0, zeniths: 0 };
+    v.gems += pc.gems;
+    v.total += pc.gems;
+    const handCores = s.hand.filter((t) => t === CORE).length + pc.cores;
     if (handCores > 0) {
       // hand Nebulites are banked with the win — collected for the wallet
       s.coresCollected += handCores;
       s.coreBanked = true;
     }
     // an UNUSED Zenith carried into the clear banks for its flat bonus
-    const handZeniths = s.hand.filter((t) => t === ZENITH).length;
+    const handZeniths = s.hand.filter((t) => t === ZENITH).length + pc.zeniths;
     if (handZeniths > 0) {
       add("zenith", handZeniths * ZENITH_BONUS);
       s.lastResolved.bonusRevealed.push({ key: "hand", gem: ZENITH, effect: "zenith", bonus: handZeniths * ZENITH_BONUS });
@@ -3027,6 +3653,7 @@ function endGame(s: GameState, won: boolean): GameState {
       add("hand", v.gems);
       s.endBonus = { lives: v.lives, banks: v.banks, gems: v.gems };
       s.hand = [];
+      if (s.coop) s.coop.partnerHand = []; // both hands converted
       pushLog(s, {
         text: logText("clearedConverted", { total: v.total, lives: v.lives, banks: v.banks, gems: v.gems }),
         kind: "bank",
@@ -3211,7 +3838,8 @@ export function describePlace(state: GameState, cellKey: string, choice = 0): Pl
       kind: "bust", placedKey: cellKey, placedVal, coveredVal, placedAs: null,
       bankOrder: [], bankScore: 0, multiplier: 1, coveredCore: false,
       coveredToHand: false, coveredCoreToScore: false,
-      bustLostCells: [...state.activatedCells],
+      // the opponent's protected claim is not lost (unless this bust hits it)
+      bustLostCells: state.activatedCells.filter((k) => !bustSafeCells(state, cellKey).has(k)),
       isLastTileBank: false,
       endsGame: committed.phase !== "playing",
       endsWon: committed.phase === "won",
