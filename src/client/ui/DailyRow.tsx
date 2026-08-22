@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
-import { itemName } from "../game/collection";
+import { itemName, resolveDailyReward } from "../game/collection";
 import type { DailyEntry } from "../game/challenges";
 import { Glyph } from "./Glyphs";
 import { NebuliteGem } from "./GameHeader";
@@ -76,7 +76,9 @@ export function CheckIcon() {
 
 // today's daily reward: the Nebulite payout, or the linked Collection item's name.
 // Item rewards are tappable — they jump to the item in the Collection.
-export function DailyReward({ entry, onOpenReward }: { entry: DailyEntry; onOpenReward?: RewardNav }) {
+export function DailyReward({ entry: rawEntry, onOpenReward }: { entry: DailyEntry; onOpenReward?: RewardNav }) {
+  // an already-owned item reward presents (and pays) as Nebulite instead
+  const entry = resolveDailyReward(rawEntry);
   if (entry.rewardKind === "nebulite") {
     const per = CONTENT.challenges.nebulitePerDaily ?? 5;
     return (

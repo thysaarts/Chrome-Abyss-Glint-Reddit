@@ -4,6 +4,7 @@ import { sfx } from "../audio/sfx";
 import { REGIONS } from "../theme/regions";
 import { Emblem, GLOW } from "./CollectionPage";
 import type { EarnedReward } from "../game/collection";
+import { CONTENT } from "../content/content";
 
 /**
  * REWARD REVEAL — the step AFTER the game-end pop-up when a run earned one or
@@ -12,7 +13,7 @@ import type { EarnedReward } from "../game/collection";
  * or the Ascent map). Framed exactly like the end card — same scrim, width,
  * radius and layout rhythm — so the two read as one sequence.
  */
-const KIND_LABEL: Record<EarnedReward["kind"], string> = { sticker: "STICKER", music: "MUSIC TRACK", theme: "BOARD THEME" };
+const KIND_LABEL: Record<EarnedReward["kind"], string> = { sticker: CONTENT.rewardReveal.kindSticker, music: CONTENT.rewardReveal.kindMusic, theme: CONTENT.rewardReveal.kindTheme, decor: CONTENT.rewardReveal.kindDecor };
 
 export function RewardReveal({ rewards, onView, onContinue }: { rewards: EarnedReward[]; onView: (r: EarnedReward) => void; onContinue: () => void }) {
   const many = rewards.length > 1;

@@ -8,6 +8,8 @@ import { sfx } from "../audio/sfx";
 import { music } from "../audio/music";
 import { loadSettings, saveSettings } from "./settings";
 import type { ThemeItem, MusicItem, DecorItem } from "../game/collection";
+import { PopupCard } from "./PopupCard";
+import { CONTENT } from "../content/content";
 
 /**
  * Shared item-detail modal used by both the Shop and Collection › Customise.
@@ -17,8 +19,8 @@ import type { ThemeItem, MusicItem, DecorItem } from "../game/collection";
  * render) live here so both surfaces stay identical.
  */
 
-const KIND_LABEL: Record<string, string> = { prop: "Landmark", particle: "Particle", light: "Light", pattern: "Sky" };
-export const decorTypeLabel = (d: DecorItem) => KIND_LABEL[d.kind] ?? "Ascent Decor";
+const KIND_LABEL: Record<string, string> = { prop: CONTENT.itemTypes.landmark, particle: CONTENT.itemTypes.particle, light: CONTENT.itemTypes.light, pattern: CONTENT.itemTypes.sky };
+export const decorTypeLabel = (d: DecorItem) => KIND_LABEL[d.kind] ?? CONTENT.itemTypes.decorFallback;
 
 export function DetailShell({
   typeLabel,
@@ -37,23 +39,25 @@ export function DetailShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
+  // scrollBody={false}: the body is a flex column so the header ART can shrink to fit
+  // (artSlot: flex 1 1 auto) while title / desc / actions stay put — the pop-up sizes
+  // itself rather than scrolling. PopupCard still caps it to the viewport and portals
+  // it to <body> so it covers the whole screen (topbar + tabs).
   return (
-    <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div style={modalType}>{typeLabel}</div>
-        <div style={modalTitle}>{title}</div>
-        {children}
-        {desc && <p style={modalDesc}>{desc}</p>}
-        {banner}
-        <div style={modalActions}>{actions}</div>
-      </div>
-    </div>
+    <PopupCard
+      onClose={onClose}
+      width={400}
+      scrollBody={false}
+      cardStyle={{ borderRadius: 18, boxShadow: "0 26px 60px -18px rgba(0,0,0,0.85)", padding: "16px 16px 14px" }}
+    >
+      <div style={{ ...modalType, flexShrink: 0, paddingRight: 40 }}>{typeLabel}</div>
+      <div style={{ ...modalTitle, flexShrink: 0 }}>{title}</div>
+      {/* the art (header image / preview) — the flexible slot that shrinks to fit */}
+      <div style={artSlot}>{children}</div>
+      {desc && <p style={{ ...modalDesc, flexShrink: 0 }}>{desc}</p>}
+      {banner && <div style={{ flexShrink: 0 }}>{banner}</div>}
+      <div style={{ ...modalActions, flexShrink: 0 }}>{actions}</div>
+    </PopupCard>
   );
 }
 
@@ -61,14 +65,17 @@ export function DetailShell({
 export function ThemeMockup({ item }: { item: ThemeItem }) {
   const rt = item.region ? REGIONS[item.region] : null;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* header art — shorter than the mock-up so the shop's lore text + Buy row
-          still fit on screen without the pop-up running off the bottom */}
-      {item.image && <img src={item.image} alt="" style={{ ...bigArt, height: 150, objectFit: "cover" }} />}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: "1 1 auto", minHeight: 0 }}>
+      {/* header art — the FLEXIBLE element: 150px is its cap, but it shrinks (never
+          grows) when the pop-up is height-constrained so the mock-up + lore + Buy
+          row still fit without running off the bottom. */}
+      {/* 200 ≈ the 3:2 art's natural height at this width — shows almost the full
+          image where the screen allows; flex 0 1 auto still shrinks it to fit */}
+      {item.image && <img src={item.image} alt="" style={{ ...bigArt, height: 200, flex: "0 1 auto", minHeight: 0, objectFit: "cover" }} />}
       {/* the live mock-up: the theme's ACTUAL in-game background (animated) with the
-          board chrome / buttons on top, scaled up to fill the box. */}
-      <div>
-        <div style={mockLabel}>In action</div>
+          board chrome / buttons on top, scaled up to fill the box. Stays fixed. */}
+      <div style={{ flexShrink: 0 }}>
+        <div style={mockLabel}>{CONTENT.itemTypes.inAction}</div>
         <div style={{ position: "relative", height: 200, borderRadius: 12, overflow: "hidden", border: `1px solid ${theme.color.border}` }}>
           {rt ? <RegionBackdrop region={rt} contained /> : <Backdrop contained />}
           <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "grid", placeItems: "center" }}>
@@ -80,8 +87,9 @@ export function ThemeMockup({ item }: { item: ThemeItem }) {
   );
 }
 
-/** Big cover + a play/pause preview player (restores prior track on close). */
-export function MusicPreview({ item }: { item: MusicItem }) {
+/** The play/pause preview bar alone (restores the prior track on unmount) —
+ *  shared by the music detail and the FACTION PACK pop-up. */
+export function MusicPlayerBar({ item }: { item: MusicItem }) {
   const [playing, setPlaying] = useState(false);
   const prevRef = useRef(music.current());
 
@@ -89,6 +97,20 @@ export function MusicPreview({ item }: { item: MusicItem }) {
     const p = prevRef.current;
     if (p) music.play(p); else music.stop();
   }, []);
+
+  // the item can change UNDER the bar (the faction pop-up swipes between
+  // packs) — moving away ends the preview rather than leaving the old
+  // pack's anthem playing beneath the new card
+  const lastTheme = useRef(item.theme);
+  useEffect(() => {
+    if (lastTheme.current === item.theme) return;
+    lastTheme.current = item.theme;
+    if (playing) {
+      const p = prevRef.current;
+      if (p) music.play(p); else music.stop();
+      setPlaying(false);
+    }
+  }, [item.theme, playing]);
 
   const toggle = () => {
     sfx.click();
@@ -103,27 +125,35 @@ export function MusicPreview({ item }: { item: MusicItem }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {item.image ? (
-        <img src={item.image} alt="" style={{ ...bigArt, aspectRatio: "1 / 1", objectFit: "cover" }} />
-      ) : (
-        <div style={{ ...bigArt, aspectRatio: "1 / 1", display: "grid", placeItems: "center", background: "radial-gradient(circle at 40% 30%, rgba(157,123,255,0.28), rgba(157,123,255,0.05))" }}><NoteIcon big /></div>
-      )}
-      <div style={playerBar}>
-        <button style={playBtn} onClick={toggle} aria-label={playing ? "Pause preview" : "Play preview"}>
-          {playing ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.color.text}><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.color.text}><path d="M8 5v14l11-7z" /></svg>
-          )}
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, color: theme.color.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{playing ? "Playing preview…" : "Preview track"}</div>
-          <div style={{ fontFamily: theme.fonts.sans, fontSize: 10.5, color: theme.color.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</div>
-        </div>
-        {playing && <Equalizer active />}
-        <MusicVolume />
+    <div style={{ ...playerBar, flexShrink: 0 }}>
+      <button style={playBtn} onClick={toggle} aria-label={playing ? "Pause preview" : "Play preview"}>
+        {playing ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.color.text}><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.color.text}><path d="M8 5v14l11-7z" /></svg>
+        )}
+      </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, color: theme.color.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{playing ? CONTENT.itemTypes.playingPreview : CONTENT.itemTypes.previewTrack}</div>
+        <div style={{ fontFamily: theme.fonts.sans, fontSize: 10.5, color: theme.color.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.sub}</div>
       </div>
+      {playing && <Equalizer active />}
+      <MusicVolume />
+    </div>
+  );
+}
+
+/** Big cover + a play/pause preview player (restores prior track on close). */
+export function MusicPreview({ item }: { item: MusicItem }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: "1 1 auto", minHeight: 0 }}>
+      {/* cover art — the FLEXIBLE element: square is its cap, shrinks to fit */}
+      {item.image ? (
+        <img src={item.image} alt="" style={{ ...bigArt, aspectRatio: "1 / 1", flex: "0 1 auto", minHeight: 0, objectFit: "cover" }} />
+      ) : (
+        <div style={{ ...bigArt, aspectRatio: "1 / 1", flex: "0 1 auto", minHeight: 0, display: "grid", placeItems: "center", background: "radial-gradient(circle at 40% 30%, rgba(157,123,255,0.28), rgba(157,123,255,0.05))" }}><NoteIcon big /></div>
+      )}
+      <MusicPlayerBar item={item} />
     </div>
   );
 }
@@ -193,7 +223,7 @@ export function DecorArt({ item }: { item: DecorItem }) {
     ? { aspectRatio: "1 / 1", background: "radial-gradient(60% 62% at 50% 46%, #15101f, #050409 78%)" }
     : { height: 200, background: "radial-gradient(120% 100% at 50% 0%, rgba(60,40,120,0.55), #0a0812 78%)" };
   return (
-    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${theme.color.border}`, ...box }}>
+    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${theme.color.border}`, flex: "0 1 auto", minHeight: 0, ...box }}>
       {item.image ? (
         <img src={item.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
@@ -240,9 +270,10 @@ export function LockIcon() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ flex: "0 0 auto" }}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
 }
 
-/* ---- shared modal styles ---- */
-export const overlay: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,4,10,0.72)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "grid", placeItems: "center", padding: 18, animation: "gl-fade-in 0.18s ease" };
-export const modal: React.CSSProperties = { width: "min(400px, 100%)", maxHeight: "88vh", overflowY: "auto", background: "linear-gradient(180deg, var(--panel-hi, #1a1d2e), var(--panel, #101322))", border: `1px solid ${theme.color.border}`, borderRadius: 18, boxShadow: "0 26px 60px -18px rgba(0,0,0,0.85)", padding: "16px 16px 14px", animation: "gl-drop-in 0.22s cubic-bezier(0.16,1,0.3,1)" };
+/* ---- shared modal styles (the scrim / card / cap / ✕ now come from PopupCard) ---- */
+// the header-art slot: the ONE element that flexes down when the pop-up is height-
+// constrained (its natural size is the cap). Everything else keeps flexShrink: 0.
+const artSlot: React.CSSProperties = { flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column" };
 const modalType: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: theme.color.accent };
 const modalTitle: React.CSSProperties = { fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 20, color: theme.color.text, margin: "3px 0 12px", lineHeight: 1.1 };
 const bigArt: React.CSSProperties = { display: "block", width: "100%", borderRadius: 12, border: `1px solid ${theme.color.border}` };

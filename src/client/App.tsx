@@ -45,7 +45,7 @@ import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnl
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
-import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget } from "./game/collection";
+import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget, factionPacks } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -180,13 +180,22 @@ export default function App() {
   const [nebulite, setNebulite] = useState(loadWallet);
   const addNebulite = useCallback((n: number) => setNebulite((v) => { const nv = Math.max(0, v + n); saveWallet(nv); return nv; }), []);
   const openSettings = useCallback((section: "visual" | "audio" | "game" | "data" | "decor" | "about" = "visual") => { sfx.click(); setSettingsSection(section); setShowSettings(true); }, []);
-  // Shop purchase: spend Nebulite and grant the item (theme / track / decor)
+  // Shop purchase: spend Nebulite and grant the item (theme / track / faction pack)
   const buyItem = useCallback(
-    (kind: "themes" | "music" | "decor", key: string, price: number) => {
+    (kind: "themes" | "music" | "decor" | "faction", key: string, price: number) => {
       if (nebulite < price) return;
       sfx.click();
-      addNebulite(-price);
-      grant(kind, key);
+      if (kind === "faction") {
+        // a FACTION PACK is a bundle: one payment grants BOTH member items
+        const p = factionPacks().find((f) => f.key === key);
+        if (!p) return;
+        addNebulite(-price);
+        grant("themes", p.themeKey);
+        grant("music", p.musicKey);
+      } else {
+        addNebulite(-price);
+        grant(kind, key);
+      }
     },
     [nebulite, addNebulite]
   );
@@ -414,7 +423,10 @@ export default function App() {
     dailyRun.day = day;
     dailyRun.metric = metric;
     dailyGameRef.current = { day, seed, metric };
-    start({ seed });
+    // REFINE-RIG PARITY (web e05c47e): a "Most Nebulite refined" day deals a
+    // board with the campaign's guaranteed refinable setup — the metric is won
+    // on merit, not on the luck of the deal. Same seed → same rig for everyone.
+    start({ seed, ...(metric === "refined" ? { nebuliteRig: true } : {}) });
     setScreen("game");
   }, [start]);
   // QUICK PLAY routes to the COMMUNITY DAILY until the player has a score on

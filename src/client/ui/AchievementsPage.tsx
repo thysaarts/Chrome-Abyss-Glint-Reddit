@@ -2,10 +2,10 @@ import { useState } from "react";
 import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
-import { topScores } from "../levels/progress";
+import { topScores, TOP_SCORES, unlockedIndex } from "../levels/progress";
 import { displayScoreLabel } from "../levels/levels";
 import { loadStats } from "../game/stats";
-import { computeAchievements, statValue } from "../game/challenges";
+import { computeAchievements, statValue, extraGemProgress } from "../game/challenges";
 import { Gem } from "./Gem";
 import { TileGem } from "./TileGem";
 import type { TileVal } from "../game/engine";
@@ -24,7 +24,7 @@ export function AchievementsPage({ onOpenLeaderboard }: { onOpenLeaderboard?: ()
   const [open, setOpen] = useState(false);
 
   const rankColors: Record<number, [string, string]> = { 1: ["#ffd980", "#1a0b2e"], 2: ["#cfd6e6", "#0c0e16"], 3: ["#e0a06a", "#1a0b06"] };
-  const shown = open ? scores.slice(0, 6) : scores.slice(0, 3);
+  const shown = open ? scores.slice(0, TOP_SCORES) : scores.slice(0, 3);
 
   return (
     <div style={page}>
@@ -41,6 +41,53 @@ export function AchievementsPage({ onOpenLeaderboard }: { onOpenLeaderboard?: ()
           );
         })}
       </div>
+
+      {/* EXTRA GEM — the depth reward: every tier passed deals one more gem in
+          every run. A milestone-style bar (progress within the CURRENT tier)
+          with the pips showing how many are earned. */}
+      {(() => {
+        const E = (CONTENT.achievements as unknown as {
+          extraGem?: { label: string; name: string; desc: string; maxedLine: string; nextLine: string };
+        }).extraGem;
+        const g = extraGemProgress(unlockedIndex());
+        if (!E || g.tiers.length === 0) return null;
+        return (
+          <>
+            <div style={eyebrow}>
+              <span>{E.label}</span>
+              <span style={{ color: theme.color.faint }}>{g.tier} / {g.tiers.length}</span>
+            </div>
+            <div style={{ ...card, padding: "13px 14px", display: "flex", flexDirection: "column", gap: 9 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {g.tiers.map((t, i) => (
+                    <span
+                      key={t}
+                      title={`Level ${t}`}
+                      style={{
+                        width: 9, height: 9, borderRadius: 3, transform: "rotate(45deg)",
+                        background: i < g.tier ? theme.color.accent : "transparent",
+                        border: `1px solid ${i < g.tier ? theme.color.accent : theme.color.border}`,
+                        boxShadow: i < g.tier ? `0 0 8px ${theme.color.accent}` : "none",
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ flex: 1, fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 13.5, color: theme.color.text }}>{E.name}</div>
+                <div style={{ fontFamily: theme.fonts.mono, fontSize: 11, color: theme.color.dim, fontVariantNumeric: "tabular-nums" }}>
+                  {g.value.toLocaleString()}/{g.target.toLocaleString()}
+                </div>
+              </div>
+              <div style={{ position: "relative", height: 7, borderRadius: 8, background: theme.color.panelHi, overflow: "hidden" }}>
+                <i style={{ position: "absolute", inset: "0 auto 0 0", borderRadius: 8, width: `${g.progress * 100}%`, background: "linear-gradient(90deg,#7fe9f5,#9d7bff)" }} />
+              </div>
+              <div style={{ fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.dim }}>
+                {g.maxed ? E.maxedLine : E.nextLine.replace("{target}", String(g.target))}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* HIGH SCORES (expanding) */}
       <button style={hsHead} onClick={() => { sfx.click(); setOpen((v) => !v); }} aria-expanded={open}>

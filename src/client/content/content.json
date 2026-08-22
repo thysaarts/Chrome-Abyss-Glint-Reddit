@@ -865,14 +865,6 @@
       {
         "key": "duelWins",
         "label": "BROKER DUELS WON"
-      },
-      {
-        "key": "onlineVersusWins",
-        "label": "VERSUS GAMES WON"
-      },
-      {
-        "key": "coopClears",
-        "label": "CO-OPS CLEARED"
       }
     ],
     "rewards": [

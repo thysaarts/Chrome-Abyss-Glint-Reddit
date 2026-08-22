@@ -6,12 +6,16 @@ import { ThemePreview } from "./ThemePreview";
 import { sfx } from "../audio/sfx";
 import { NebuliteGem } from "./GameHeader";
 import { todayKey } from "../game/stats";
-import { shopThemes, shopMusic, ascentAsDecor, themeOwned, musicOwned, decorOwned, shopOrder } from "../game/collection";
-import type { DecorItem, ThemeItem, MusicItem } from "../game/collection";
+import { shopThemes, shopMusic, ascentAsDecor, themeOwned, musicOwned, decorOwned, shopOrder, factionPacks, factionOwned, factionTheme, factionMusic } from "../game/collection";
+import type { DecorItem, ThemeItem, MusicItem, FactionPack } from "../game/collection";
 import {
-  DetailShell, ThemeMockup, MusicPreview, DecorArt, DecorPreview, NoteIcon, LockIcon, decorTypeLabel,
+  DetailShell, ThemeMockup, MusicPreview, MusicPlayerBar, DecorArt, DecorPreview, NoteIcon, LockIcon, decorTypeLabel,
   cancelBtn, primaryModalBtn, bannerOwned, bannerLocked,
 } from "./ItemDetail";
+import { useSlideSwipe } from "./useSlideSwipe";
+import { PopupCard } from "./PopupCard";
+import { RegionBackdrop } from "./RegionBackdrop";
+import { Backdrop } from "./Backdrop";
 
 /**
  * SHOP — spend Nebulite on shop-exclusive board themes, music tracks and Ascent
@@ -31,7 +35,8 @@ const DECOR_KIND: Record<string, string> = { prop: "Landmark", particle: "Partic
 type Detail =
   | { kind: "themes"; item: ThemeItem }
   | { kind: "music"; item: MusicItem }
-  | { kind: "decor"; item: DecorItem };
+  | { kind: "decor"; item: DecorItem }
+  | { kind: "faction"; item: FactionPack };
 
 export function ShopPage({
   nebulite,
@@ -42,7 +47,7 @@ export function ShopPage({
   onViewInCollection,
 }: {
   nebulite: number;
-  onBuy: (kind: "themes" | "music" | "decor", key: string, price: number) => void;
+  onBuy: (kind: "themes" | "music" | "decor" | "faction", key: string, price: number) => void;
   onOpenDecorSettings: () => void;
   openItem?: { kind: "themes" | "music" | "decor"; key: string } | null;
   onItemHandled?: () => void;
@@ -152,20 +157,48 @@ export function ShopPage({
         </>
       )}
 
-      {detail && (
+      {/* FACTION PACKS — character bundles (board theme + anthem in one), shown
+          in a swipeable 2-up slider with the FEATURED carousel's dot language */}
+      {factionPacks().length > 0 && (
+        <>
+          <div style={eyebrow}><span>{C.factionLabel}</span></div>
+          <FactionCarousel
+            packs={factionPacks()}
+            onOpen={(p) => openDetail({ kind: "faction", item: p })}
+            chip={(p) => priceChip(factionOwned(p), p.price)}
+          />
+        </>
+      )}
+
+      {detail && detail.kind === "faction" ? (
+        <FactionDetail
+          pack={detail.item}
+          packs={factionPacks()}
+          onNavigate={(p) => setDetail({ kind: "faction", item: p })}
+          nebulite={nebulite}
+          onClose={() => setDetail(null)}
+          onRequestBuy={() => { sfx.click(); setDetail(null); setConfirm(detail); }}
+        />
+      ) : detail ? (
         <BuyModal
           detail={detail}
           nebulite={nebulite}
           onClose={() => setDetail(null)}
           onRequestBuy={() => { setConfirm(detail); setDetail(null); }}
         />
-      )}
+      ) : null}
       {confirm && (
         <BuyConfirm
           detail={confirm}
           onCancel={() => setConfirm(null)}
           onConfirm={() => onBuy(confirm.kind, confirm.item.key, confirm.item.price)}
-          onView={() => { onViewInCollection?.(confirm.kind, confirm.item.key); setConfirm(null); }}
+          // a bought pack lives in the Collection as its two member items — the
+          // deep-link lands on the board theme
+          onView={() => {
+            if (confirm.kind === "faction") onViewInCollection?.("themes", confirm.item.themeKey);
+            else onViewInCollection?.(confirm.kind, confirm.item.key);
+            setConfirm(null);
+          }}
         />
       )}
     </div>
@@ -188,7 +221,7 @@ function BuyConfirm({
   const C = CONTENT.collection;
   const B = C.buyConfirm;
   const { kind, item } = detail;
-  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : TYPE_LABEL[kind];
+  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : kind === "faction" ? CONTENT.itemTypes.factionPack : TYPE_LABEL[kind];
   const [paid, setPaid] = useState(false);
 
   const pay = () => {
@@ -207,6 +240,7 @@ function BuyConfirm({
           {kind === "themes" && <ThemePreview region={(item as ThemeItem).region ? REGIONS[(item as ThemeItem).region!] : null} image={item.image} fill />}
           {kind === "music" && (item.image ? <img src={item.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ display: "grid", placeItems: "center", height: "100%" }}><NoteIcon /></div>)}
           {kind === "decor" && ((item as DecorItem).image ? <img src={(item as DecorItem).image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <DecorPreview d={item as DecorItem} />)}
+          {kind === "faction" && <img src={(item as FactionPack).image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />}
         </div>
 
         {!paid ? (
@@ -298,7 +332,7 @@ function pickFeatured(items: Detail[], dayKey: string): Detail[] {
 function FeaturedSlide({ d, nebulite, interactive, onLearnMore, onBuy }: { d: Detail; nebulite: number; interactive: boolean; onLearnMore: (d: Detail) => void; onBuy: (d: Detail) => void }) {
   const C = CONTENT.collection;
   const { kind, item } = d;
-  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : TYPE_LABEL[kind];
+  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : kind === "faction" ? CONTENT.itemTypes.factionPack : TYPE_LABEL[kind];
   const canAfford = nebulite >= item.price;
   return (
     <div style={{ ...featCard, pointerEvents: interactive ? "auto" : "none" }}>
@@ -413,7 +447,7 @@ function BuyModal({
   const owned = kind === "themes" ? themeOwned(item as ThemeItem) : kind === "music" ? musicOwned(item as MusicItem) : decorOwned(item as DecorItem);
   const price = item.price;
   const canAfford = nebulite >= price;
-  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : TYPE_LABEL[kind];
+  const typeLabel = kind === "decor" ? decorTypeLabel(item as DecorItem) : kind === "faction" ? CONTENT.itemTypes.factionPack : TYPE_LABEL[kind];
 
   const banner = owned ? (
     <div style={bannerOwned}>{C.ownedTag}</div>
@@ -445,6 +479,178 @@ function BuyModal({
       {kind === "music" && <MusicPreview item={item as MusicItem} />}
       {kind === "decor" && <DecorArt item={item as DecorItem} />}
     </DetailShell>
+  );
+}
+
+/** FACTION PACKS slider — pages of two character cards, swiped sideways, with
+ *  the FEATURED carousel's dot indicator. No wrap-around and no auto-advance:
+ *  it's a shelf, not a billboard. Shared with the Collection (owned packs),
+ *  which passes its own corner chip. */
+export function FactionCarousel({ packs, onOpen, chip }: {
+  packs: FactionPack[];
+  onOpen: (p: FactionPack) => void;
+  chip: (p: FactionPack) => React.ReactNode;
+}) {
+  const PER = 2;
+  const pages: FactionPack[][] = [];
+  for (let i = 0; i < packs.length; i += PER) pages.push(packs.slice(i, i + PER));
+  const [pg, setPg] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0), pid = useRef(-1), started = useRef(false), moved = useRef(false);
+  const clamp = (n: number) => Math.max(0, Math.min(pages.length - 1, n));
+
+  const onDown = (e: React.PointerEvent) => { startX.current = e.clientX; pid.current = e.pointerId; started.current = false; moved.current = false; };
+  const onMove = (e: React.PointerEvent) => {
+    if (e.pointerId !== pid.current) return;
+    const dx = e.clientX - startX.current;
+    if (!started.current) {
+      if (Math.abs(dx) < 8) return; // a small move isn't a drag — let taps click through
+      started.current = true; moved.current = true; setDragging(true);
+      try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    }
+    setDragX(dx);
+  };
+  const onUp = () => {
+    if (!started.current) return;
+    started.current = false; setDragging(false);
+    if (dragX <= -50) setPg((p) => clamp(p + 1));
+    else if (dragX >= 50) setPg((p) => clamp(p - 1));
+    setDragX(0);
+  };
+
+  return (
+    <div>
+      <div style={featViewport} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        <div style={{ display: "flex", transform: `translateX(calc(${-pg * 100}% + ${dragX}px))`, transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.25,0.8,0.3,1)", cursor: dragging ? "grabbing" : "grab", touchAction: "pan-y" }}>
+          {pages.map((page, k) => (
+            <div key={k} style={factionPage}>
+              {page.map((p) => (
+                <button key={p.key} style={{ ...cardBtn, pointerEvents: dragging ? "none" : "auto" }} onClick={() => { if (moved.current) return; sfx.click(); onOpen(p); }}>
+                  <div style={{ position: "relative", aspectRatio: "6 / 7", overflow: "hidden", background: "radial-gradient(120% 100% at 50% 0%, rgba(60,40,120,0.5), #0a0812 75%)" }}>
+                    <img src={p.image} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                  </div>
+                  <div style={cardFoot}>
+                    <span style={cardName}>{p.name}</span>
+                    {chip(p)}
+                  </div>
+                </button>
+              ))}
+              {page.length < PER && <span />}
+            </div>
+          ))}
+        </div>
+      </div>
+      {pages.length > 1 && (
+        <div style={featDots}>
+          {pages.map((_, k) => (
+            <button key={k} aria-label={`Faction packs ${k + 1}`} style={{ ...featDot, ...(k === pg ? featDotOn : {}) }} onClick={() => { sfx.click(); setPg(k); }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** FACTION PACK detail — the board-theme and music pop-ups fused: a small
+ *  character avatar frees the header (type + title sit right of it), then the
+ *  IN ACTION theme mock-up + blurb, the track's preview player + blurb, and
+ *  the usual locked banner / Cancel / Buy row. No big thumbnail. The
+ *  Collection reuses it with `equip` in place of the buy flow (music slotting
+ *  stays in Settings › Audio, like every track).
+ *
+ *  With `packs` + `onNavigate` the card pages between the packs — the shared
+ *  swipe gesture plus a dot row above the buttons. Navigation is CONTROLLED:
+ *  the caller swaps its open-pack state, so Buy/Equip always act on the pack
+ *  on screen (banner, price and equip state all re-derive from `pack`). */
+export function FactionDetail({ pack, packs, onNavigate, nebulite = 0, onClose, onRequestBuy, equip }: {
+  pack: FactionPack;
+  /** the swipe set (Shop: all packs; Collection: owned packs) — omit or pass one for a static card */
+  packs?: FactionPack[];
+  onNavigate?: (p: FactionPack) => void;
+  nebulite?: number;
+  onClose: () => void;
+  onRequestBuy?: () => void;
+  /** Collection mode: the primary action equips/unequips the pack's board theme */
+  equip?: { equipped: boolean; onEquip: () => void; onUnequip: () => void };
+}) {
+  const C = CONTENT.collection;
+  const t = factionTheme(pack);
+  const m = factionMusic(pack);
+  const owned = factionOwned(pack);
+  const canAfford = nebulite >= pack.price;
+  const rt = t?.region ? REGIONS[t.region] : null;
+
+  const set = packs && packs.length > 1 && onNavigate ? packs : null;
+  const idx = set ? Math.max(0, set.findIndex((p) => p.key === pack.key)) : 0;
+  const swipe = useSlideSwipe(set?.length ?? 1, idx, (i) => { if (set) onNavigate?.(set[i]); });
+
+  const banner = equip ? (
+    equip.equipped ? <div style={bannerOwned}>{C.equippedTag}</div> : null
+  ) : owned ? (
+    <div style={bannerOwned}>{C.ownedTag}</div>
+  ) : !canAfford ? (
+    <div style={bannerLocked}><LockIcon /> {C.lockedNeedPrefix} <NebuliteGem size={12} /> {(pack.price - nebulite).toLocaleString()} {C.lockedNeedSuffix}</div>
+  ) : null;
+
+  return (
+    <PopupCard onClose={onClose} width={400} cardStyle={{ borderRadius: 18, boxShadow: "0 26px 60px -18px rgba(0,0,0,0.85)", padding: "16px 16px 14px" }}>
+      <div {...swipe.bind} style={swipe.style}>
+      {/* header — the avatar makes the space the big thumbnail used to take */}
+      <div style={{ display: "flex", alignItems: "center", gap: 13, paddingRight: 40 }}>
+        <img src={pack.avatar} alt="" style={{ width: 48, height: "auto", flexShrink: 0, filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))" }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={fpType}>{CONTENT.itemTypes.factionPack}</div>
+          <div style={fpTitle}>{pack.name}</div>
+        </div>
+      </div>
+      {/* the board, live */}
+      <div style={{ ...fpMockLabel, marginTop: 14 }}>{CONTENT.itemTypes.inAction}</div>
+      <div style={{ position: "relative", height: 175, borderRadius: 12, overflow: "hidden", border: `1px solid ${theme.color.border}` }}>
+        {rt ? <RegionBackdrop region={rt} contained /> : <Backdrop contained />}
+        <div style={{ position: "absolute", inset: 0, zIndex: 1, display: "grid", placeItems: "center" }}>
+          <ThemePreview region={rt} transparent fill hexScale={1.5} chromeScale={2} />
+        </div>
+      </div>
+      <p style={fpDesc}>{pack.desc}</p>
+      {/* the anthem */}
+      {m && (
+        <div style={{ marginTop: 12 }}>
+          <MusicPlayerBar item={m} />
+          <p style={fpDesc}>{pack.musicDesc}</p>
+        </div>
+      )}
+      {banner}
+      </div>
+      {set && (
+        <div style={featDots}>
+          {set.map((p, k) => (
+            <button key={p.key} aria-label={p.name} style={{ ...featDot, ...(k === idx ? featDotOn : {}) }} onClick={() => { if (k !== idx) { sfx.click(); onNavigate?.(p); } }} />
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10, marginTop: set ? 12 : 16 }}>
+        <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
+        {equip ? (
+          equip.equipped ? (
+            <button style={{ ...primaryModalBtn, background: "rgba(52,217,139,0.12)", border: "1px solid rgba(52,217,139,0.5)", borderBottom: "1px solid rgba(52,217,139,0.5)", boxShadow: "none", color: theme.color.good }} onClick={() => { sfx.click(); equip.onUnequip(); }}>{C.unequip}</button>
+          ) : (
+            <button style={primaryModalBtn} onClick={() => { sfx.click(); equip.onEquip(); }}>{C.equipTag}</button>
+          )
+        ) : owned ? (
+          <span style={{ ...ownedChip, padding: "10px 16px", fontSize: 10, flex: 1, justifyContent: "center", display: "inline-flex", alignItems: "center" }}>{C.ownedTag}</span>
+        ) : (
+          <button
+            style={{ ...primaryModalBtn, opacity: canAfford ? 1 : 0.45, cursor: canAfford ? "pointer" : "not-allowed", filter: canAfford ? "none" : "grayscale(0.6)" }}
+            disabled={!canAfford}
+            title={canAfford ? undefined : C.cantAfford}
+            onClick={() => { if (!canAfford) return; sfx.click(); onRequestBuy?.(); }}
+          >
+            {canAfford ? <>{C.buyPrefix} <NebuliteGem size={14} /> {pack.price.toLocaleString()}</> : <><LockIcon /> <NebuliteGem size={14} /> {pack.price.toLocaleString()}</>}
+          </button>
+        )}
+      </div>
+    </PopupCard>
   );
 }
 
@@ -509,3 +715,10 @@ const featBuy: React.CSSProperties = { flex: 1, display: "inline-flex", alignIte
 const featDots: React.CSSProperties = { display: "flex", justifyContent: "center", gap: 7, marginTop: 11 };
 const featDot: React.CSSProperties = { width: 7, height: 7, borderRadius: 999, border: "none", padding: 0, background: "rgba(157,123,255,0.32)", cursor: "pointer", transition: "width .2s, background .2s" };
 const featDotOn: React.CSSProperties = { background: theme.color.accent, width: 18 };
+
+/* ---- faction packs ---- */
+const factionPage: React.CSSProperties = { flex: "0 0 100%", minWidth: 0, boxSizing: "border-box", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "3px 4px 9px" };
+const fpType: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: theme.color.accent };
+const fpTitle: React.CSSProperties = { fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 20, color: theme.color.text, marginTop: 3, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const fpMockLabel: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 8.5, letterSpacing: "0.18em", textTransform: "uppercase", color: theme.color.faint, margin: "0 0 5px 2px" };
+const fpDesc: React.CSSProperties = { fontFamily: theme.fonts.sans, fontSize: 12.5, lineHeight: 1.5, color: theme.color.dim, margin: "10px 2px 0" };

@@ -43,6 +43,7 @@ export interface ThemeItem extends Trigger, Sourced {
   standard?: boolean; // part of the factory set the player starts with
   image?: string; // CMS thumbnail — replaces the procedural preview when set
   desc?: string; // short shop-detail blurb (CMS-editable)
+  pack?: string; // FACTION PACK member (the pack's key): sold only as the bundle
 }
 export interface MusicItem extends Trigger, Sourced {
   key: string;
@@ -53,6 +54,23 @@ export interface MusicItem extends Trigger, Sourced {
   standard?: boolean;
   image?: string; // CMS thumbnail — replaces the note icon when set
   desc?: string; // short shop-detail blurb (CMS-editable)
+  pack?: string; // FACTION PACK member (the pack's key): sold only as the bundle
+}
+
+/** A FACTION PACK — a character-themed bundle of one board theme + one music
+ *  track, sold as a unit in the Shop's FACTION PACKS slider. Buying grants both
+ *  member items; they then live in the Collection like any bought item. */
+export interface FactionPack {
+  key: string; // the character key (broker, outlaw, …)
+  name: string;
+  themeKey: string; // the bundled ThemeItem
+  musicKey: string; // the bundled MusicItem
+  region?: string; // the aligned campaign region (Settings › Themes lets an owner swap it for this pack)
+  price: number;
+  image: string; // cropped character card (public/faction-thumbs/)
+  avatar: string; // the small hex portrait (public/avatars/)
+  desc: string; // board-theme blurb
+  musicDesc: string; // track blurb
 }
 export interface DecorItem {
   key: string;
@@ -63,6 +81,8 @@ export interface DecorItem {
   image: string; // custom art URL (props / patterns)
   unlocked: boolean;
   standard?: boolean; // baseline item — free and hidden from the Shop (Ascent elements)
+  /** set when the piece is EARNED for a feat rather than sold (see AscentItem) */
+  trigger?: string;
   color?: string; // the effect's tint (CMS colour box; default violet #9d7bff)
   // one kind-specific dial: particle density / light intensity = "high"|"medium"|"low";
   // pattern tile size / prop size = "big"|"medium"|"small"
@@ -188,10 +208,17 @@ export interface AscentItem {
   unlocked: boolean;
   standard?: boolean; // part of the baseline background — free, never sold in the Shop
   image: string; // in-situ thumbnail (public/ascent-thumbs/<key>.webp)
+  // AWARDABLE DECOR: a piece may carry the same feat vocabulary as the
+  // collectibles and then be GRANTED for that feat instead of bought (the
+  // finale's Master Core is the first). Pieces without a trigger are untouched
+  // — they stay purchase-only, exactly as before.
+  trigger?: string;
+  target?: number;
+  scope?: string;
 }
 
 // atmosphere layers (vs landmark objects) — used for grouping and shop labels
-const ASCENT_PARTICLE = new Set(["dust", "comets", "gold-embers", "stardust-rain"]);
+const ASCENT_PARTICLE = new Set(["dust", "comets", "bolides", "gold-embers", "stardust-rain"]);
 const ASCENT_LIGHT = new Set(["galaxy-glow", "aurora-veil", "solar-shafts"]);
 const ASCENT_BG = new Set(["nebula", "stars", "crimson-drift", "emerald-abyss"]);
 export const ascentIsSky = (a: AscentItem): boolean => ASCENT_PARTICLE.has(a.key) || ASCENT_LIGHT.has(a.key) || ASCENT_BG.has(a.key);
@@ -207,6 +234,10 @@ export const ascentStandardElements = (): string[] => ascentItems().filter((a) =
 export const ascentItems = (): AscentItem[] => (CONTENT.collection.ascent ?? []) as unknown as AscentItem[];
 export const ascentOwned = (a: AscentItem): boolean => owns("decor", a.key, a.unlocked);
 
+/** EARNED-ONLY: granted for a feat and never sold. A piece that carries a
+ *  trigger AND a price is both — buy it now, or earn it later. */
+export const earnedOnly = (d: { trigger?: string; price: number }): boolean => !!d.trigger && !d.price;
+
 /** Ascent items shaped as DecorItems so the Shop's existing decor pipeline
  *  (cards, detail modal, buy flow) renders them without modification. */
 export const ascentAsDecor = (): DecorItem[] =>
@@ -219,6 +250,7 @@ export const ascentAsDecor = (): DecorItem[] =>
     image: a.image,
     unlocked: a.unlocked,
     standard: a.standard,
+    trigger: a.trigger,
     desc: a.desc,
   }));
 
@@ -249,12 +281,38 @@ export const ownedMusic = (): MusicItem[] => musicTracks().filter(musicOwned);
  * own items PLUS any shop items you've bought, so bought themes/tracks stay
  * equippable there; the Shop shows only shop-source items. */
 export const customiseThemes = (): ThemeItem[] => themes().filter((t) => t.source !== "shop" || themeOwned(t));
-export const shopThemes = (): ThemeItem[] => themes().filter((t) => t.source === "shop");
+// pack members are sold only as their FACTION PACK bundle — never on these shelves
+export const shopThemes = (): ThemeItem[] => themes().filter((t) => t.source === "shop" && !t.pack);
 export const customiseMusic = (): MusicItem[] => musicTracks().filter((m) => m.source !== "shop" || musicOwned(m));
-export const shopMusic = (): MusicItem[] => musicTracks().filter((m) => m.source === "shop");
+export const shopMusic = (): MusicItem[] => musicTracks().filter((m) => m.source === "shop" && !m.pack);
 
-/** Find the track that carries a given theme (for showing its name in Settings). */
-export const trackForTheme = (theme: MusicTheme): MusicItem | undefined => musicTracks().find((m) => m.theme === theme);
+/* ------------------------------ faction packs ------------------------------ */
+
+export const factionPacks = (): FactionPack[] => ((CONTENT.collection as { factions?: FactionPack[] }).factions ?? []) as FactionPack[];
+export const factionTheme = (p: FactionPack): ThemeItem | undefined => themes().find((t) => t.key === p.themeKey);
+export const factionMusic = (p: FactionPack): MusicItem | undefined => musicTracks().find((m) => m.key === p.musicKey);
+/** A pack is owned once BOTH member items are (buying grants both at once). */
+export const factionOwned = (p: FactionPack): boolean => {
+  const t = factionTheme(p), m = factionMusic(p);
+  return !!t && !!m && themeOwned(t) && musicOwned(m);
+};
+
+// The aligned campaign region per character — the CMS field is authoritative;
+// this fallback keeps region swaps working if a stale admin draft drops it.
+const FACTION_REGION_FALLBACK: Record<string, string> = {
+  outlaw: "Fringe Market",
+  enforcer: "Machina Forge",
+  hacker: "Digital Nexus",
+  sentinel: "Military Bastion",
+  siren: "Divinity Enclave",
+  ghost: "Shadow Sector",
+  broker: "Corporate Spire",
+};
+export const factionRegion = (p: FactionPack): string | undefined => p.region ?? FACTION_REGION_FALLBACK[p.key];
+/** The faction pack aligned with a campaign region (Settings › Themes swaps). */
+export const factionForRegion = (region: string): FactionPack | undefined =>
+  factionPacks().find((p) => factionRegion(p) === region);
+
 
 /** Sticker-book totals for the progress header. */
 export function stickerProgress(): { owned: number; total: number } {
@@ -272,12 +330,12 @@ function statTotal(type: ObjectiveType, s: LifetimeStats): number {
     case "banks": return s.banksTotal;
     case "clear": return s.boardsCleared;
     // real lifetime COUNTS (the old boolean flags capped these at 1, silently
-    // killing any target above it — rocket, satellite, escapepod, lastwaltz
-    // and asteroids could never grant)
+    // killing any target above it — e.g. "reach GLINT RUSH 25 times")
     case "fulldrift": return s.fullDriftTotal ?? 0;
     case "rush": return s.rushCount ?? 0;
     case "cashout": return s.cashoutCount ?? 0;
-    case "score": return 0; // score is only meaningful per-run
+    case "nobust": return s.noBustStreak ?? 0; // the LIVE streak (had no case — always 0)
+    case "score": return 0; // score is only meaningful per-run (CMS hides this scope)
     case "bankscore": return s.maxBankScore ?? 0; // lifetime BEST single bank
     case "convergence": return s.convergenceTotal ?? 0;
     case "harmony": return s.harmonyTotal ?? 0;
@@ -294,13 +352,18 @@ function meets(t: { trigger: string; target: number; scope: string }, run: Finis
   // target). Used by puzzle-board stickers: clearing the puzzle level unlocks the
   // next level, which grants its picture. Back-fills on any later run end too.
   if (t.trigger === "level") return storedFrontier() >= t.target;
+  // "boss" — CLEARING the finale (Level 100, The Master Core). The frontier can
+  // never pass the last level, so the puzzle-board "level" rule above cannot
+  // express the final picture: it is earned by beating the board, not by
+  // reaching it.
+  if (t.trigger === "boss") return stats.beatMasterCore === true;
   const type = t.trigger as ObjectiveType;
   return t.scope === "total" ? statTotal(type, stats) >= t.target : measureRun(type, run) >= t.target;
 }
 
 /** A collectible the player has just earned — drives the reward-reveal card. */
 export interface EarnedReward {
-  kind: "sticker" | "music" | "theme";
+  kind: "sticker" | "music" | "theme" | "decor";
   key: string;
   name: string;
   image?: string; // sticker earned art / theme・music CMS thumbnail
@@ -338,6 +401,49 @@ export function earnItem(kind: "sticker" | "music" | "theme", id: string): Earne
   if (!t || themeOwned(t)) return null;
   grant("themes", id);
   return { kind: "theme", key: t.key, name: t.name, region: t.region, image: t.image };
+}
+
+/** True when the reward item can still be EARNED: it exists in the catalogue
+ *  and is not yet owned. Mirrors earnItem's refusals (owned OR unknown id). */
+export function itemEarnable(kind: "sticker" | "music" | "theme", id: string): boolean {
+  if (kind === "sticker") {
+    const s = stickers().find((x) => x.id === id);
+    return !!s && !stickerOwned(s);
+  }
+  if (kind === "music") {
+    const m = musicTracks().find((x) => x.key === id);
+    return !!m && !musicOwned(m);
+  }
+  const t = themes().find((x) => x.key === id);
+  return !!t && !themeOwned(t);
+}
+
+/** A daily entry AS THE PLAYER WILL ACTUALLY BE PAID: an item reward the player
+ *  already owns (or a stale CMS id) falls back to the Nebulite payout — the
+ *  grant path (App's dailySlidesFor via earnItem returning null) has always
+ *  paid Nebulite in those cases; every card/pop-up that shows a daily's reward
+ *  must resolve through this so the promise matches the payout. No "owned"
+ *  caveat is shown — the entry simply presents as a Nebulite daily. */
+export function resolveDailyReward<T extends { rewardKind: "nebulite" | "sticker" | "music" | "theme"; rewardId: string }>(entry: T): T {
+  if (entry.rewardKind === "nebulite") return entry;
+  if (itemEarnable(entry.rewardKind, entry.rewardId)) return entry;
+  return { ...entry, rewardKind: "nebulite", rewardId: "" };
+}
+
+/** Display info for a reward item WITHOUT granting or checking ownership —
+ *  the daily-challenge DETAIL pop-up previews the prize before it's won. */
+export function itemPreview(kind: "sticker" | "music" | "theme", id: string): { name: string; image?: string; emblem?: number } {
+  if (kind === "sticker") {
+    const list = stickers();
+    const i = list.findIndex((s) => s.id === id);
+    return i >= 0 ? { name: list[i].name, image: list[i].image, emblem: i } : { name: "Sticker" };
+  }
+  if (kind === "music") {
+    const m = musicTracks().find((x) => x.key === id);
+    return m ? { name: m.name, image: m.image } : { name: "Music track" };
+  }
+  const t = themes().find((x) => x.key === id);
+  return t ? { name: t.name, image: t.image } : { name: "Board theme" };
 }
 
 /** Display name for a collectible reward (for the Challenges list). */
@@ -404,6 +510,16 @@ export function reconcileGrants(run: FinishedRun, stats: LifetimeStats): EarnedR
     if (!stickerOwned(s) && meets(s, run, stats)) {
       grant("stickers", s.id);
       earned.push({ kind: "sticker", key: s.id, name: s.name, image: s.image, emblem: i });
+    }
+  });
+  // AWARDABLE DECOR — only pieces that actually carry a feat. Every shop-only
+  // piece has no trigger, so `meets` short-circuits and nothing else changes.
+  // (Ownership here also un-hides the piece's 3D element in the Ascent scene.)
+  ascentItems().forEach((a) => {
+    if (!a.trigger) return;
+    if (!ascentOwned(a) && meets({ trigger: a.trigger, target: a.target ?? 1, scope: a.scope ?? "total" }, run, stats)) {
+      grant("decor", a.key);
+      earned.push({ kind: "decor", key: a.key, name: a.name, image: a.image });
     }
   });
   return earned;

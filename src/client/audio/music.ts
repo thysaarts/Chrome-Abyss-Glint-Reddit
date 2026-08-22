@@ -49,6 +49,14 @@ export type MusicTheme =
   | "Regalia"
   | "Skyward"
   | "Obsidian Mirror"
+  // the FACTION wave — one flagship track per character (FACTION PACKS)
+  | "Faction: Broker"
+  | "Faction: Enforcer"
+  | "Faction: Ghost"
+  | "Faction: Hacker"
+  | "Faction: Outlaw"
+  | "Faction: Sentinel"
+  | "Faction: Siren"
   // internal: the GLINT RUSH anthem — plays for every rush, on every theme;
   // never listed in any catalogue or equip menu
   | "Glint Rush";
@@ -973,6 +981,237 @@ const THEMES: Record<MusicTheme, ThemeDef> = {
       }
       // a filtered noise sweep breathing across two bars
       if (pos === 0 && bar % 2 === 0) noiseHit(ctx, { when, dur: 1.4, gain: 0.008, filter: 800, filterTo: 4000, q: 0.6, type: "bandpass", reverb: 0.3 });
+    },
+  },
+
+  /* ---- the FACTION wave: seven character tracks (FACTION PACKS). Each one
+     reads its patron's look AND background — corporate poise, factory muscle,
+     stealth, code, street, drill-yard, spirit. ---- */
+
+  // ---- the Broker: corporate/clean — poised minimal glasswork over a soft
+  // pulse; money that never raises its voice ----
+  "Faction: Broker": {
+    bpm: 96,
+    spb: 4,
+    bars: 8,
+    play(step, when, ctx) {
+      const spBar = 16;
+      const bar = barOf(step, spBar, 8);
+      const pos = step % spBar;
+      // Lydian-cool changes: Cmaj7 – D/C – Am9 – Fmaj7#11, held two bars each
+      const idx = Math.floor(bar / 2) % 4;
+      const chords = [
+        [60, 64, 67, 71],
+        [62, 66, 69, 74],
+        [57, 60, 64, 71],
+        [53, 57, 60, 66],
+      ];
+      const roots = [36, 36, 33, 29];
+      // a soft, immaculate pulse — felt more than heard; brushed tick on the offs
+      if (pos % 4 === 0) kick(ctx, when, 0.055, 48);
+      if (pos % 8 === 4) noiseHit(ctx, { when, dur: 0.035, gain: 0.012, filter: 9000, type: "highpass", reverb: 0.08 });
+      // clean sub — root only, impeccably tight
+      if (pos === 0 || pos === 10) note(ctx, { freq: hz(roots[idx]), when, dur: 0.5, type: "sine", gain: 0.05, attack: 0.01, release: 0.25, filter: 500, reverb: 0.05 });
+      // the glass pad — a slow, level swell (no drama, all poise)
+      if (bar % 2 === 0 && pos === 0) chord(ctx, chords[idx], { when, dur: 4.6, type: "triangle", gain: 0.016, attack: 1.1, release: 1.8, detune: 4, filter: 2400, reverb: 0.45 });
+      // the ledger line — sparse glassy plucks placed like signatures
+      const marks = [0, 6, 11] as const;
+      if (bar % 2 === 1 && (marks as readonly number[]).includes(pos)) {
+        const c = chords[idx];
+        const n = c[(bar + pos) % c.length] + 12;
+        note(ctx, { freq: hz(n), when, dur: 0.3, type: "sine", gain: 0.023, attack: 0.006, release: 0.7, filter: 3600, filterTo: 2000, reverb: 0.5, pan: pos === 6 ? 0.25 : -0.2 });
+      }
+      // a lilac shimmer once a cycle — her hair catching the boardroom light
+      if (bar === 7 && pos === 12) note(ctx, { freq: hz(88), when, dur: 0.5, type: "sine", gain: 0.014, attack: 0.01, release: 1.6, reverb: 0.75, pan: 0.35 });
+    },
+  },
+
+  // ---- the Enforcer: brute force — factory floor at full output: anvils,
+  // pistons, and a low saw riff with shoulders ----
+  "Faction: Enforcer": {
+    bpm: 86,
+    spb: 4,
+    bars: 4,
+    play(step, when, ctx) {
+      const spBar = 16;
+      const bar = barOf(step, spBar, 4);
+      const pos = step % spBar;
+      // C minor, dropping to Ab and Bb — heavy plant machinery changes
+      const roots = [36, 36, 32, 34];
+      const root = roots[bar];
+      // the press: a huge kick on 1 and the and-of-3
+      if (pos === 0 || pos === 10) kick(ctx, when, 0.16, 38);
+      // anvil clank on the backbeat — bright metal, short ring
+      if (pos === 4 || pos === 12) noiseHit(ctx, { when, dur: 0.14, gain: 0.045, filter: 3400, filterTo: 2200, q: 6, reverb: 0.22, pan: pos === 4 ? -0.2 : 0.2 });
+      // piston hiss — steam release on the and-of-4
+      if (pos === 14 && bar % 2 === 1) noiseHit(ctx, { when, dur: 0.4, gain: 0.014, filter: 1600, filterTo: 5000, q: 0.7, type: "bandpass", reverb: 0.3 });
+      // the low saw riff — slow, mean, molten around the root
+      const riff = [0, 0, 3, 0, 5, 3, 0, -2];
+      if (pos % 2 === 0) {
+        const n = root - 12 + riff[(step >> 1) % riff.length];
+        note(ctx, { freq: hz(n), when, dur: 0.24, type: "sawtooth", gain: 0.032, attack: 0.008, release: 0.12, filter: 700, filterTo: 320, q: 1.2, reverb: 0.1 });
+      }
+      // amber core glow — a mid drone swelling under the second half of the loop
+      if (bar >= 2 && pos === 0) chord(ctx, [root + 12, root + 19], { when, dur: 3.6, type: "triangle", gain: 0.014, attack: 0.9, release: 1.2, detune: 7, filter: 1100, reverb: 0.35 });
+    },
+  },
+
+  // ---- the Ghost: stealth/suspense — held breath in an empty corridor; a
+  // noir bass, a tense spectral pluck, and things you almost hear ----
+  "Faction: Ghost": {
+    bpm: 70,
+    spb: 2,
+    bars: 8,
+    play(step, when, ctx) {
+      const spBar = 8;
+      const bar = barOf(step, spBar, 8);
+      const pos = step % spBar;
+      // D minor with a tritone shadow — the suspense interval
+      const roots = [38, 38, 36, 41, 38, 36, 34, 38];
+      const root = roots[bar];
+      // the noir bass — two low notes a bar, second one a half-step slide
+      if (pos === 0) note(ctx, { freq: hz(root - 12), when, dur: 1.4, type: "sine", gain: 0.048, attack: 0.05, release: 0.8, filter: 420, reverb: 0.15 });
+      if (pos === 5) note(ctx, { freq: hz(root - 12 + (bar % 4 === 3 ? 6 : 5)), when, dur: 0.8, type: "sine", gain: 0.03, attack: 0.04, release: 0.6, filter: 420, reverb: 0.18 });
+      // the spectral pluck — sparse, high, slightly detuned; cyan glow in the dark
+      if ((bar % 2 === 0 && pos === 3) || (bar % 4 === 1 && pos === 6)) {
+        note(ctx, { freq: hz(root + 24 + (pos === 3 ? 0 : 6)), when, dur: 0.4, type: "triangle", gain: 0.02, attack: 0.005, release: 1.4, detune: 9, filter: 3200, filterTo: 1500, reverb: 0.7, pan: pos === 3 ? -0.35 : 0.4 });
+      }
+      // a cold air pad, barely there, fading in over the loop's back half
+      if (bar === 4 && pos === 0) chord(ctx, [root + 12, root + 15, root + 19], { when, dur: 9, type: "sine", gain: 0.011, attack: 3, release: 3.5, detune: 5, reverb: 0.8 });
+      // breath — a filtered noise wash you feel behind you, once a cycle
+      if (bar === 6 && pos === 4) noiseHit(ctx, { when, dur: 1.8, gain: 0.008, filter: 500, filterTo: 2400, q: 0.5, type: "bandpass", reverb: 0.6 });
+      // the heartbeat — a soft double thump, only when the bar goes quiet
+      if (bar % 4 === 3 && (pos === 0 || pos === 1)) kick(ctx, when, 0.05, 40);
+    },
+  },
+
+  // ---- the Hacker: digital/techno — a cold 16th acid arp threading packet
+  // blips over a locked four-on-floor; pure code ----
+  "Faction: Hacker": {
+    bpm: 128,
+    spb: 4,
+    bars: 4,
+    play(step, when, ctx) {
+      const spBar = 16;
+      const bar = barOf(step, spBar, 4);
+      const pos = step % spBar;
+      // A minor drive, sliding to F and G — terminal-green changes
+      const roots = [33, 33, 29, 31];
+      const root = roots[bar];
+      // locked grid: kick on the floor, closed hat on the offs
+      if (pos % 4 === 0) kick(ctx, when, 0.11, 45);
+      if (pos % 4 === 2) noiseHit(ctx, { when, dur: 0.04, gain: 0.022, filter: 8000, q: 1.4, type: "highpass", reverb: 0.06 });
+      // the acid line — a squelchy 16th arp with a moving filter (the intrusion)
+      const acid = [0, 12, 3, 7, 0, 10, 7, 12, 0, 12, 5, 7, 3, 10, 7, 15];
+      const open = pos % 8 === 6; // the filter bites open twice a bar
+      note(ctx, { freq: hz(root + acid[step % acid.length]), when, dur: 0.1, type: "sawtooth", gain: 0.026, attack: 0.003, release: 0.06, filter: open ? 3400 : 900, filterTo: open ? 1200 : 500, q: 7, reverb: 0.12, pan: pos % 4 < 2 ? -0.15 : 0.15 });
+      // packet blips — high pings answering across the stereo field
+      if ((bar % 2 === 0 && pos === 7) || (bar % 2 === 1 && pos === 13)) {
+        note(ctx, { freq: hz(root + 36 + (pos === 7 ? 0 : 3)), when, dur: 0.08, type: "square", gain: 0.014, attack: 0.002, release: 0.25, reverb: 0.4, pan: pos === 7 ? 0.5 : -0.5 });
+      }
+      // a data pad under the back half — the server room's hum
+      if (bar === 2 && pos === 0) chord(ctx, [root + 24, root + 31], { when, dur: 3.4, type: "triangle", gain: 0.011, attack: 0.8, release: 1.2, detune: 6, filter: 2000, reverb: 0.4 });
+    },
+  },
+
+  // ---- the Outlaw: rough and street — a swung backbeat, dusty keys and a
+  // strut bass; earth tones with a red streak ----
+  "Faction: Outlaw": {
+    bpm: 92,
+    spb: 4,
+    bars: 4,
+    swing: 0.56,
+    play(step, when, ctx) {
+      const spBar = 16;
+      const bar = barOf(step, spBar, 4);
+      const pos = step % spBar;
+      // dusty minor blues changes: Em – G – Am – Em
+      const idx = [0, 1, 2, 0][bar];
+      const chords = [
+        [52, 55, 59, 62],
+        [55, 59, 62, 66],
+        [57, 60, 64, 67],
+      ];
+      const roots = [28, 31, 33];
+      // the strut: kick 1 and and-of-2, fat snare on the backbeat
+      if (pos === 0 || pos === 6) kick(ctx, when, 0.13, 42);
+      if (pos === 4 || pos === 12) noiseHit(ctx, { when, dur: 0.11, gain: 0.04, filter: 1900, filterTo: 800, q: 1.2, reverb: 0.18 });
+      // laid-back hat, swung — only on the offs, like a match struck
+      if (pos % 4 === 2) noiseHit(ctx, { when, dur: 0.05, gain: 0.016, filter: 6500, type: "highpass", reverb: 0.08 });
+      // the strut bass — root, octave ghost, the b7 walk-up
+      const walk = [0, 0, 12, 10];
+      if (pos % 4 === 0) note(ctx, { freq: hz(roots[idx] + walk[Math.floor(pos / 4)]), when, dur: 0.3, type: "triangle", gain: 0.05, attack: 0.008, release: 0.16, filter: 520, reverb: 0.08 });
+      // dusty keys — a warm stabbed chord on the and-of-1, held loose
+      if (pos === 2) chord(ctx, chords[idx], { when, dur: 0.9, type: "triangle", gain: 0.017, attack: 0.02, release: 0.7, detune: 8, filter: 1700, filterTo: 900, reverb: 0.35 });
+      // the red streak — a bent high lick answering once a cycle
+      if (bar === 3 && (pos === 8 || pos === 10 || pos === 13)) {
+        const lick = [76, 74, 71];
+        note(ctx, { freq: hz(lick[pos === 8 ? 0 : pos === 10 ? 1 : 2]), when, dur: 0.3, type: "sawtooth", gain: 0.016, attack: 0.01, release: 0.5, filter: 2200, filterTo: 1100, reverb: 0.4, pan: 0.25 });
+      }
+    },
+  },
+
+  // ---- the Sentinel: military — drill-yard discipline: a march snare, low
+  // brass stabs, everything squared away ----
+  "Faction: Sentinel": {
+    bpm: 100,
+    spb: 4,
+    bars: 4,
+    play(step, when, ctx) {
+      const spBar = 16;
+      const bar = barOf(step, spBar, 4);
+      const pos = step % spBar;
+      // D minor resolve to Bb and C — parade-ground changes
+      const roots = [38, 38, 34, 36];
+      const root = roots[bar];
+      // the march: kick on 1 and 3, snare taps in strict time with a roll into
+      // the next bar (16ths across the last beat)
+      if (pos === 0 || pos === 8) kick(ctx, when, 0.12, 44);
+      if (pos === 4 || pos === 12) noiseHit(ctx, { when, dur: 0.09, gain: 0.038, filter: 2600, filterTo: 1200, q: 2, reverb: 0.16 });
+      if (pos >= 13) noiseHit(ctx, { when, dur: 0.05, gain: 0.02 + (pos - 13) * 0.006, filter: 2600, filterTo: 1600, q: 2, reverb: 0.12 });
+      // low brass stab — a clipped minor voicing on the downbeat, at attention
+      if (pos === 0) chord(ctx, [root, root + 7, root + 12, root + 15], { when, dur: 0.5, type: "sawtooth", gain: 0.02, attack: 0.015, release: 0.25, filter: 900, filterTo: 500, reverb: 0.2 });
+      // the watch: a steady fifth held under the bar, unblinking
+      if (pos === 2) note(ctx, { freq: hz(root - 12), when, dur: 2.6, type: "sine", gain: 0.04, attack: 0.06, release: 0.6, filter: 480, reverb: 0.1 });
+      // amber-eye signal — a bugle-like call over the final bar
+      if (bar === 3 && (pos === 4 || pos === 6 || pos === 10)) {
+        const call = [root + 24, root + 28, root + 31];
+        note(ctx, { freq: hz(call[pos === 4 ? 0 : pos === 6 ? 1 : 2]), when, dur: 0.4, type: "sawtooth", gain: 0.016, attack: 0.02, release: 0.4, filter: 2000, filterTo: 1300, reverb: 0.35, pan: 0.15 });
+      }
+    },
+  },
+
+  // ---- the Siren: spiritual — a slow tide of choir sines and glass chimes
+  // in vast water; serenity with depth underneath ----
+  "Faction: Siren": {
+    bpm: 58,
+    spb: 2,
+    bars: 8,
+    play(step, when, ctx) {
+      const spBar = 8;
+      const bar = barOf(step, spBar, 8);
+      const pos = step % spBar;
+      // open fifth drones rising through Dm9 colours, two bars per change
+      const idx = Math.floor(bar / 2) % 4;
+      const chords = [
+        [50, 57, 64, 69],
+        [48, 55, 62, 67],
+        [53, 60, 65, 72],
+        [50, 57, 62, 69],
+      ];
+      const roots = [26, 24, 29, 26];
+      // the tide — a deep slow sub swell, one breath per change
+      if (bar % 2 === 0 && pos === 0) note(ctx, { freq: hz(roots[idx]), when, dur: 7.5, type: "sine", gain: 0.04, attack: 2.2, release: 3, filter: 300, reverb: 0.2 });
+      // the choir — stacked sines blooming and dissolving (her voice, wordless)
+      if (bar % 2 === 0 && pos === 1) chord(ctx, chords[idx], { when, dur: 6.5, type: "sine", gain: 0.018, attack: 2.6, release: 3.5, detune: 6, reverb: 0.85 });
+      // glass chimes — a pentatonic drift, never twice the same corner of the field
+      const penta = [74, 76, 79, 81, 86];
+      if (pos === 4 || (bar % 2 === 1 && pos === 7)) {
+        const n = penta[(step * 7) % penta.length];
+        note(ctx, { freq: hz(n), when, dur: 0.5, type: "sine", gain: 0.015, attack: 0.01, release: 2.2, reverb: 0.85, pan: Math.sin(step * 1.3) * 0.5 });
+      }
+      // light through water — a high harmonic shimmer at the loop's crest
+      if (bar === 5 && pos === 2) note(ctx, { freq: hz(93), when, dur: 0.8, type: "sine", gain: 0.009, attack: 0.4, release: 2.5, reverb: 0.9, pan: -0.3 });
     },
   },
 

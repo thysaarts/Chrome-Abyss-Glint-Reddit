@@ -20,8 +20,12 @@ import {
   ascentAsDecor,
   ascentItems,
   decorOwned,
+  factionPacks,
+  factionOwned,
+  factionTheme,
 } from "../game/collection";
-import type { Sticker, ThemeItem, MusicItem, DecorItem } from "../game/collection";
+import type { Sticker, ThemeItem, MusicItem, DecorItem, FactionPack } from "../game/collection";
+import { FactionCarousel, FactionDetail } from "./ShopPage";
 import { unseenIds, markSeen } from "../game/unseen";
 import { DetailShell, ThemeMockup, MusicPreview, DecorArt, DecorPreview, decorTypeLabel, LockIcon, cancelBtn, primaryModalBtn, neutralModalBtn, bannerLocked, bannerOwned } from "./ItemDetail";
 
@@ -208,7 +212,9 @@ function CustomiseView({ settings, onSettingsChange, onOpenAudioSettings, onOpen
 
   // detail pop-up (opens on tapping the item box, not the equip control)
   const [detail, setDetail] = useState<{ kind: "themes"; item: ThemeItem } | { kind: "music"; item: MusicItem } | { kind: "decor"; item: DecorItem } | null>(null);
+  const [factionDetail, setFactionDetail] = useState<FactionPack | null>(null);
   const ownedDecor: DecorItem[] = []; // the 3D Ascent decor is not part of the Reddit build
+  const ownedPacks = factionPacks().filter(factionOwned); // bought bundles — the section hides until the first one
 
   // deep-link from a reward chip: open the matching item's detail pop-up
   useEffect(() => {
@@ -315,6 +321,26 @@ function CustomiseView({ settings, onSettingsChange, onOpenAudioSettings, onOpen
         </div>
         <CustMoreToggle open={openMusic} total={musicAll.length} limit={CUST_LIMIT} onClick={() => { sfx.click(); setOpenMusic((v) => !v); }} />
 
+        {/* FACTION PACKS — bought bundles, same slider as the Shop's shelf;
+            hidden until the first purchase. The pop-up equips the pack's board
+            theme; its track slots in Settings › Audio like any other. */}
+        {ownedPacks.length > 0 && (
+          <>
+            <div style={eyebrow}><span>{C.factionLabel}</span><span style={{ color: theme.color.faint }}>{ownedPacks.length} / {factionPacks().length}</span></div>
+            <FactionCarousel
+              packs={ownedPacks}
+              onOpen={(p) => { sfx.click(); setFactionDetail(p); }}
+              chip={(p) => {
+                const rgn = factionTheme(p)?.region;
+                const eq = !!rgn && settings.boardTheme === rgn;
+                return eq
+                  ? <span style={{ ...chip, color: theme.color.good, borderColor: "rgba(52,217,139,0.45)", background: "rgba(52,217,139,0.1)" }}>{C.equippedTag}</span>
+                  : <span style={{ ...chip, color: theme.color.good, borderColor: "rgba(52,217,139,0.4)", background: "rgba(52,217,139,0.08)" }}>{C.collectedWord}</span>;
+              }}
+            />
+          </>
+        )}
+
         {/* DECOR — only appears once you own decor. Never collapsed: all owned shown.
             Tapping opens the pop-up; a shop link sits alongside as one more tile. */}
         {ownedDecor.length > 0 && (
@@ -356,6 +382,22 @@ function CustomiseView({ settings, onSettingsChange, onOpenAudioSettings, onOpen
           onEquipDecor={() => { setDetail(null); onOpenDecorSettings?.(); }}
         />
       )}
+      {factionDetail && (() => {
+        const rgn = factionTheme(factionDetail)?.region ?? "";
+        return (
+          <FactionDetail
+            pack={factionDetail}
+            packs={ownedPacks}
+            onNavigate={setFactionDetail}
+            onClose={() => setFactionDetail(null)}
+            equip={{
+              equipped: !!rgn && settings.boardTheme === rgn,
+              onEquip: () => { onSettingsChange({ boardTheme: rgn }); setFactionDetail(null); },
+              onUnequip: () => { onSettingsChange({ boardTheme: "" }); setFactionDetail(null); },
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

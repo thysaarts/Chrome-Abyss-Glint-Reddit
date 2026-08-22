@@ -15,10 +15,7 @@ let master: GainNode | null = null;
 let muted = false;
 let volume = 0.9; // 0..1 master level — driven by the Settings audio slider
 
-/** The shared AudioContext, CREATING it if needed (call from a user gesture). */
-export function getAudioContext(): AudioContext | null {
-  return getCtx();
-}
+
 /** The shared AudioContext if it already exists — never creates one (so the
  *  music scheduler can idle silently until the first gesture unlocks audio,
  *  avoiding a pre-gesture autoplay warning). */
@@ -59,6 +56,12 @@ const pentFreq = (i: number, baseMidi = 72) => {
   return midi(baseMidi + PENT[i % PENT.length] + octave * 12);
 };
 
+// How many Web Audio nodes are currently alive (for the crash black box).
+let liveNodes = 0;
+export function liveSfxNodes(): number {
+  return liveNodes;
+}
+
 interface ToneOpts {
   freq: number;
   type?: OscillatorType;
@@ -87,6 +90,10 @@ function tone(o: ToneOpts) {
   g.connect(master);
   osc.start(t0);
   osc.stop(t0 + dur + 0.03);
+  // release the chain when the sound ends — a long session plays thousands of
+  // sfx and WebKit is not guaranteed to collect still-connected nodes
+  liveNodes += 2;
+  osc.onended = () => { try { osc.disconnect(); g.disconnect(); } catch { /* already gone */ } liveNodes -= 2; };
 }
 
 interface NoiseOpts {
@@ -123,6 +130,8 @@ function noise(o: NoiseOpts) {
   g.connect(master);
   src.start(t0);
   src.stop(t0 + dur + 0.03);
+  liveNodes += 3;
+  src.onended = () => { try { src.disconnect(); filt.disconnect(); g.disconnect(); } catch { /* already gone */ } liveNodes -= 3; };
 }
 
 /* ------------------------------ the sounds ------------------------------ */
@@ -166,7 +175,23 @@ const scoreTick = () => tone({ freq: 1500, type: "square", dur: 0.03, gain: 0.05
 const scoreRoll = () => tone({ freq: 1350 + Math.random() * 260, type: "square", dur: 0.022, gain: 0.038 });
 
 // a very subtle tick for the BANK NOW 3-2-1 countdown (rises slightly per step)
+/** GLINT TOGETHER — the turn passes to you: a bright two-step rise that pulls
+ *  the eye to the YOUR TURN slam without shouting over the board. */
+const turnChange = () => {
+  tone({ freq: midi(76), type: "triangle", dur: 0.09, gain: 0.1 });
+  tone({ freq: midi(83), type: "triangle", dur: 0.16, gain: 0.11, delay: 0.09 });
+  tone({ freq: midi(88), type: "sine", dur: 0.26, gain: 0.07, delay: 0.18 });
+  noise({ dur: 0.12, gain: 0.015, filter: 6500, filterSlide: 9000, type: "highpass", delay: 0.18 });
+};
+
 const countdownTick = (n: number) => tone({ freq: 700 + (3 - n) * 90, type: "sine", dur: 0.045, gain: 0.045 });
+
+// a friendly incoming-message chime — two soft rising notes, like a gentle "ping"
+const message = () => {
+  tone({ freq: midi(84), type: "sine", dur: 0.11, gain: 0.09 });
+  tone({ freq: midi(89), type: "sine", dur: 0.22, gain: 0.08, delay: 0.1 });
+  tone({ freq: midi(96), type: "sine", dur: 0.18, gain: 0.03, delay: 0.1 });
+};
 
 // the score TICKING DOWN as an end-of-run penalty eats into it — a low, short
 // descending blip: the darker mirror of scoreTick's bright rising up-tick.
@@ -238,6 +263,18 @@ const zenithReveal = () => {
   [midi(84), midi(91), midi(96)].forEach((f, i) => tone({ freq: f, type: "sine", dur: 0.3, gain: 0.06, delay: 0.05 + i * 0.05 }));
   noise({ dur: 0.35, gain: 0.03, filter: 6000, filterSlide: 12000, q: 1.1, type: "bandpass" });
   tone({ freq: midi(103), type: "sine", dur: 0.22, gain: 0.035, delay: 0.2 });
+};
+
+// A bonus gem UNCOVERED on the board — the beat where it rises out of the cell
+// that hid it. Deliberately NOT one of the per-gem reveal stings above (those
+// still play a beat later with the flight): a short, bright discovery sparkle —
+// a rising three-note arpeggio over a soft swell, with a shimmer tail. Kept
+// under ~0.7s so the gem's own sting lands clean on top of it.
+const bonusUncover = () => {
+  tone({ freq: midi(48), slideTo: midi(60), type: "sine", dur: 0.5, gain: 0.07, attack: 0.06 });
+  [72, 76, 83].forEach((m, i) => tone({ freq: midi(m), type: "triangle", dur: 0.3, gain: 0.075, delay: i * 0.09 }));
+  tone({ freq: midi(88), slideTo: midi(95), type: "sine", dur: 0.34, gain: 0.05, delay: 0.28 });
+  noise({ dur: 0.45, gain: 0.028, filter: 3200, filterSlide: 11000, q: 1.2, type: "bandpass", delay: 0.06 });
 };
 
 const bankNowClick = () => {
@@ -346,6 +383,50 @@ const levelUnlock = () => {
   tone({ freq: 250, slideTo: 720, type: "triangle", dur: 0.35, gain: 0.08 });
   noise({ dur: 0.3, gain: 0.04, filter: 800, filterSlide: 6000, q: 0.8, type: "bandpass" });
   [76, 83, 88, 95].forEach((m, i) => tone({ freq: midi(m), type: "square", dur: 0.24, gain: 0.05, delay: 0.2 + i * 0.055 }));
+};
+
+// Ascent camera whoosh — a short, positive WHIP: a fast airy swish that snaps
+// past. Bright (no bass), quick (~0.18s), a narrow resonant band racing across
+// the top end so it reads as a flick rather than a rush. The peek DOWN sweeps
+// high→low, the swing home UP sweeps low→high; both stay up in whistle range.
+const whoosh = (dir: "down" | "up" = "down") => {
+  const [from, to] = dir === "down" ? [5200, 1600] : [1600, 5200];
+  // the whip body — a tight bandpass sweep, short and snappy
+  noise({ dur: 0.16, gain: 0.07, filter: from, filterSlide: to, q: 2.6, type: "bandpass" });
+  // a bright airy tail on top for the "positive" flick
+  noise({ dur: 0.12, gain: 0.03, filter: 6000, filterSlide: 9500, q: 1, type: "highpass", delay: 0.02 });
+  // a thin whistle sliding the same direction — sine, not triangle, so it's
+  // airy rather than buzzy, and pitched high to keep all the bass out
+  tone({ freq: dir === "down" ? 1500 : 700, slideTo: dir === "down" ? 700 : 1500, type: "sine", dur: 0.16, gain: 0.03 });
+};
+
+// The peeked level's target lights up NEXT UP — a bright little target-lock ping.
+const nextTarget = () => {
+  tone({ freq: midi(91), type: "sine", dur: 0.09, gain: 0.09 });
+  tone({ freq: midi(98), type: "sine", dur: 0.26, gain: 0.08, delay: 0.07, attack: 0.004 });
+  noise({ dur: 0.14, gain: 0.02, filter: 7000, filterSlide: 11000, type: "highpass", delay: 0.07 });
+};
+
+// FIREWORKS — the unlock choreography's finale over the newly-opened level.
+// Three shells: each a rising whistle, a bright pop, and a crackle tail that
+// scatters. ~2.4s in total, timed to the on-screen bursts.
+const fireworks = () => {
+  const shell = (at: number, base: number) => {
+    // the rise — a thin whistle climbing
+    tone({ freq: base * 0.6, slideTo: base * 1.9, type: "sine", dur: 0.34, gain: 0.035, delay: at });
+    // the pop — a short body thud plus a bright burst
+    tone({ freq: base * 2.2, slideTo: base * 0.8, type: "triangle", dur: 0.16, gain: 0.1, delay: at + 0.36 });
+    noise({ dur: 0.26, gain: 0.09, filter: 2600, filterSlide: 500, q: 0.7, delay: at + 0.36 });
+    // the crackle tail — a scatter of tiny sparks
+    for (let i = 0; i < 7; i++) {
+      noise({ dur: 0.05, gain: 0.03, filter: 5000 + i * 700, filterSlide: 2400, q: 1.4, type: "bandpass", delay: at + 0.44 + i * 0.055 });
+    }
+    // a sparkle chord over the top so it reads as celebration, not detonation
+    [88, 95, 100].forEach((m, i) => tone({ freq: midi(m), type: "sine", dur: 0.3, gain: 0.045, delay: at + 0.4 + i * 0.05, attack: 0.004 }));
+  };
+  shell(0, 330);
+  shell(0.62, 392);
+  shell(1.26, 262);
 };
 
 // Cash-out cancelled — a soft "poof": a falling filtered-noise puff.
@@ -471,6 +552,8 @@ export const sfx = {
   scoreTickDown,
   scoreRoll,
   countdownTick,
+  message,
+  turnChange,
   goBang,
   blink,
   failure,
@@ -479,6 +562,7 @@ export const sfx = {
   resurrectReveal,
   quadriantReveal,
   zenithReveal,
+  bonusUncover,
   bankNowClick,
   bust,
   finalBust,
@@ -498,6 +582,9 @@ export const sfx = {
   abyssFall,
   levelTick,
   levelUnlock,
+  whoosh,
+  nextTarget,
+  fireworks,
   poof,
   startWarp,
   nebDouble,
