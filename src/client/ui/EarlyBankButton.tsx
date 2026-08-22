@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { theme } from "../theme/theme";
+import { CONTENT } from "../content/content";
 import { sfx } from "../audio/sfx";
 import { gameOptions } from "./settings";
 
@@ -80,10 +81,10 @@ export function EarlyBankButton({ onBank }: { onBank: () => void }) {
       </span>
 
       <span style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 18, letterSpacing: "0.08em", color: theme.color.gold }}>
-        BANK NOW
+        {CONTENT.hud.bankNow}
       </span>
       <span style={{ fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 11, color: theme.color.gold, opacity: 0.7 }}>
-        tap to lock points
+        {CONTENT.hud.bankNowSub}
       </span>
     </button>
   );

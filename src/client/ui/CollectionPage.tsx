@@ -425,7 +425,7 @@ function CustomiseModal({
     const on = element ? !settings.sceneOff.includes(element) : false;
     const actions = (
       <>
-        <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>Cancel</button>
+        <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
         {/* equip/unequip is done on the Decor settings page — hand off there */}
         <button style={on ? neutralModalBtn : primaryModalBtn} onClick={() => { sfx.click(); onEquipDecor(); }}>{on ? C.equippedTag : C.equipTag}</button>
       </>
@@ -440,17 +440,17 @@ function CustomiseModal({
     const t = detail.item;
     const owned = themeOwned(t);
     const equipped = settings.boardTheme === t.region;
-    const banner = !owned ? <div style={bannerLocked}><LockIcon /> {C.lockedTag} — not yet collected</div> : equipped ? <div style={bannerOwned}>{C.equippedTag}</div> : undefined;
+    const banner = !owned ? <div style={bannerLocked}><LockIcon /> {C.lockedTag} {C.notCollected}</div> : equipped ? <div style={bannerOwned}>{C.equippedTag}</div> : undefined;
     // full-width Cancel (no action button) when locked, or when this is the equipped
     // standard board (Slate) — there's nothing to equip/unequip.
     const soloCancel = !owned || (equipped && !t.region);
     const actions = soloCancel ? (
-      <button style={{ ...cancelBtn, flex: 1 }} onClick={() => { sfx.click(); onClose(); }}>Cancel</button>
+      <button style={{ ...cancelBtn, flex: 1 }} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
     ) : (
       <>
-        <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>Cancel</button>
+        <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
         {equipped && t.region ? (
-          <button style={neutralModalBtn} onClick={() => { sfx.click(); onEquipTheme(""); }}>Unequip</button>
+          <button style={neutralModalBtn} onClick={() => { sfx.click(); onEquipTheme(""); }}>{C.unequip}</button>
         ) : (
           <button style={primaryModalBtn} onClick={() => { sfx.click(); onEquipTheme(t.region); }}>{C.equipTag}</button>
         )}
@@ -468,14 +468,14 @@ function CustomiseModal({
   const game = m.theme === settings.musicGeneric;
   const book = m.theme === settings.musicInterstellar;
   const slotted = game || book;
-  const banner = !owned ? <div style={bannerLocked}><LockIcon /> {C.lockedTag} — not yet collected</div> : slotted ? <div style={bannerOwned}>{game && book ? "GAME · BOOK" : game ? "Equipped · GAME" : "Equipped · BOOK"}</div> : undefined;
+  const banner = !owned ? <div style={bannerLocked}><LockIcon /> {C.lockedTag} {C.notCollected}</div> : slotted ? <div style={bannerOwned}>{game && book ? C.equippedBoth : game ? C.equippedGame : C.equippedBook}</div> : undefined;
   const actions = !owned ? (
     // locked → just a full-width Cancel (the locked state is shown in the banner)
-    <button style={{ ...cancelBtn, flex: 1 }} onClick={() => { sfx.click(); onClose(); }}>Cancel</button>
+    <button style={{ ...cancelBtn, flex: 1 }} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
   ) : (
     <>
-      <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>Cancel</button>
-      <button style={primaryModalBtn} onClick={() => { sfx.click(); onEquipMusic(); }}>{slotted ? "Manage in Settings" : C.equipTag}</button>
+      <button style={cancelBtn} onClick={() => { sfx.click(); onClose(); }}>{C.cancel}</button>
+      <button style={primaryModalBtn} onClick={() => { sfx.click(); onEquipMusic(); }}>{slotted ? C.manageInSettings : C.equipTag}</button>
     </>
   );
   return (

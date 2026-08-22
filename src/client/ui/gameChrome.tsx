@@ -1,6 +1,8 @@
 import { theme } from "../theme/theme";
+import { CONTENT } from "../content/content";
 import { GameState } from "../game/engine";
 import { LogPanel } from "./Panels";
+import { renderRich } from "./richText";
 
 /**
  * SHARED GAME-SCREEN CHROME — the pieces the real game screen (App) and the
@@ -81,7 +83,7 @@ export function BigBanner({ text, kind }: { text: string; kind?: BannerKind }) {
  *  animated plate so the animation's transform never fights the centring. */
 export function BankedPlate({ text }: { text: string }) {
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 30 }}>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: 16, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 30 }}>
       <div className="gl-plate gl-plate-in-x" style={{ padding: "10px 26px", border: "1px solid rgba(232,181,63,0.4)" }}>
         <div
           style={{
@@ -104,8 +106,8 @@ export function BankedPlate({ text }: { text: string }) {
 /* ---------- toasts ---------- */
 
 /** The log-line pill, colour-coded by entry kind. */
-export function ToastPill({ kind, text }: { kind: string; text: string }) {
-  const color =
+export function ToastPill({ kind, text, who, colorOverride, icon }: { kind: string; text: string; who?: { name: string; color: string }; colorOverride?: string; icon?: React.ReactNode }) {
+  const kindColor =
     kind === "bust"
       ? theme.color.bad
       : kind === "core"
@@ -115,8 +117,12 @@ export function ToastPill({ kind, text }: { kind: string; text: string }) {
       : kind === "info"
       ? theme.color.dim
       : theme.color.good;
-  const rgb =
-    color === theme.color.bad
+  // colorOverride (e.g. the active seat's colour for the "IT'S YOUR TURN" pill)
+  // wins over the kind-based colour, tinting the whole pill.
+  const color = colorOverride ?? kindColor;
+  const rgb = colorOverride
+    ? null
+    : color === theme.color.bad
       ? "255,90,118"
       : color === theme.color.accent
       ? "192,132,252"
@@ -133,15 +139,23 @@ export function ToastPill({ kind, text }: { kind: string; text: string }) {
         fontWeight: 600,
         fontSize: 11.5,
         color,
-        background: `rgba(${rgb},0.1)`,
-        border: `1px solid rgba(${rgb},0.28)`,
+        background: rgb ? `rgba(${rgb},0.1)` : `${color}1a`,
+        border: `1px solid ${rgb ? `rgba(${rgb},0.28)` : `${color}55`}`,
         padding: "5px 13px",
         borderRadius: 999,
         textAlign: "center",
         maxWidth: "90%",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
       }}
     >
-      {text}
+      {icon && <span style={{ display: "inline-flex", color }}>{icon}</span>}
+      <span>
+        {/* VERSUS: prefix the acting player's name in their colour */}
+        {who && <span style={{ color: who.color, fontWeight: 700 }}>{who.name}: </span>}
+        {renderRich(text)}
+      </span>
     </span>
   );
 }
@@ -149,10 +163,10 @@ export function ToastPill({ kind, text }: { kind: string; text: string }) {
 /** The most-recent log line as a transient float: rises in from below (from behind
  *  the footer), holds ~3s, then floats up and fades. Re-keyed per new entry to
  *  replay. `stay` pins it in place (the tutorial's persistent instruction line). */
-export function FloatingToast({ kind, text, stay }: { kind: string; text: string; stay?: boolean }) {
+export function FloatingToast({ kind, text, stay, who, colorOverride, icon }: { kind: string; text: string; stay?: boolean; who?: { name: string; color: string }; colorOverride?: string; icon?: React.ReactNode }) {
   return (
     <div className={stay ? "gl-toast-stay" : "gl-toast-float"} style={floatToastWrap}>
-      <ToastPill kind={kind} text={text} />
+      <ToastPill kind={kind} text={text} who={who} colorOverride={colorOverride} icon={icon} />
     </div>
   );
 }
@@ -168,7 +182,7 @@ export function LogDrawer({ open, onClose, state }: { open: boolean; onClose: ()
       <div style={{ ...logDrawerPanel, transform: open ? "translateY(0)" : "translateY(105%)" }}>
         <button style={logDrawerHandle} onClick={onClose} aria-label="Collapse log">
           <span style={logDrawerGrip} />
-          <span style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.24em", color: theme.color.dim }}>LOG</span>
+          <span style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.24em", color: theme.color.dim }}>{CONTENT.hud.logPanel}</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: theme.color.dim }}>
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -218,16 +232,17 @@ export const toastBand: React.CSSProperties = {
   position: "relative",
   height: 40,
   marginTop: 2,
+  zIndex: 9, // the pill may cover the BOARD, never the footer text below it
 };
 export const floatToastWrap: React.CSSProperties = {
   position: "absolute",
-  top: 0, // rests near the board's bottom tiles
+  bottom: 16, // anchored above NOW PLACING — a tall pill grows UP over the board
   left: 0,
   right: 0,
   display: "flex",
   justifyContent: "center",
   pointerEvents: "none",
-  zIndex: 8, // ABOVE the footer: the log pill must stay legible over NOW PLACING
+  zIndex: 4, // behind the footer, so it reads as rising from behind it
 };
 export const hudBankOverlay: React.CSSProperties = {
   position: "absolute",

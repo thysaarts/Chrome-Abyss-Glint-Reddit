@@ -594,4 +594,186 @@ const SIGNATURES: Record<string, () => JSX.Element> = {
       <Mote x="70%" b="12%" r={2.2} c="rgba(180,205,240,0.62)" dur={14} delay={6} />
     </>
   ),
+
+  /* --------------------- THE FACTION WAVE (7 packs) ---------------------
+     Premium layered atmospheres, each a cousin of its faction's campaign
+     region (Outlaw↔Fringe Market, Enforcer↔Machina Forge, Hacker↔Digital
+     Nexus, Sentinel↔Military Bastion, Siren↔Divinity Enclave, Ghost↔Shadow
+     Sector, Broker↔Corporate Spire) — inspiration, never a copy. */
+
+  /* the frontier at dusk — sand haze, a red neon slash over the door, heat
+     shimmer, tumble-dust; a Duneglass pearl glints high */
+  "Outlaw": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(420px 320px at 50% 112%, rgba(200,140,70,0.16), transparent 62%), radial-gradient(300px 240px at 12% 26%, rgba(242,58,42,0.06), transparent 62%)" }} />
+      <div className="gl-par-b" style={{ ...layer, background: "radial-gradient(320px 260px at 88% 46%, rgba(180,140,90,0.08), transparent 62%)" }} />
+      {/* stitched-leather diagonals, barely there */}
+      <div style={{ ...abs, inset: 0, background: "repeating-linear-gradient(64deg, rgba(200,160,100,0.035) 0 2px, transparent 2px 38px)" }} />
+      {/* the saloon sign — one red tube flickering over the door (Fringe cousin) */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 28, top: "15%", width: 46, height: 5, borderRadius: 3, background: "#f23a2a", boxShadow: "0 0 14px rgba(242,58,42,0.75)", transformOrigin: "left center", animation: "gl-neon-h 6.5s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: 28, top: "calc(15% + 12px)", width: 24, height: 4, borderRadius: 3, background: "#e0a05f", boxShadow: "0 0 9px rgba(224,160,95,0.6)", transformOrigin: "left center", animation: "gl-neon-h 8.4s ease-in-out infinite", animationDelay: "2.1s" }} />
+      {/* heat shimmer off the sand, high */}
+      <div className="gl-rg-anim" style={{ ...abs, left: -20, right: -20, top: 0, height: 120, background: "radial-gradient(36% 80% at 30% 0%, rgba(230,190,120,0.07), transparent 70%), radial-gradient(32% 70% at 70% 0%, rgba(230,180,110,0.06), transparent 70%)", animation: "gl-caustic 8s ease-in-out infinite" }} />
+      {/* the Duneglass pearl — a pale glint watching from up right */}
+      <div className="gl-rg-anim" style={{ ...abs, right: "16%", top: "20%", width: 4, height: 4, borderRadius: "50%", background: "#dfe3ea", boxShadow: "0 0 10px rgba(174,182,194,0.85)", animation: "gl-twinkle 5.2s ease-in-out infinite" }} />
+      {/* dust-storm banks rolling low */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "-14%", right: "-14%", bottom: "10%", height: 110, borderRadius: "50%", background: "rgba(200,160,100,0.07)", filter: "blur(14px)", animation: "gl-wave-x 14s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "-10%", right: "-10%", bottom: 0, height: 140, borderRadius: "50%", background: "rgba(190,150,95,0.1)", filter: "blur(16px)", animation: "gl-wave-x 10.5s ease-in-out infinite reverse" }} />
+      {/* ember base — the campfire out back */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 150, background: "radial-gradient(52% 100% at 50% 100%, rgba(242,80,50,0.12), transparent 74%)", animation: "gl-fire-flick2 2.4s linear infinite" }} />
+      <Mote x="24%" b="10%" r={2.4} c="rgba(220,180,120,0.8)" dur={8.5} />
+      <Mote x="60%" b="8%" r={2} c="rgba(242,90,60,0.7)" dur={10} delay={3.4} />
+      <Mote x="82%" b="12%" r={2} c="rgba(200,170,120,0.7)" dur={9.2} delay={5.8} />
+    </>
+  ),
+
+  /* the plant at night shift — steel columns, a slow gear, molten seams,
+     spark showers, a chrome sheen (Forge cousin, greyer and heavier) */
+  "Enforcer": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(420px 300px at 50% 114%, rgba(255,140,30,0.15), transparent 60%), radial-gradient(300px 240px at 14% 30%, rgba(150,150,160,0.07), transparent 62%)" }} />
+      <div className="gl-par-b" style={{ ...layer, background: "radial-gradient(300px 240px at 86% 48%, rgba(200,205,215,0.05), transparent 62%)" }} />
+      {/* piston columns — vertical steel ribs */}
+      <div style={{ ...abs, inset: 0, background: "repeating-linear-gradient(90deg, rgba(200,205,215,0.03) 0 3px, transparent 3px 46px)" }} />
+      {/* the great gear — tick-marked ring grinding around, upper left */}
+      <div className="gl-rg-anim" style={{ ...abs, left: -70, top: 80, width: 230, height: 230, borderRadius: "50%", border: "1px solid rgba(200,205,215,0.14)", boxShadow: "inset 0 0 34px rgba(255,140,30,0.05)", animation: "gl-spin-slow 36s linear infinite" }}>
+        <div style={{ ...abs, left: "50%", top: -1, width: 26, height: 2, marginLeft: -13, background: "rgba(200,205,215,0.3)" }} />
+        <div style={{ ...abs, left: "50%", bottom: -1, width: 26, height: 2, marginLeft: -13, background: "rgba(200,205,215,0.3)" }} />
+        <div style={{ ...abs, top: "50%", left: -1, width: 2, height: 26, marginTop: -13, background: "rgba(200,205,215,0.3)" }} />
+        <div style={{ ...abs, top: "50%", right: -1, width: 2, height: 26, marginTop: -13, background: "rgba(200,205,215,0.3)" }} />
+      </div>
+      {/* molten seams glowing in the floor plates */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 200, background: "linear-gradient(180deg, transparent, rgba(255,120,20,0.2))", animation: "gl-fire-flick 2.6s linear infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 90, background: "radial-gradient(44% 100% at 34% 100%, rgba(255,170,60,0.16), transparent 76%), radial-gradient(38% 100% at 70% 100%, rgba(255,150,50,0.13), transparent 76%)", animation: "gl-fire-flick2 1.9s linear infinite", animationDelay: "0.4s" }} />
+      {/* the Chromite sheen — a silver band sweeping the plant (gem tie) */}
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: -40, left: 0, width: 110, background: "linear-gradient(90deg, transparent, rgba(194,202,214,0.08), transparent)", animation: "gl-beam-sweep 13s ease-in-out infinite" }} />
+      {/* spark showers */}
+      <Mote x="22%" b="12%" r={2.6} c="rgba(255,160,60,0.9)" dur={6} />
+      <Mote x="46%" b="8%" r={2} c="rgba(255,140,40,0.85)" dur={7.6} delay={2.2} />
+      <Mote x="74%" b="10%" r={2.2} c="rgba(255,190,90,0.8)" dur={6.8} delay={4.4} />
+    </>
+  ),
+
+  /* the corridor nobody walks — slow fog, a passing scan, one will-o-wisp,
+     an Umbrite breath in the dark (Shadow cousin, emptier and warmer-dusted) */
+  "Ghost": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(380px 300px at 50% 34%, rgba(63,184,204,0.06), transparent 62%)", animationDuration: "24s" }} />
+      {/* fog banks crossing at two depths — the corridor breathes */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "-14%", right: "-14%", top: "30%", height: 110, borderRadius: "50%", background: "rgba(120,130,145,0.05)", filter: "blur(16px)", animation: "gl-wave-x 18s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "-10%", right: "-10%", bottom: "8%", height: 130, borderRadius: "50%", background: "rgba(143,127,106,0.05)", filter: "blur(15px)", animation: "gl-wave-x 13s ease-in-out infinite reverse" }} />
+      {/* one slow scan band — someone is looking (they will not find you) */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, top: 0, height: 46, background: "linear-gradient(180deg, transparent, rgba(63,184,204,0.05), transparent)", animation: "gl-scan-y 12s linear infinite" }} />
+      {/* the will-o-wisp — a spectral cyan mote wandering its own path */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "34%", top: "38%", width: 4, height: 4, borderRadius: "50%", background: "#8fe8f5", boxShadow: "0 0 12px rgba(63,184,204,0.9)", animation: "gl-firefly 15s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "64%", top: "56%", width: 3, height: 3, borderRadius: "50%", background: "#6fd4e2", boxShadow: "0 0 9px rgba(63,184,204,0.7)", animation: "gl-firefly 19s ease-in-out infinite", animationDelay: "6s" }} />
+      {/* a single dim pulse ring — the last echo of a radar long switched off */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "50%", top: "48%", width: 320, height: 320, borderRadius: "50%", border: "1px solid rgba(63,184,204,0.1)", animation: "gl-radar 9s ease-out infinite" }} />
+      {/* the Umbrite breath — a violet exhale at the base, slow (gem tie) */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 170, background: "radial-gradient(60% 100% at 50% 100%, rgba(162,77,240,0.07), transparent 72%)", animation: "gl-alert-pulse 11s ease-in-out infinite" }} />
+      <Mote x="28%" b="10%" r={2} c="rgba(143,127,106,0.5)" dur={13} />
+      <Mote x="72%" b="8%" r={2} c="rgba(111,212,226,0.45)" dur={16} delay={7} />
+    </>
+  ),
+
+  /* inside the intrusion — dual code rain (green + platinum), a compile bar,
+     cursor blink, a masked grid floor (Nexus cousin, colder and sparser) */
+  "Hacker": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(420px 320px at 50% 110%, rgba(47,210,124,0.11), transparent 62%), radial-gradient(300px 240px at 14% 20%, rgba(237,246,227,0.04), transparent 62%)" }} />
+      {/* dual code rain: two green streams and one platinum (her hair in the code) */}
+      {[
+        { x: "12%", p: 24, s: 6, op: 0.7, dur: 3, c: "rgba(63,231,146,0.34)" },
+        { x: "50%", p: 22, s: 5, op: 0.9, dur: 2.4, c: "rgba(237,246,227,0.3)" },
+        { x: "84%", p: 26, s: 7, op: 0.6, dur: 3.5, c: "rgba(63,231,146,0.3)" },
+      ].map((r, i) => (
+        <div key={i} style={{ ...abs, left: r.x, top: 0, bottom: 0, width: 2, overflow: "hidden" }}>
+          <div className="gl-rg-anim" style={{ ...abs, left: 0, top: -r.p, bottom: -r.p, width: 2, background: `repeating-linear-gradient(0deg, ${r.c} 0 ${r.s}px, transparent ${r.s}px ${r.p}px)`, opacity: r.op, animation: `gl-rain-t ${r.dur}s linear infinite` }} />
+        </div>
+      ))}
+      {/* scanlines, fainter than the Nexus */}
+      <div style={{ ...abs, inset: 0, background: "repeating-linear-gradient(0deg, rgba(63,231,146,0.02) 0 1px, transparent 1px 5px)" }} />
+      {/* the cursor — a platinum block blinking in the dark */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "22%", top: "30%", width: 9, height: 14, background: "rgba(237,246,227,0.4)", animation: "gl-glitch-block 3.6s steps(1) infinite" }} />
+      {/* one glitch bar, rare */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, top: "58%", height: 2, background: "rgba(63,231,146,0.26)", animation: "gl-glitch-bar 7.5s steps(1) infinite", animationDelay: "2.8s" }} />
+      {/* the Verdite floor — a diamond-cut grid fading up (gem tie) */}
+      <div style={{ ...abs, left: 0, right: 0, bottom: 0, height: 130, background: "repeating-linear-gradient(45deg, rgba(47,210,124,0.05) 0 1px, transparent 1px 20px), repeating-linear-gradient(-45deg, rgba(47,210,124,0.05) 0 1px, transparent 1px 20px)", WebkitMaskImage: "linear-gradient(180deg, transparent, #000)", maskImage: "linear-gradient(180deg, transparent, #000)" }} />
+      <Mote x="36%" b="10%" r={2} c="rgba(120,255,180,0.7)" dur={9} />
+      <Mote x="68%" b="12%" r={2} c="rgba(237,246,227,0.55)" dur={11} delay={4.5} />
+    </>
+  ),
+
+  /* the vigil — the TWO WATCHING STARS of the Vigilite rite, parade shafts,
+     a patient searchlight, a green signal at the wall (Bastion cousin, calmer) */
+  "Sentinel": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(400px 320px at 50% -4%, rgba(140,170,120,0.1), transparent 62%), radial-gradient(340px 280px at 50% 112%, rgba(88,232,62,0.07), transparent 62%)" }} />
+      <div className="gl-par-b" style={{ ...layer, background: "radial-gradient(300px 240px at 88% 60%, rgba(164,182,148,0.06), transparent 62%)" }} />
+      {/* the Twin Lights — two gold stars keeping the vigil (Vigilite lore) */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "38%", top: "12%", width: 4, height: 4, borderRadius: "50%", background: "#ffd88a", boxShadow: "0 0 12px rgba(255,182,72,0.95)", animation: "gl-twinkle 4.4s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "56%", top: "9%", width: 3.4, height: 3.4, borderRadius: "50%", background: "#ffcf78", boxShadow: "0 0 10px rgba(255,182,72,0.85)", animation: "gl-twinkle 5.6s ease-in-out infinite", animationDelay: "2s" }} />
+      {/* banner columns — soft vertical drapes */}
+      <div style={{ ...abs, inset: 0, background: "repeating-linear-gradient(90deg, rgba(164,182,148,0.028) 0 3px, transparent 3px 56px)" }} />
+      {/* parade-ground light shafts */}
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: "38%", left: "24%", width: 66, background: "linear-gradient(180deg, rgba(200,225,180,0.07), transparent 78%)", animation: "gl-ray-drift 14s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: "48%", left: "62%", width: 44, background: "linear-gradient(180deg, rgba(200,225,180,0.05), transparent 74%)", animation: "gl-ray-drift 18s ease-in-out infinite", animationDelay: "4s" }} />
+      {/* the watch — one patient searchlight crossing the yard */}
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: -40, left: 0, width: 84, background: "linear-gradient(90deg, transparent, rgba(220,230,205,0.045), transparent)", animation: "gl-beam-sweep 17s ease-in-out infinite" }} />
+      {/* the all-clear — a vivid green signal breathing at the wall base */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 150, background: "radial-gradient(56% 100% at 50% 100%, rgba(88,232,62,0.1), transparent 72%)", animation: "gl-alert-pulse 9s ease-in-out infinite" }} />
+      <Mote x="30%" b="10%" r={2.2} c="rgba(180,220,150,0.7)" dur={10} />
+      <Mote x="70%" b="8%" r={2} c="rgba(140,240,110,0.6)" dur={12} delay={5} />
+    </>
+  ),
+
+  /* her deep — turquoise god-rays, a drifting song-ribbon, bubbles rising
+     past the Nuracite shimmer (Enclave cousin, clearer water, calmer light) */
+  "Siren": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(420px 340px at 42% 18%, rgba(63,211,230,0.16), transparent 62%), radial-gradient(340px 300px at 86% 82%, rgba(90,180,220,0.1), transparent 62%)", animationDuration: "17s" }} />
+      <div className="gl-par-b" style={{ ...layer, background: "radial-gradient(300px 260px at 12% 72%, rgba(120,220,240,0.08), transparent 62%)", animationDuration: "23s" }} />
+      {/* god-rays through clearer water */}
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: "34%", left: "28%", width: 70, background: "linear-gradient(180deg, rgba(184,241,255,0.1), transparent)", transformOrigin: "center top", animation: "gl-water-ray 10s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: "46%", left: "62%", width: 46, background: "linear-gradient(180deg, rgba(184,241,255,0.07), transparent)", transformOrigin: "center top", animation: "gl-water-ray 13s ease-in-out infinite", animationDelay: "3s" }} />
+      {/* the song — a pale ribbon drifting like a held note (aurora, underwater) */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "-10%", right: "-10%", top: "20%", height: 70, borderRadius: "50%", background: "linear-gradient(90deg, transparent, rgba(184,241,255,0.1) 35%, rgba(63,211,230,0.12) 62%, transparent)", filter: "blur(7px)", animation: "gl-aurora 16s ease-in-out infinite" }} />
+      {/* surface caustics far above */}
+      <div className="gl-rg-anim" style={{ ...abs, left: -20, right: -20, top: 0, height: 120, background: "radial-gradient(38% 80% at 30% 0%, rgba(160,230,255,0.1), transparent 70%), radial-gradient(34% 70% at 70% 0%, rgba(160,230,255,0.08), transparent 70%)", animation: "gl-caustic 8s ease-in-out infinite" }} />
+      {/* bubbles */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "26%", bottom: "6%", width: 5, height: 5, borderRadius: "50%", border: "1px solid rgba(184,241,255,0.55)", animation: "gl-bubble 10s ease-in infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "58%", bottom: "9%", width: 4, height: 4, borderRadius: "50%", border: "1px solid rgba(184,241,255,0.45)", animation: "gl-bubble 12s ease-in infinite", animationDelay: "3.5s" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "80%", bottom: "4%", width: 6, height: 6, borderRadius: "50%", border: "1px solid rgba(184,241,255,0.4)", animation: "gl-bubble 11s ease-in infinite", animationDelay: "6.5s" }} />
+      {/* the Nuracite shimmer — her gem's turquoise glowing from the seafloor */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 190, background: "radial-gradient(58% 100% at 50% 100%, rgba(63,211,230,0.14), transparent 72%)", animation: "gl-alert-pulse 10s ease-in-out infinite" }} />
+      <Mote x="34%" b="10%" r={2.2} c="rgba(160,235,255,0.75)" dur={11} />
+      <Mote x="70%" b="12%" r={2} c="rgba(63,211,230,0.65)" dur={13} delay={5.5} />
+    </>
+  ),
+
+  /* the executive floor after hours — window columns, white shafts, a pink
+     ticker, the concierge ring, a visor glint (Spire cousin, darker money) */
+  "Broker": () => (
+    <>
+      <div className="gl-par-a" style={{ ...layer, background: "radial-gradient(440px 340px at 50% -6%, rgba(240,244,250,0.09), transparent 62%), radial-gradient(300px 260px at 88% 72%, rgba(226,99,255,0.06), transparent 62%)" }} />
+      <div className="gl-par-b" style={{ ...layer, background: "radial-gradient(320px 260px at 10% 52%, rgba(180,170,220,0.05), transparent 62%)" }} />
+      {/* tower windows, dimmed for the night */}
+      <div style={{ ...abs, inset: 0, background: "repeating-linear-gradient(90deg, rgba(240,244,250,0.018) 0 2px, transparent 2px 36px)" }} />
+      {/* white light shafts — the visor's clean light */}
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: -40, left: "18%", width: 64, background: "linear-gradient(180deg, rgba(240,244,250,0.06), transparent 76%)", animation: "gl-ray-drift 13s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, top: -40, bottom: -40, left: "52%", width: 40, background: "linear-gradient(180deg, rgba(240,244,250,0.045), transparent 72%)", animation: "gl-ray-drift 17s ease-in-out infinite", animationDelay: "3s" }} />
+      {/* the ticker — a thin pink line of quotes sliding along the mezzanine */}
+      <div style={{ ...abs, left: 0, right: 0, top: "22%", height: 1, background: "linear-gradient(90deg, transparent, rgba(226,99,255,0.22), transparent)" }} />
+      <div className="gl-rg-anim" style={{ ...abs, left: "-14%", right: "-14%", top: "calc(22% - 3px)", height: 7, background: "repeating-linear-gradient(90deg, rgba(226,99,255,0.28) 0 14px, transparent 14px 46px)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent)", maskImage: "linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent)", animation: "gl-wave-x 9s linear infinite" }} />
+      {/* the concierge — her lens roaming the floor, pink over silver */}
+      <div className="gl-rg-anim" style={{ ...abs, right: -70, top: 120, width: 230, height: 230, borderRadius: "50%", border: "1px solid rgba(226,99,255,0.16)", animation: "gl-circ-search 28s ease-in-out infinite" }} />
+      <div className="gl-rg-anim" style={{ ...abs, right: -40, top: 150, width: 170, height: 170, borderRadius: "50%", border: "1px solid rgba(240,244,250,0.09)", animation: "gl-circ-search2 36s ease-in-out infinite" }} />
+      {/* the visor glint — one white spark, exactly placed */}
+      <div className="gl-rg-anim" style={{ ...abs, left: "30%", top: "24%", width: 3.4, height: 3.4, borderRadius: "50%", background: "#ffffff", boxShadow: "0 0 11px rgba(240,244,250,0.95)", animation: "gl-twinkle 5s ease-in-out infinite" }} />
+      {/* closing bell — a lilac-pink hush at the base */}
+      <div className="gl-rg-anim" style={{ ...abs, left: 0, right: 0, bottom: 0, height: 160, background: "radial-gradient(56% 100% at 50% 100%, rgba(226,99,255,0.08), transparent 72%)", animation: "gl-alert-pulse 12s ease-in-out infinite" }} />
+      <Mote x="32%" b="10%" r={2} c="rgba(240,244,250,0.6)" dur={12} />
+      <Mote x="68%" b="8%" r={2} c="rgba(226,99,255,0.55)" dur={14} delay={6} />
+    </>
+  ),
 };

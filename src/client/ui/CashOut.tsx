@@ -3,6 +3,7 @@ import { theme, bevelPrimary } from "../theme/theme";
 import { GameState, TileVal, GLINT, CORE, cashOutValue } from "../game/engine";
 import { TileGem } from "./TileGem";
 import { sfx } from "../audio/sfx";
+import { CONTENT, fmt } from "../content/content";
 
 /**
  * CASH OUT — shared between the real game (App) and the scripted tutorial, so
@@ -49,7 +50,7 @@ export function CashOutButton({ value, onOpen, btnRef }: { value: number; onOpen
         <path d="M12 3v12M7 10l5 5 5-5" />
         <path d="M4 21h16" />
       </svg>
-      {`CASH OUT +${value.toLocaleString()}`}
+      {fmt(CONTENT.cashOut.button, { value: value.toLocaleString() })}
     </button>
   );
 }
@@ -143,25 +144,25 @@ export function CashOutCeremony({
   return (
     <div style={ceremonyScrim}>
       <div className="gl-fade" style={{ ...ceremonyCard, opacity: confirming ? 0.25 : 1, transition: "opacity 400ms ease" }}>
-        <div style={ceremonyTitle}>CASH OUT</div>
+        <div style={ceremonyTitle}>{CONTENT.cashOut.title}</div>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
           <div style={ceremonyCol}>
-            <div style={ceremonyColLabel}>BUSTS LEFT</div>
+            <div style={ceremonyColLabel}>{CONTENT.cashOut.bustsLeft}</div>
             <div ref={bustsRowRef} style={ceremonyIconRow}>
               {landed && (state.livesLeft > 0 ? Array.from({ length: state.livesLeft }).map((_, i) => <HeartMini key={i} />) : <span style={ceremonyNone}>—</span>)}
             </div>
             <div style={ceremonyColVal}>+{v.lives.toLocaleString()}</div>
           </div>
           <div style={ceremonyCol}>
-            <div style={ceremonyColLabel}>BANKS LEFT</div>
+            <div style={ceremonyColLabel}>{CONTENT.cashOut.banksLeft}</div>
             <div ref={banksRowRef} style={ceremonyIconRow}>
               {landed && (state.freeBanksLeft > 0 ? Array.from({ length: state.freeBanksLeft }).map((_, i) => <DiamondMini key={i} />) : <span style={ceremonyNone}>—</span>)}
             </div>
             <div style={ceremonyColVal}>+{v.banks.toLocaleString()}</div>
           </div>
           <div style={ceremonyCol}>
-            <div style={ceremonyColLabel}>GEMS LEFT</div>
+            <div style={ceremonyColLabel}>{CONTENT.cashOut.gemsLeft}</div>
             {/* the rows are ALWAYS laid out (so the flyers can measure their final
                 slots and the card doesn't reflow), but stay invisible until the
                 gems land — then they fade in exactly where the flyers arrived */}
@@ -188,16 +189,16 @@ export function CashOutCeremony({
           </div>
         </div>
 
-        <div style={{ ...ceremonyColLabel, marginTop: 18 }}>CASH OUT VALUE</div>
+        <div style={{ ...ceremonyColLabel, marginTop: 18 }}>{CONTENT.cashOut.valueLabel}</div>
         <div ref={totalRef} style={ceremonyTotal}>
           +{v.total.toLocaleString()}
         </div>
 
         <button style={{ ...primaryBtn, ...ceremonyConfirm }} onClick={confirm}>
-          CONFIRM
+          {CONTENT.cashOut.confirm}
         </button>
         <button style={ceremonyCancel} onClick={onCancel}>
-          Cancel
+          {CONTENT.cashOut.cancel}
         </button>
       </div>
 

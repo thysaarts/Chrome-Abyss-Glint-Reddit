@@ -2,6 +2,7 @@ import { theme, bevel } from "../theme/theme";
 import { sfx } from "../audio/sfx";
 import { CONTENT } from "../content/content";
 import { NebuliteChip } from "./GameHeader";
+import { renderRich } from "./richText";
 
 /**
  * The bottom tab bar (mobile-first, glued to the bottom) and the placeholder
@@ -18,7 +19,7 @@ const TABS: { id: HomeTab; label: string; icon: (active: boolean) => React.React
     // map (mirrors the alternating hex path on the level select), the top node the
     // destination
     id: "ascent",
-    label: "Ascent",
+    label: CONTENT.tabsBar.ascent,
     icon: (a) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 19 L14.5 13 L7.5 7" strokeWidth="1.7" opacity={0.85} />
@@ -31,7 +32,7 @@ const TABS: { id: HomeTab; label: string; icon: (active: boolean) => React.React
   },
   {
     id: "challenges",
-    label: "Challenges",
+    label: CONTENT.tabsBar.challenges,
     icon: (a) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9" opacity={a ? 1 : 0.9} />
@@ -42,7 +43,7 @@ const TABS: { id: HomeTab; label: string; icon: (active: boolean) => React.React
   },
   {
     id: "collection",
-    label: "Collection",
+    label: CONTENT.tabsBar.collection,
     icon: (a) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill={a ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
@@ -55,7 +56,7 @@ const TABS: { id: HomeTab; label: string; icon: (active: boolean) => React.React
   {
     // a hexagon medal (echoes the game's tiles) with a ribbon + earned check
     id: "achievements",
-    label: "Achievements",
+    label: CONTENT.tabsBar.achievements,
     icon: (a) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 3.4 L11 10" />
@@ -68,7 +69,7 @@ const TABS: { id: HomeTab; label: string; icon: (active: boolean) => React.React
   {
     // a shopping bag
     id: "shop",
-    label: "Shop",
+    label: CONTENT.tabsBar.shop,
     icon: (a) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill={a ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 8h14l-1.1 10.6a1.6 1.6 0 0 1-1.6 1.4H7.7a1.6 1.6 0 0 1-1.6-1.4Z" fill={a ? "currentColor" : "none"} />
@@ -195,20 +196,20 @@ const alertDot: React.CSSProperties = {
 export function ComingSoon({ tab }: { tab: Exclude<HomeTab, "ascent"> }) {
   const copy: Record<Exclude<HomeTab, "ascent">, { title: string; blurb: string }> = {
     challenges: {
-      title: "Challenges",
-      blurb: "Daily challenges, upcoming level goals, and lifetime milestones — clear boards, bank Nebulites, sweep Dross, and watch the numbers climb.",
+      title: CONTENT.tabsBar.soonChallengesTitle,
+      blurb: CONTENT.tabsBar.soonChallengesBlurb,
     },
     collection: {
-      title: "Collection",
-      blurb: "A sticker book of everything you earn — badges, unlockable music tracks and board themes to make the Abyss your own.",
+      title: CONTENT.tabsBar.soonCollectionTitle,
+      blurb: CONTENT.tabsBar.soonCollectionBlurb,
     },
     achievements: {
-      title: "Achievements",
-      blurb: "Every feat you've earned on the climb — lifetime stats, best scores and the milestones you've conquered, all in one place.",
+      title: CONTENT.tabsBar.soonAchievementsTitle,
+      blurb: CONTENT.tabsBar.soonAchievementsBlurb,
     },
     shop: {
-      title: "Shop",
-      blurb: "Spend the Nebulite you earn on shop-exclusive board themes, music and Ascent decor.",
+      title: CONTENT.tabsBar.soonShopTitle,
+      blurb: CONTENT.tabsBar.soonShopBlurb,
     },
   };
   const t = TABS.find((x) => x.id === tab)!;
@@ -220,8 +221,8 @@ export function ComingSoon({ tab }: { tab: Exclude<HomeTab, "ascent"> }) {
         <div style={{ transform: "scale(2.2)" }}>{t.icon(false)}</div>
       </div>
       <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 26, color: theme.color.text, marginTop: 30 }}>{c.title}</div>
-      <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.3em", color: theme.color.gold, marginTop: 8 }}>COMING SOON</div>
-      <div style={{ fontFamily: theme.fonts.sans, fontSize: 13.5, lineHeight: 1.6, color: theme.color.dim, maxWidth: 320, textAlign: "center", marginTop: 16 }}>{c.blurb}</div>
+      <div style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.3em", color: theme.color.gold, marginTop: 8 }}>{CONTENT.tabsBar.comingSoon}</div>
+      <div style={{ fontFamily: theme.fonts.sans, fontSize: 13.5, lineHeight: 1.6, color: theme.color.dim, maxWidth: 320, textAlign: "center", marginTop: 16 }}>{renderRich(c.blurb)}</div>
     </div>
   );
 }
@@ -234,7 +235,7 @@ export function ComingSoon({ tab }: { tab: Exclude<HomeTab, "ascent"> }) {
 /** A greyed, non-interactive lock laid over a tab whose feature is gated behind
  *  finishing the Tutorial. Rendered ABOVE the real page (which stays dimmed and
  *  inert beneath it) so the player sees what's coming, just can't touch it yet. */
-export function LockedTab({ label = "COMPLETE TUTORIAL TO UNLOCK" }: { label?: string }) {
+export function LockedTab({ label = CONTENT.tabsBar.lockedDefault }: { label?: string }) {
   return (
     <div style={lockWrap} aria-hidden>
       <div style={lockHalo} />

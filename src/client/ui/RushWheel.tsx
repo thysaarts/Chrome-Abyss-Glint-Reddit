@@ -51,13 +51,32 @@ export function RushWheel({
   const velRef = useRef(0);
   const draggingRef = useRef(false);
   const restingRef = useRef(true); // true only when the spring has fully settled
-  const committedRef = useRef(false);
+  // the hand this wheel's own rotation is about to produce — set the instant a
+  // pick is committed, cleared when that hand arrives (or the spring gives up on
+  // it). While it's set the wheel is one rotation ahead of the `hand` prop.
+  const pendingRef = useRef<{ step: number; hand: TileVal[] } | null>(null);
   const goalRef = useRef<number | null>(null); // TAP-TO-SELECT: spring eases to this notch
   const pointerXRef = useRef(0); // the pointer-DOWN x: a tap's hit-test + the moved threshold
   const rafRef = useRef<number | null>(null);
   const activePointerRef = useRef<number | null>(null); // the ONE finger driving the wheel
   const lastNotchRef = useRef(0);
   const handLive = useRef(hand);
+  // set when the arriving hand IS our own pick, so the effect below leaves the
+  // running settle alone instead of re-zeroing it
+  const rebasedRef = useRef(false);
+  if (handLive.current !== hand) {
+    const want = pendingRef.current;
+    // OUR OWN pick landing: shift the wheel into the new hand's index space HERE,
+    // in the same breath as the new order — a passive effect is too late, an
+    // animation frame can paint between the two and jump the picture a slot.
+    if (want && want.hand.length === hand.length && want.hand.every((v, i) => v === hand[i])) {
+      offsetRef.current -= want.step;
+      lastNotchRef.current -= want.step;
+      if (goalRef.current != null) goalRef.current -= want.step;
+      rebasedRef.current = true;
+    }
+    pendingRef.current = null;
+  }
   handLive.current = hand;
   // how deep the hexagon seat sits on the arc: −3 with a 5+ hand (three gems
   // on the left arm), −2 below that
@@ -242,14 +261,52 @@ export function RushWheel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * COMMIT AT DECISION TIME — the hand rotates the moment the wheel knows which
+   * gem the player picked, NOT when the spring finally stops.
+   *
+   * The settle takes ~400ms to converge but the gem is sitting full-size on the
+   * apex after ~150ms. Committing at the end left a ~270ms window where NOW
+   * PLACING showed the chosen gem while `state.hand[0]` — the gem a board tap
+   * actually places — was still the previous one, so a tap during the settle
+   * placed the gem drawn NEXT TO the one on the stage (and the pick was then
+   * refused, because the placement had set the hook's busy flag).
+   *
+   * The spring is NOT interrupted: when the rotated hand comes back down, the
+   * wheel rebases its offset by the same step (see the hand effect below).
+   * Shifting the offset and the indices together leaves every tile's painted
+   * position identical — rel = wrapRel(round(o) − i) is invariant when o and i
+   * both move by step, and the bounce term cancels — so the settle carries on
+   * from exactly where it is. Same motion, same feel, but the gem on the stage
+   * is hand[0] from the moment the player's choice is made.
+   */
+  const commitNotch = useCallback((step: number) => {
+    const tiles = handLive.current;
+    const n = tiles.length;
+    const idx = ((step % n) + n) % n;
+    if (idx === 0) return; // a turn that lands back home rotates nothing
+    pendingRef.current = { step, hand: [...tiles.slice(idx), ...tiles.slice(0, idx)] };
+    onRotateRef.current(idx);
+  }, []);
+
   const tick = useCallback(() => {
     rafRef.current = null;
     const n = handLive.current.length;
     let settled = false;
-    if (!draggingRef.current && n > 1 && !committedRef.current) {
+    if (!draggingRef.current && n > 1) {
       // TAP-TO-SELECT drives the wheel to an explicit goal notch; otherwise the
       // spring snaps to the nearest notch as before
       const target = goalRef.current ?? Math.round(offsetRef.current);
+      // DECIDED? A tap picked its notch outright, so it's decided the instant the
+      // finger lifts. A released drag is decided once its remaining momentum
+      // (which coasts a further v/(1−FRICTION)) can no longer carry it out of the
+      // notch it is heading for — mid-fling the landing notch is genuinely still
+      // open, and a rotation is not something we can take back. Multi-notch turns
+      // need nothing special: the whole step count commits as one rotation.
+      if (target !== 0 && !pendingRef.current) {
+        const coast = offsetRef.current + velRef.current / (1 - FRICTION);
+        if (goalRef.current != null || Math.round(coast) === target) commitNotch(target);
+      }
       velRef.current += (target - offsetRef.current) * SNAP;
       velRef.current *= FRICTION;
       offsetRef.current += velRef.current;
@@ -260,22 +317,15 @@ export function RushWheel({
         goalRef.current = null;
         settled = true;
         restingRef.current = true;
-        const idx = ((target % n) + n) % n;
-        if (idx !== 0) {
-          committedRef.current = true;
-          onRotateRef.current(idx);
-          // a rejected commit (e.g. a placement staged mid-settle) never swaps
-          // the hand — spring back home instead of freezing. kick() restarts the
-          // spring so the wheel is immediately live again.
-          window.setTimeout(() => {
-            if (committedRef.current) {
-              committedRef.current = false;
-              offsetRef.current = 0;
-              velRef.current = 0;
-              layout();
-              if (rafRef.current == null) rafRef.current = requestAnimationFrame(tick);
-            }
-          }, 400);
+        if (pendingRef.current) {
+          // parked on the picked notch and the rotation never came back (the
+          // hook refuses one while a picker is open, or off-turn online). The
+          // wheel must never show a gem that isn't hand[0]: drop the pick and
+          // ease home. Nothing is stuck — the next touch drives as normal.
+          pendingRef.current = null;
+          goalRef.current = 0;
+          restingRef.current = false;
+          settled = false;
         }
       }
     }
@@ -289,26 +339,33 @@ export function RushWheel({
     // thresholds and freeze the wheel one notch out with nothing committed
     if (
       draggingRef.current ||
-      (!settled && !committedRef.current && n > 1 && (goalRef.current != null || Math.abs(velRef.current) > 0.0004 || Math.abs(Math.round(offsetRef.current) - offsetRef.current) > 0.004))
+      (!settled && n > 1 && (goalRef.current != null || Math.abs(velRef.current) > 0.0004 || Math.abs(Math.round(offsetRef.current) - offsetRef.current) > 0.004))
     ) {
       rafRef.current = requestAnimationFrame(tick);
     }
-  }, [layout]);
+  }, [layout, commitNotch]);
   const kick = useCallback(() => {
     if (rafRef.current == null) rafRef.current = requestAnimationFrame(tick);
   }, [tick]);
 
-  // hand changed (a pick committed / a tile placed): active is hand[0] again —
-  // re-zero with no visual jump (positions are identical)
+  // hand changed (a tile placed, gems flew back in): active is hand[0] again —
+  // re-zero with no visual jump (positions are identical). THE ONE EXCEPTION is
+  // our OWN pick coming back: the render above already rebased the wheel onto the
+  // new order, so re-zeroing would teleport the settle. Keep it turning.
   useEffect(() => {
+    if (rebasedRef.current) {
+      rebasedRef.current = false;
+      layout();
+      kick(); // the settle continues over the rotated hand
+      return;
+    }
     offsetRef.current = 0;
     velRef.current = 0;
-    committedRef.current = false;
     goalRef.current = null;
     restingRef.current = true;
     lastNotchRef.current = 0;
     layout();
-  }, [hand, layout]);
+  }, [hand, layout, kick]);
 
   useEffect(() => {
     layout();
@@ -381,13 +438,9 @@ export function RushWheel({
       try { bandRef.current?.releasePointerCapture(activePointerRef.current); } catch { /* the old pointer may already be gone */ }
     }
     activePointerRef.current = e.pointerId;
-    // SELF-HEAL: a stuck pending commit (rejected/lost) must never freeze the
-    // wheel — a fresh touch always clears it and takes over.
-    if (committedRef.current) {
-      committedRef.current = false;
-      offsetRef.current = 0;
-      velRef.current = 0;
-    }
+    // a fresh touch always takes the wheel over from wherever it is — picks are
+    // committed the moment they're decided, so there is never a pending commit
+    // holding the spring hostage.
     goalRef.current = null;
     draggingRef.current = true;
     restingRef.current = false;

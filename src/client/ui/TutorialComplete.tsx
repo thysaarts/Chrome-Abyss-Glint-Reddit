@@ -1,16 +1,19 @@
 import { theme } from "../theme/theme";
 import { sfx } from "../audio/sfx";
 import { Emblem, GLOW } from "./CollectionPage";
+import { MiniPopup } from "./PopupCard";
+import { TutorAvatar } from "./TutorAvatar";
 import { renderRich } from "./richText";
-import type { Sticker } from "../game/collection";
 
 /**
- * TUTORIAL COMPLETE — the custom celebration shown the moment the scripted
- * Tutorial (Level 0) ends. It announces that the app's features are now
- * unlocked and hands over the player's first sticker (Blue Giant), standing in
- * for the automatic reward-reveal that grant would otherwise trigger. Copy is
- * CMS content (Admin › Tutorial Level › completion); framed like RewardReveal so
- * the two read as one family.
+ * TUTORIAL COMPLETE — the completion pop-up shared by BOTH tutorial levels,
+ * standing in for the automatic reward-reveal that grant would otherwise
+ * trigger. Level 0 (the scripted Tutorial) hands over the first MUSIC TRACK
+ * (Interstellar) and announces that the app's features are now unlocked;
+ * Level 1 (The Academy) hands over the first sticker (Blue Giant). The
+ * `reward` prop carries whichever of the two applies. Copy is CMS content
+ * (Admin › Tutorial Level › completion / academyCompletion); framed like
+ * RewardReveal so the two read as one family.
  */
 export interface CompletionCopy {
   kicker: string;
@@ -20,13 +23,17 @@ export interface CompletionCopy {
   button: string;
 }
 
-export function TutorialComplete({ copy, sticker, emblem, onContinue }: { copy: CompletionCopy; sticker: Sticker | undefined; emblem: number; onContinue: () => void }) {
-  const color = GLOW[emblem % GLOW.length];
+export function TutorialComplete(props: { copy: CompletionCopy; reward?: { name: string; image?: string; emblem: number; label: string }; onContinue: () => void }) {
+  const { copy, reward, onContinue } = props;
+  const color = GLOW[(reward?.emblem ?? 0) % GLOW.length];
   return (
-    <div style={scrim} className="gl-fade">
-      <div style={card} className="gl-screen-in">
+    <MiniPopup onClose={onContinue} closeOnBackdrop={false} width={380} zIndex={96} cardStyle={cardSkin}>
         <div style={{ position: "absolute", inset: 0, borderRadius: 22, overflow: "hidden", pointerEvents: "none" }}>
           <div className="gl-gloss" style={{ position: "absolute", top: 0, left: 0, width: "36%", height: "100%", background: "linear-gradient(100deg, transparent, rgba(210,230,255,0.07), transparent)" }} />
+        </div>
+        {/* THE TUTOR signs off her lessons (tutorial + Academy completions) */}
+        <div className="gl-rise-in" style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+          <TutorAvatar size={76} />
         </div>
         <div className="gl-rise-in" style={{ ...kicker, animationDelay: "60ms" }}>{copy.kicker}</div>
         <div className="gl-rise-in" style={{ ...title, animationDelay: "130ms" }}>{copy.title}</div>
@@ -35,13 +42,13 @@ export function TutorialComplete({ copy, sticker, emblem, onContinue }: { copy: 
             <p key={i} style={line}>{renderRich(l)}</p>
           ))}
         </div>
-        {sticker && (
+        {reward && (
           <div className="gl-rise-in" style={{ ...rewardWrap, animationDelay: "320ms" }}>
             <div style={{ ...disc, color, background: `radial-gradient(circle at 34% 28%, ${color}, ${color}99 65%, ${color}55)`, border: "3px solid rgba(255,255,255,0.92)", boxShadow: `0 6px 16px -4px rgba(0,0,0,0.6), 0 0 26px -6px ${color}` }}>
-              {sticker.image ? <img src={sticker.image} alt={sticker.name} style={{ width: 60, height: 60, objectFit: "contain" }} /> : <Emblem i={emblem} mode="fill" />}
+              {reward.image ? <img src={reward.image} alt={reward.name} style={{ width: 60, height: 60, objectFit: "contain", borderRadius: reward.image.includes("/collection-thumbs/") ? "50%" : 0 }} /> : <Emblem i={reward.emblem} mode="fill" />}
             </div>
-            <div style={name}>{sticker.name}</div>
-            <div style={tag}>{copy.rewardLabel}</div>
+            <div style={name}>{reward.name}</div>
+            <div style={tag}>{reward.label}</div>
           </div>
         )}
         <div style={{ height: 1, background: theme.color.border, margin: "4px 0 0" }} />
@@ -51,23 +58,16 @@ export function TutorialComplete({ copy, sticker, emblem, onContinue }: { copy: 
           </svg>
           {copy.button}
         </button>
-      </div>
-    </div>
+    </MiniPopup>
   );
 }
 
 /* ---------- styles (mirroring RewardReveal / the end card) ---------- */
-const scrim: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 96, background: "rgba(4,4,10,0.74)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
-const card: React.CSSProperties = {
-  position: "relative",
-  width: 380,
-  maxWidth: "92vw",
-  maxHeight: "calc(100dvh - 40px)",
-  overflowY: "auto",
+// skin only — MiniPopup owns width / cap / scroll / shadow
+const cardSkin: React.CSSProperties = {
   padding: "30px 40px 28px",
   borderRadius: 22,
   textAlign: "center",
-  boxShadow: theme.color.shadow,
   background: `radial-gradient(420px 240px at 50% -10%, rgba(232,181,63,0.14), transparent 60%), ${theme.color.panel}`,
   border: "1px solid rgba(232,181,63,0.4)",
 };

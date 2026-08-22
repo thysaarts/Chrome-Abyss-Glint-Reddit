@@ -72,8 +72,13 @@ export function Tutorial({
       <div style={card}>
         {/* top bar */}
         <div style={topbar}>
-          <span style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.2em", color: theme.color.faint }}>
-            HOW TO PLAY
+          {/* THE TUTOR — a small hex Broker beside the label, every place this
+              deck opens (start screen, Settings, in-game help) */}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <img src="/avatars/broker.webp" alt="" style={{ width: 22, height: "auto", filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.5))" }} />
+            <span style={{ fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.2em", color: theme.color.faint }}>
+              HOW TO PLAY
+            </span>
           </span>
           <button onClick={onSkip} style={skipBtn}>
             Skip
@@ -316,7 +321,7 @@ export function Tutorial({
                   <MiniLevelIsland w={128} kind="locked">
                     <div style={{ opacity: 0.55, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                       <div style={{ fontFamily: theme.fonts.mono, fontSize: 7, fontWeight: 700, letterSpacing: "0.22em", color: "#8a85b8" }}>LEVEL 2</div>
-                      <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12.5, color: "#b9b4d6" }}>The Outpost</div>
+                      <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12.5, color: "#b9b4d6" }}>Sector 01 Outpost</div>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontFamily: theme.fonts.mono, fontWeight: 700, fontSize: 6.5, letterSpacing: "0.14em", color: "#6b6690" }}>
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                           <rect x="5" y="11" width="14" height="9" rx="2" />
@@ -326,7 +331,7 @@ export function Tutorial({
                       </span>
                     </div>
                     {/* the requirement is the way in — never greyed, like the real tile */}
-                    <div style={{ fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 7.5, color: "#8a85b8", marginTop: 3 }}>Clear the board to unlock</div>
+                    <div style={{ fontFamily: theme.fonts.sans, fontWeight: 500, fontSize: 7.5, color: "#8a85b8", marginTop: 3 }}>Complete The Academy to unlock</div>
                   </MiniLevelIsland>
                 </div>
               </div>

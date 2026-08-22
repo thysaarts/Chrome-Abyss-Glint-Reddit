@@ -1,4 +1,5 @@
 import { theme } from "../theme/theme";
+import { CONTENT } from "../content/content";
 
 /**
  * GLINT RUSH — the final-round announcement, shared between the real game (App)
@@ -63,7 +64,7 @@ export function RushOverlay() {
         className="gl-rush-slide gl-plate"
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9, padding: "18px 24px", border: "1px solid rgba(232,181,63,0.4)", maxWidth: "95vw" }}
       >
-        <div style={{ fontFamily: theme.fonts.mono, fontSize: 11.5, letterSpacing: "0.36em", color: theme.color.accent }}>FINAL ROUND</div>
+        <div style={{ fontFamily: theme.fonts.mono, fontSize: 11.5, letterSpacing: "0.36em", color: theme.color.accent }}>{CONTENT.rushOverlay.kicker}</div>
         <div
           style={{
             fontFamily: theme.fonts.disp,
@@ -75,10 +76,10 @@ export function RushOverlay() {
             filter: "drop-shadow(0 2px 28px rgba(232,181,63,0.6))",
           }}
         >
-          GLINT RUSH
+          {CONTENT.rushOverlay.title}
         </div>
         <div style={{ fontFamily: theme.fonts.disp, fontWeight: 600, fontSize: 13, color: theme.color.gold, background: "rgba(232,181,63,0.12)", border: "1px solid rgba(232,181,63,0.4)", padding: "5px 14px", borderRadius: 999 }}>
-          ∞ infinite banks · any combo banks
+          {CONTENT.rushOverlay.subtitle}
         </div>
       </div>
     </div>

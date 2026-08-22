@@ -27,7 +27,19 @@ export function markRushSeen(): void {
 export function markBankTipSeen(): void {
   writeStored(KEY, { ...load(), seenBankTip: true });
 }
-/** Reset progress → replay The Academy's onboarding tips from scratch. */
+// the one-time ASCENT CHEER after the Academy's unlock celebration finishes —
+// its own key (not a Flags field): it belongs to the campaign moment, not the
+// briefing cycle, and a stray tips write must never resurrect it
+const CHEER_KEY = "glint.academycheer.v1";
+
+/** Has the post-Academy celebration pop-up already been shown on the Ascent? */
+export const academyCheerSeen = (): boolean => readStored<boolean>(CHEER_KEY, false);
+export function markAcademyCheerSeen(): void {
+  writeStored(CHEER_KEY, true);
+}
+
+/** Reset progress → replay The Academy's onboarding tips (and the cheer) from scratch. */
 export function resetAcademyTips(): void {
   removeStored(KEY);
+  removeStored(CHEER_KEY);
 }

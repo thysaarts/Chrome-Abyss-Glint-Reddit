@@ -49,7 +49,7 @@ import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, su
 import { dailyGame } from "./game/daily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
-import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
+import { reconcileGrants, earnItem, grant, ownedMusic, stickers, musicTracks, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -60,7 +60,7 @@ import { PuzzleReveal } from "./ui/PuzzleReveal";
 import { PuzzleIntro } from "./ui/PuzzleIntro";
 import { puzzleIntroSeen, markPuzzleIntroSeen } from "./game/puzzleintro";
 import { markUnseen, markSeen, unseenCount } from "./game/unseen";
-import { academyFlags, markIntroSeen, markRushSeen, markBankTipSeen } from "./game/academy";
+import { academyFlags, markIntroSeen, markRushSeen, markBankTipSeen, academyCheerSeen, markAcademyCheerSeen } from "./game/academy";
 import { GameHeader } from "./ui/GameHeader";
 import { ShopPage } from "./ui/ShopPage";
 import { loadWallet, saveWallet } from "./game/wallet";
@@ -70,7 +70,7 @@ import { chooseBrokerAction, shouldBankNow, tierForBet, type BrokerTier } from "
 import type { Avatar } from "./game/avatars";
 import { AvatarGem } from "./ui/AvatarGem";
 import { fmt } from "./content/content";
-import { PopupCard } from "./ui/PopupCard";
+import { MiniPopup, PopupCard } from "./ui/PopupCard";
 import { StarField } from "./ui/StarField";
 import { TutorAvatar } from "./ui/TutorAvatar";
 import { renderRich } from "./ui/richText";
@@ -148,8 +148,13 @@ export default function App() {
   // the Collection / Achievements / Shop tabs are locked. `tutDone` mirrors the
   // stored flag so the shell re-renders the instant it flips.
   const [tutDone, setTutDone] = useState(tutorialDone());
-  // the end-of-Tutorial celebration (grants the first sticker, then hands off)
+  // the end-of-Tutorial celebration (grants the first music track, then hands off)
   const [tutorialCompleteOpen, setTutorialCompleteOpen] = useState(false);
+  // the end-of-ACADEMY celebration (Level 1 — grants the first sticker)
+  const [academyCompleteOpen, setAcademyCompleteOpen] = useState<null | { fresh: boolean }>(null);
+  // the one-off ASCENT CHEER, played once the Academy's unlock celebration has
+  // finished on the level map
+  const [academyCheer, setAcademyCheer] = useState(false);
   // collectibles earned by the just-finished run → the reward-reveal card (shown
   // AFTER the game-end pop-up: earned collectibles wait behind the end card's
   // Continue button (revealOpen). Skipping the reveal (Play again / exit /
@@ -315,7 +320,7 @@ export default function App() {
   // REDDIT ADAPTATION: this build has no Academy OPT-OUT flow (web's TutorialLevel
   // feature) — the ref stays false and the web-shaped gating below just works.
   const optOutRunRef = useRef(false);
-  const [preAcademy] = useState(() => storedFrontier() < 2);
+  const [preAcademy, setPreAcademy] = useState(() => storedFrontier() < 2);
   const [quickTips, setQuickTips] = useState<{ open: boolean; page: number }>({ open: false, page: 0 });
   // QUICK PLAY tips eligibility — a plain solo run, pre-Academy; the Academy's
   // CLOSING board carries the same tips. A COMMUNITY DAILY is never a quick run:
@@ -575,6 +580,31 @@ export default function App() {
     if (!state.versus && brokerDuelRef.current) setBrokerDuel(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
+
+  // THE SILENT PASS: once a placement's beats settle (and any BANK NOW / CLAIM
+  // window has closed), the turn flows on its own — the footer's animated YOUR
+  // TURN block is the announcement, not a popup. This is the ONLY thing that
+  // hands a turn over after a move: without it a duel deadlocks on the very
+  // first placement (web parity — App.tsx's `passReady`).
+  const together = state.versus;
+  const passReady =
+    !!together?.moved && screen === "game" && state.phase === "playing" &&
+    !anim.playing && !settling && !earlyBankOffer && !claimOffer && !anim.choice;
+  useEffect(() => {
+    if (!passReady) return;
+    const t = setTimeout(() => versusPass(), 650);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passReady]);
+
+  // the handoff chime — keyed to the TURN ITSELF, so a forced mid-action swap
+  // (a hand emptying) announces exactly like a normal pass
+  const coopTurnRef = useRef<number | null>(null);
+  useEffect(() => {
+    const turn = state.versus?.turn ?? null;
+    if (turn !== null && coopTurnRef.current !== null && turn !== coopTurnRef.current) sfx.turnChange();
+    coopTurnRef.current = turn;
+  }, [state.versus?.turn]);
 
   // THE REFUND WINDOW: has the PLAYER placed anything this duel? Latched from
   // the turn state (the Broker winning the ritual and moving first must NOT
@@ -952,16 +982,18 @@ export default function App() {
     // HARD TUTORIAL GATE: Level 0 (the Tutorial) NEVER earns anything — no
     // leaderboard, no stats, no dailies, no stickers/achievements/Nebulite — not
     // even on a revisit after everything is unlocked. Only the campaign frontier
-    // advances (progression), and the FIRST completion hands over Blue Giant via
-    // the celebration pop-up.
+    // advances (progression), and the FIRST completion hands over the first MUSIC
+    // TRACK (Interstellar) via the celebration pop-up — the Academy (Level 1),
+    // not this level, is the one that hands over Blue Giant.
     if (currentLevel?.num === 0) {
       const fresh = completeLevel(currentLevel.num, run);
       const next = LEVELS[currentLevel.num + 1];
       const nav = next && (fresh || levelStatus(next.num) !== "locked") ? { nextNum: next.num, fresh } : null;
-      const r = earnItem("sticker", "bluegiant"); // non-null only on the FIRST completion
+      markTutorialDone(); // Level 0 COMPLETED → the tabs + earning unlock (not before)
+      setTutDone(true);
+      setPreAcademy(storedFrontier() < 2);
+      const r = earnItem("music", "interstellar"); // non-null only on the FIRST completion
       if (r) {
-        markTutorialDone();
-        setTutDone(true);
         haptic("unlock");
         markUnseen([r]);
         setCollectionAlert(true);
@@ -1050,9 +1082,28 @@ export default function App() {
       // A level's target only counts on a LEGITIMATE finish — cleared the board, cashed
       // out, or ran out of tiles. A game over never advances the campaign, even if the
       // target's number was hit mid-run (see `gameOver` above). Exit doesn't reach here.
-      const fresh = completeLevel(currentLevel.num, run, !gameOver);
+      // THE TWO TUTORIAL LEVELS ARE THE EXCEPTION: 0 and 1 complete on ANY finish — the
+      // campaign never demands a successful run to leave the teaching behind, busting
+      // out included. Levels 2+ keep the rule.
+      const fresh = completeLevel(currentLevel.num, run, currentLevel.num === 1 || !gameOver);
       const next = LEVELS[currentLevel.num + 1];
       if (next && (fresh || levelStatus(next.num) !== "locked")) endNavNext = { nextNum: next.num, fresh };
+      if (fresh) setPreAcademy(storedFrontier() < 2); // a frontier advance can end the pre-Academy phase
+      // THE ACADEMY (Level 1) completed for the first time: hand over the first
+      // sticker (Blue Giant) with its own pop-up. earnItem is the once-only gate —
+      // a revisit already owns it and gets the normal end card instead. ANY end of
+      // the closing run completes the Academy, busting out included: the pop-up's
+      // Continue is the guaranteed way forward. A game over only forfeits the run's
+      // RESOURCES (zeroed into `finished` above), never the completion.
+      if (currentLevel.num === 1) {
+        const r = earnItem("sticker", "bluegiant");
+        if (r) {
+          haptic("unlock");
+          markUnseen([r]);
+          setCollectionAlert(true);
+          setAcademyCompleteOpen({ fresh: endNavNext?.fresh ?? false });
+        }
+      }
     }
     // EARNING — only once the Tutorial is complete (the first sticker is handed
     // over by the completion pop-up, not here).
@@ -1466,7 +1517,15 @@ export default function App() {
                   onQuickStart={startQuick}
                   onPlayLevel={startLevel}
                   celebrate={celebrate}
-                  onCelebrated={() => setCelebrate(null)}
+                  onCelebrated={() => {
+                    // the Academy's celebration just finished → one-time cheer
+                    const played = celebrate?.played;
+                    setCelebrate(null);
+                    if (played === 1 && !academyCheerSeen()) {
+                      markAcademyCheerSeen();
+                      setAcademyCheer(true);
+                    }
+                  }}
                   equippedTheme={settings.boardTheme && REGIONS[settings.boardTheme] ? settings.boardTheme : undefined}
                 />
               </div>
@@ -1759,7 +1818,27 @@ export default function App() {
               FLOATS up from behind the footer into this band, holds ~3s, then floats
               up and fades. (BANK NOW no longer lives here — it overlays the HUD.) */}
           <div style={boardFitH ? { ...toastBand, position: "absolute", left: 0, right: 0, bottom: 7, marginTop: 0, zIndex: 8 } : toastBand}>
-            {toastId > 0 && <FloatingToast key={toastId} kind={toast.kind} text={toast.text} stay={toast.sticky} />}
+            {spectating ? (
+              // the Broker has the table — a sticky pill says so, the way the
+              // online watcher's does (web parity)
+              <FloatingToast key="nyt" kind="info" text={CONTENT.friends.coopNotYourTurn} stay />
+            ) : (
+              toastId > 0 && toast && (
+                <FloatingToast
+                  key={toastId}
+                  kind={toast.kind}
+                  text={toast.text}
+                  stay={toast.sticky}
+                  who={(() => {
+                    // versus name-tags every seat-tagged line in that seat's colour
+                    const names = state.versus?.names;
+                    return names && toast.seat !== undefined && names[toast.seat]
+                      ? { name: names[toast.seat], color: toast.seat === 0 ? COOP_GREEN : COOP_PURPLE }
+                      : undefined;
+                  })()}
+                />
+              )
+            )}
           </div>
 
             {/* the slow specular sweep — clipped to this sheen area, so it fits exactly
@@ -1827,7 +1906,7 @@ export default function App() {
           {/* end-of-game modal — when the next level is unlocked, Continue leads
               the way (Play again drops to secondary); a fresh unlock plays the
               level-menu celebration */}
-          {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && (
+          {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && !academyCompleteOpen && (
             <EndCard
               state={state}
               champsBySeat={brokerDuel
@@ -2121,14 +2200,13 @@ export default function App() {
           }}
         />
       )}
-      {tutorialCompleteOpen && (() => {
-        const all = stickers();
-        const idx = all.findIndex((s) => s.id === "bluegiant");
+      {tutorialCompleteOpen && !anim.playing && !settling && (() => {
+        const m = musicTracks().find((x) => x.key === "interstellar");
+        const copy = CONTENT.tutorialLevel.completion;
         return (
           <TutorialComplete
-            copy={CONTENT.tutorialLevel.completion}
-            sticker={idx >= 0 ? all[idx] : undefined}
-            emblem={idx < 0 ? 0 : idx}
+            copy={copy}
+            reward={m ? { name: m.name, image: m.image, emblem: 0, label: copy.rewardLabel } : undefined}
             onContinue={() => {
               setTutorialCompleteOpen(false);
               // Play the SAME menu celebration every other level plays: tick the
@@ -2136,6 +2214,38 @@ export default function App() {
               // freshly-unlocked Academy with its target struck through — instead of
               // dropping straight into the Ascent with the Academy already ticked.
               setCelebrate({ played: LEVELS[0].num, next: LEVELS[1]?.num ?? null });
+              setScreen("levels");
+            }}
+          />
+        );
+      })()}
+      {/* the ASCENT CHEER — once, right after the Academy's unlock celebration
+          has played out on the level map (copy: tutorialLevel.academyCelebration) */}
+      {academyCheer && screen === "levels" && (() => {
+        const ac = CONTENT.tutorialLevel.academyCelebration ?? DEFAULT_CONTENT.tutorialLevel.academyCelebration;
+        return (
+          <PracticePopup
+            copy={{ title: ac.title, body: ac.body, continueButton: ac.button }}
+            icon={<TutorAvatar size={76} />}
+            onContinue={() => setAcademyCheer(false)}
+          />
+        );
+      })()}
+      {academyCompleteOpen && !anim.playing && !settling && (() => {
+        const all = stickers();
+        const idx = all.findIndex((s) => s.id === "bluegiant");
+        const copy = CONTENT.tutorialLevel.academyCompletion ?? DEFAULT_CONTENT.tutorialLevel.academyCompletion;
+        return (
+          <TutorialComplete
+            copy={copy}
+            reward={idx >= 0 ? { name: all[idx].name, image: all[idx].image, emblem: idx, label: copy.rewardLabel } : undefined}
+            onContinue={() => {
+              const fresh = academyCompleteOpen.fresh;
+              setAcademyCompleteOpen(null);
+              // the same menu celebration every other level plays: tick the
+              // completed Academy (level 1), then reveal the freshly-unlocked
+              // Sector 01 Outpost below it.
+              setCelebrate({ played: 1, next: fresh ? 2 : null });
               setScreen("levels");
             }}
           />
@@ -3107,6 +3217,29 @@ function ChoiceTimerChip({ at, windowMs }: { at: { x: number; y: number } | null
 }
 
 /* ============================== the Academy briefing ============================== */
+
+/** A single-message board pop-up — the Academy's ASCENT CHEER uses it. */
+function PracticePopup({ copy, icon, onCombos, onContinue }: {
+  copy: { title: string; body: string; combosButton?: string; continueButton: string };
+  /** the emblem above the title — every board-start pop-up carries one, in the
+   *  same visual language as the tips cards' per-page emblems */
+  icon?: React.ReactNode;
+  onCombos?: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <MiniPopup onClose={onContinue} closeOnBackdrop={false} width={360} zIndex={90} cardStyle={practiceCardSkin}>
+      {icon && <div style={{ display: "flex", justifyContent: "center", margin: "2px 0 14px" }}>{icon}</div>}
+      <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 24, color: theme.color.text, letterSpacing: "0.02em", textAlign: "center" }}>{copy.title}</div>
+      <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, lineHeight: 1.6, color: theme.color.dim, margin: "14px 0 6px", textAlign: "left" }}>{renderRich(copy.body)}</div>
+      {copy.combosButton && onCombos && (
+        <button style={{ ...secondaryEndBtn, width: "100%", justifyContent: "center", marginTop: 12 }} onClick={() => { sfx.click(); onCombos(); }}>{copy.combosButton}</button>
+      )}
+      <button style={{ ...primaryBtn, width: "100%", justifyContent: "center", marginTop: 10 }} onClick={() => { sfx.click(); onContinue(); }}>{copy.continueButton}</button>
+    </MiniPopup>
+  );
+}
+const practiceCardSkin: React.CSSProperties = { padding: "26px 26px 22px", borderRadius: 22, background: "linear-gradient(180deg, rgba(60,36,90,0.35), rgba(13,11,20,0.6)), #0c0e18", border: "1px solid rgba(157,123,255,0.4)" };
 
 /** THE ACADEMY's tips — a paged briefing card. Page 1 stars the Nebulite; the
  *  GLINT RUSH page joins the cycle once the rush has been reached; page 3 is

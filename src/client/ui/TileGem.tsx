@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useId } from "react";
 import { GLINT, CORE, TileVal } from "../game/engine";
 import { MineralValue } from "../theme/theme";
 
@@ -11,7 +11,7 @@ import { MineralValue } from "../theme/theme";
  * so the geometry stays pixel-faithful at any size.
  *
  * Shape encodes value (1 circle · 2 almond · 3 triangle · 4 diamond · 5 pentagon
- * · 6 hexagon · Dross step-cut octagon · Nebulite rounded-square Core).
+ * · 6 hexagon · Dross step-cut octagon · Nebulite rounded-square).
  */
 
 type GemType =
@@ -62,10 +62,14 @@ const BONUS_GLOW: Record<number, string> = {
 
 export const TileGem = memo(function TileGem({ value, size, dim, jokerValue }: TileGemProps) {
   // A Nebulite acting as a joker renders the mimicked mineral's gem, wrapped in
-  // the purple Core ring so it still reads as a Nebulite.
+  // the purple Nebulite ring so it still reads as a Nebulite.
   const isJoker = value === CORE && jokerValue != null;
   const type: GemType = isJoker ? TYPE_OF[jokerValue as MineralValue] : TYPE_OF[value as number];
   const glow = !dim ? BONUS_GLOW[value as number] : undefined;
+  // gradient ids must be unique PER INSTANCE: with a shared id, url(#…) binds to
+  // the document's first match — and if that copy sits in a hidden subtree,
+  // Chromium silently drops the gradient (no halo at all)
+  const haloId = `gl-halo-${useId().replace(/:/g, "")}`;
 
   return (
     <svg
@@ -76,16 +80,31 @@ export const TileGem = memo(function TileGem({ value, size, dim, jokerValue }: T
         display: "block",
         overflow: "visible",
         opacity: dim ? 0.42 : 1,
-        filter: glow ? `drop-shadow(0 0 4px ${glow}) drop-shadow(0 0 9px ${glow})` : undefined,
       }}
     >
+      {/* the halo is PAINTED geometry (a radial-gradient aura), never a CSS
+          drop-shadow: filter output gets clipped to a box on Safari — desktop
+          and iOS disagree on exactly where — so every filter approach showed
+          straight edges somewhere. A gradient ellipse has nothing to clip. */}
+      {glow && (
+        <>
+          <defs>
+            <radialGradient id={haloId}>
+              <stop offset="0%" stopColor={glow} stopOpacity="0.55" />
+              <stop offset="55%" stopColor={glow} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={glow} stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="50" cy="50" rx="45" ry="58" fill={`url(#${haloId})`} />
+        </>
+      )}
       {GEMS[type]}
       {isJoker && <JokerRing />}
     </svg>
   );
 });
 
-/** The purple Core ring + orbiting sparkle dots, drawn over a mirrored gem. */
+/** The purple Nebulite ring + orbiting sparkle dots, drawn over a mirrored gem. */
 function JokerRing() {
   return (
     <>

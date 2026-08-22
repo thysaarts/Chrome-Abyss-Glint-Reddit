@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { theme } from "../theme/theme";
 import { sfx } from "../audio/sfx";
 import { CONTENT } from "../content/content";
+import { renderRich } from "./richText";
 
 /**
  * PUZZLE REVEAL — shown when a PUZZLE board is cleared: the full (uncropped)
@@ -22,7 +23,7 @@ export function PuzzleReveal({ image, onContinue }: { image: string; onContinue:
           <img src={image} alt="" style={img} />
           <div style={gloss} className="gl-gloss-slow" />
         </div>
-        {R.caption ? <div style={caption}>{R.caption}</div> : null}
+        {R.caption ? <div style={caption}>{renderRich(R.caption)}</div> : null}
         <button style={primaryBtn} onClick={() => { sfx.click(); onContinue(); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" /></svg>
           {R.button}

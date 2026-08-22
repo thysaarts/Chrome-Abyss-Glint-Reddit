@@ -3,6 +3,7 @@ import { theme } from "../theme/theme";
 import { CONTENT } from "../content/content";
 import { TileGem } from "./TileGem";
 import { sfx } from "../audio/sfx";
+import { renderRich } from "./richText";
 
 /**
  * PUZZLE INTRO — the one-time briefing that pops over the board the first time a
@@ -131,7 +132,7 @@ export function PuzzleIntro({ onClose }: { onClose: () => void }) {
           {I.lines.map((line, i) => (
             <div key={i} style={lineRow}>
               <span style={bullet}>{i + 1}</span>
-              <span style={lineText}>{line}</span>
+              <span style={lineText}>{renderRich(line)}</span>
             </div>
           ))}
         </div>

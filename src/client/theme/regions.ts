@@ -418,6 +418,141 @@ export const REGIONS: Record<string, RegionTheme> = {
     castShadow: 0.7,
     tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(190,200,220,0.18), transparent 72%), radial-gradient(60% 45% at 30% 0%, rgba(150,200,255,0.08), transparent 70%)",
   },
+  /* ---- the FACTION wave: seven character-themed treatments (FACTION PACKS).
+     Each palette is read off the character art in assets/characters/ — accent
+     from the character's signature feature (hair / eyes / visor), mid-darks
+     from their world (sand, machinery, code, parade greens, water, shadow,
+     the catsuit), plus a subtle borrow from the faction's canonical gem
+     (GDD §3.2: Duneglass→Outlaw, Chromite→Enforcer, Verdite→Hacker,
+     Vigilite→Sentinel, Nuracite→Siren, Umbrite→Ghost; the Broker is the
+     house and has no gem). ---- */
+
+  "Faction: Broker": {
+    // the Broker — visor WHITE leads, her hair's vivid pink second; the rest
+    // stays the black catsuit
+    name: "Broker",
+    screenBg: "#07070a",
+    panelGrad: "linear-gradient(180deg, rgba(30,29,38,0.88), rgba(14,14,19,0.93))",
+    footerGrad: "linear-gradient(180deg, rgba(25,24,33,0.93), rgba(11,11,16,0.96))",
+    tileGrad: "linear-gradient(180deg, #232230, #111017)",
+    border: "#34324a",
+    edge: "#040406",
+    labelInk: "#e263ff",
+    dimInk: "#e6e2f2",
+    accent: "#f2f4fa",
+    panelSolid: "#100f16",
+    tileSolid: "#1e1d2a",
+    castShadow: 0.65,
+    tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(226,99,255,0.22), transparent 72%), radial-gradient(55% 40% at 84% 0%, rgba(240,244,250,0.10), transparent 70%)",
+  },
+  "Faction: Enforcer": {
+    // the Enforcer — machinery GREYS with one bronze armour tone kept; the
+    // eyes' hot orange leads; a Chromite-silver sheen ties in the gem
+    name: "Enforcer",
+    screenBg: "#070708",
+    panelGrad: "linear-gradient(180deg, rgba(40,40,45,0.88), rgba(19,19,22,0.93))",
+    footerGrad: "linear-gradient(180deg, rgba(34,34,39,0.93), rgba(15,15,18,0.96))",
+    tileGrad: "linear-gradient(180deg, #2b2b31, #141416)",
+    border: "#46474e",
+    edge: "#030304",
+    labelInk: "#a8845c",
+    dimInk: "#cfd3da",
+    accent: "#ff8c1e",
+    panelSolid: "#131315",
+    tileSolid: "#242428",
+    castShadow: 0.65,
+    tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(255,140,30,0.30), transparent 72%), radial-gradient(55% 40% at 18% 0%, rgba(194,202,214,0.10), transparent 70%)",
+  },
+  "Faction: Ghost": {
+    // the Ghost — the darkest set: shadow blacks, an EARTH tone from the gear
+    // straps, a deeper spectral cyan; an Umbrite-violet breath ties in the gem
+    name: "Ghost",
+    screenBg: "#040507",
+    panelGrad: "linear-gradient(180deg, rgba(19,23,28,0.9), rgba(8,10,13,0.94))",
+    footerGrad: "linear-gradient(180deg, rgba(15,19,23,0.94), rgba(7,8,11,0.96))",
+    tileGrad: "linear-gradient(180deg, #14181d, #090b0e)",
+    border: "#23272e",
+    edge: "#020304",
+    labelInk: "#8f7f6a",
+    dimInk: "#c2b6a4",
+    accent: "#3fb8cc",
+    panelSolid: "#090b0d",
+    tileSolid: "#12151a",
+    castShadow: 0.75,
+    tileWash: "radial-gradient(80% 55% at 50% 60%, rgba(63,184,204,0.13), transparent 70%), radial-gradient(60% 45% at 20% 108%, rgba(162,77,240,0.09), transparent 72%)",
+  },
+  "Faction: Hacker": {
+    // the Hacker — platinum HAIR leads, matrix green second; mid-darks split
+    // between code green and the black coat; Verdite green ties in the gem
+    name: "Hacker",
+    screenBg: "#050705",
+    panelGrad: "linear-gradient(180deg, rgba(22,26,24,0.9), rgba(10,13,11,0.94))",
+    footerGrad: "linear-gradient(180deg, rgba(18,22,20,0.94), rgba(8,11,9,0.96))",
+    tileGrad: "linear-gradient(180deg, #171c18, #0b0e0c)",
+    border: "#1f4a30",
+    edge: "#020302",
+    labelInk: "#3fe792",
+    dimInk: "#d5efd9",
+    accent: "#edf6e3",
+    panelSolid: "#0a0d0b",
+    tileSolid: "#141a16",
+    castShadow: 0.7,
+    tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(47,210,124,0.22), transparent 72%), radial-gradient(50% 40% at 80% 0%, rgba(237,246,227,0.08), transparent 70%)",
+  },
+  "Faction: Outlaw": {
+    // the Outlaw — SAND mid-darks (the frontier), one worn-leather tone kept,
+    // the hair's red leads; a Duneglass-pearl glint ties in the gem
+    name: "Outlaw",
+    screenBg: "#0a0806",
+    panelGrad: "linear-gradient(180deg, rgba(48,40,26,0.88), rgba(23,19,12,0.93))",
+    footerGrad: "linear-gradient(180deg, rgba(41,34,22,0.93), rgba(19,16,10,0.96))",
+    tileGrad: "linear-gradient(180deg, #382f1c, #1a150c)",
+    border: "#57492c",
+    edge: "#050402",
+    labelInk: "#b3a077",
+    dimInk: "#e4d8ba",
+    accent: "#f23a2a",
+    panelSolid: "#161208",
+    tileSolid: "#2b2414",
+    castShadow: 0.6,
+    tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(242,58,42,0.24), transparent 72%), radial-gradient(65% 40% at 20% 0%, rgba(174,182,194,0.10), transparent 70%)",
+  },
+  "Faction: Sentinel": {
+    // the Sentinel — SOFTER, lighter greens than the Hacker (parade order,
+    // not code), the eyes' vivid green leads; Vigilite gold ties in the gem
+    name: "Sentinel",
+    screenBg: "#0a0d09",
+    panelGrad: "linear-gradient(180deg, rgba(38,48,34,0.86), rgba(19,24,17,0.92))",
+    footerGrad: "linear-gradient(180deg, rgba(33,42,29,0.92), rgba(16,21,14,0.95))",
+    tileGrad: "linear-gradient(180deg, #2a3526, #151c12)",
+    border: "#4a5a42",
+    edge: "#040604",
+    labelInk: "#a4b694",
+    dimInk: "#dce6cf",
+    accent: "#58e83e",
+    panelSolid: "#131810",
+    tileSolid: "#232c1f",
+    castShadow: 0.55,
+    tileWash: "radial-gradient(85% 55% at 50% 108%, rgba(88,232,62,0.20), transparent 72%), radial-gradient(60% 40% at 80% 0%, rgba(200,146,47,0.12), transparent 70%)",
+  },
+  "Faction: Siren": {
+    // the Siren — TURQUOISE and blues (water affinity), the lightest mid-darks
+    // in the set; Nuracite IS her gem, so its turquoise runs throughout
+    name: "Siren",
+    screenBg: "#0a141d",
+    panelGrad: "linear-gradient(180deg, rgba(29,58,72,0.85), rgba(15,30,40,0.91))",
+    footerGrad: "linear-gradient(180deg, rgba(25,51,64,0.91), rgba(13,26,34,0.94))",
+    tileGrad: "linear-gradient(180deg, #1d4152, #0f2230)",
+    border: "#37647a",
+    edge: "#050a0e",
+    labelInk: "#8fc4d4",
+    dimInk: "#dcf2f8",
+    accent: "#b8f1ff",
+    panelSolid: "#0e1c26",
+    tileSolid: "#1a3644",
+    castShadow: 0.5,
+    tileWash: "radial-gradient(90% 55% at 50% -6%, rgba(63,211,230,0.24), transparent 70%), radial-gradient(60% 45% at 50% 108%, rgba(90,180,220,0.18), transparent 72%)",
+  },
 };
 
 /** CSS-variable overrides the game shell applies when a region theme is active. */
