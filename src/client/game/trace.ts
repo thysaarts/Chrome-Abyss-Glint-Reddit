@@ -13,7 +13,7 @@
  * costs nothing in normal play. Accumulated entries live on `window.__glintTrace`; call
  * `window.__glintTraceText()` for the full text log, or use the on-screen ⭳ button.
  */
-import { GameState, TileVal, planMove, visibleTile, GLINT, CORE, ZENITH } from "./engine";
+import { GameState, TileVal, planMove, visibleTile, bankClusterNow, GLINT, CORE, ZENITH } from "./engine";
 
 function tileLabel(v: TileVal | null | undefined): string {
   if (v === null || v === undefined) return "·";
@@ -181,6 +181,57 @@ export function setTraceEnabled(on: boolean): void {
   }
 }
 
+// ---- ANIMATION BEAT TRACER (?debug=1) --------------------------------------
+// A timestamped play-by-play of a single animated sequence's beats, so we can see
+// the exact ORDER + spacing of each setAnim/pause and catch a board that snaps to
+// its committed positions before (or without) the transitional animation. Compare
+// the active player's console against the follower's to spot a co-op desync.
+// Lines also mirror onto window.__glintBeats for copy-paste from a phone.
+let beatT0 = 0;
+let beatCtx = "";
+const beatLog: string[] = [];
+
+/** Open a beat timeline. `ctx` should carry the role + mode, e.g. "BUST coop/active". */
+export function beatStart(ctx: string): void {
+  if (!isTraceEnabled()) return;
+  beatT0 = typeof performance !== "undefined" ? performance.now() : Date.now();
+  beatCtx = ctx;
+  const line = `⏱ ${ctx} ─ START`;
+  beatLog.push(line);
+  mirrorBeats();
+  // eslint-disable-next-line no-console
+  console.log(`%c${line}`, "color:#ff8a5c;font-weight:700;font-family:monospace");
+}
+
+/** Close the current beat timeline — shared helpers (animateReshuffle, …) stop
+ *  logging so their beats don't leak into unrelated sequences (banks, etc.). */
+export function beatEnd(): void {
+  beatCtx = "";
+}
+
+/** Log one beat with the ms elapsed since beatStart. `extra` renders as k=v pairs —
+ *  use it to record what the board is showing (e.g. view="pre-nudge" or "committed").
+ *  No-op unless a timeline is open (beatStart called, beatEnd not yet), so shared
+ *  animation helpers only trace when the sequence under investigation is running. */
+export function beat(label: string, extra?: Record<string, unknown>): void {
+  if (!isTraceEnabled() || !beatCtx) return;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const dt = Math.round(now - beatT0);
+  const tail = extra ? "  " + Object.entries(extra).map(([k, v]) => `${k}=${v}`).join(" ") : "";
+  const line = `⏱ ${beatCtx} +${dt}ms  ${label}${tail}`;
+  beatLog.push(line);
+  mirrorBeats();
+  // eslint-disable-next-line no-console
+  console.log(`%c${line}`, "color:#ff8a5c;font-family:monospace");
+}
+
+function mirrorBeats(): void {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as Record<string, unknown>;
+  w.__glintBeats = beatLog;
+  w.__glintBeatsText = () => beatLog.join("\n");
+}
+
 export function getTrace(): MoveTrace[] {
   return buffer;
 }
@@ -190,6 +241,36 @@ export function traceText(): string {
 export function clearTrace(): void {
   buffer.length = 0;
   if (typeof window !== "undefined") (window as unknown as Record<string, unknown>).__glintTrace = buffer;
+}
+
+/** Record a standalone BANK NOW action (the bank button harvesting clusters that a
+ *  PRIOR placement lit — it's not itself a placement, so recordMoveTrace never sees
+ *  it, which otherwise leaves a score/banks jump "between" placements in the log).
+ *  No-op unless trace is enabled, so the bankClusterNow replay costs nothing in
+ *  normal play. `before` is the state at bank time; the bank cell drives the harvest. */
+export function recordBankTrace(before: GameState, cellKey: string): void {
+  if (!isTraceEnabled()) return;
+  const after = bankClusterNow(before, cellKey);
+  const t: MoveTrace = {
+    move: after.moves,
+    placed: "(bank now)",
+    at: cellKey,
+    covered: null,
+    outcome: "bank",
+    combos: [],
+    banked: { cells: [...before.activatedCells], combos: [...new Set(before.activatedCombos?.map((c) => c.name) ?? [])], multiplier: 0 },
+    score: { before: before.score, after: after.score, delta: after.score - before.score },
+    hand: { before: before.hand.map(tileLabel), after: after.hand.map(tileLabel) },
+    totals: { banks: after.banks, busts: after.busts },
+  };
+  if (after.lastResolved.isolatedToScore.length) t.isolatedToScore = after.lastResolved.isolatedToScore.map((x) => ({ cell: x.key, value: tileLabel(x.value as TileVal), points: x.points }));
+  if (after.lastResolved.shrunk) t.collapsed = true;
+  buffer.push(t);
+  const w = window as unknown as Record<string, unknown>;
+  w.__glintTrace = buffer;
+  w.__glintTraceText = () => traceText();
+  // eslint-disable-next-line no-console
+  console.log("%c" + formatMoveTrace(t), "color:#5cc8ff;font-family:monospace;white-space:pre");
 }
 
 /** Record a move (no-op unless trace is enabled). Also mirrors to the console + window. */

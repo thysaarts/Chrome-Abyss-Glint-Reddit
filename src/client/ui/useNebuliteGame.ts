@@ -4,11 +4,16 @@ import {
   place,
   bankClusterNow,
   clusterCombosFor,
+  coopEndTurn,
+  versusEndTurn,
+  claimCluster,
   describePlace,
   placeAlternatives,
   logOnly,
   visibleTile,
   cashOut,
+  offerCashOut,
+  resolveCashOut,
   GameState,
   NewGameOpts,
   TileVal,
@@ -19,7 +24,13 @@ import {
   ZENITH,
   isBonusGem,
 } from "../game/engine";
-import { recordMoveTrace, clearTrace } from "../game/trace";
+import { ceremonyCluster } from "./bankCeremony";
+import { recordMoveTrace, recordBankTrace, clearTrace, beatStart, beat, beatEnd } from "../game/trace";
+import { isCoarsePointer } from "../theme/theme";
+import { applyNetMove, NetMove } from "../net/moves";
+import { seatForEntry, isMyTurn, Entry } from "../net/seats";
+import type { MatchMode } from "../net/netMatch";
+import type { BoardShape } from "../game/hex";
 import { logText, chainLabel } from "../content/content";
 import { sfx } from "../audio/sfx";
 import { haptic } from "../game/haptics";
@@ -27,6 +38,17 @@ import { gameOptions } from "./settings";
 import { loadStats } from "../game/stats";
 import { abilityUnlocked } from "../game/challenges";
 import { chainBonus, ComboName } from "../game/combos";
+
+/** Total length of the Zenith arrival flourish — the hold mid-screen plus the fly
+ *  into the hand. The commitFinal choreography waits this long; the ZenithArrival
+ *  overlay runs its own timeline against the same budget. */
+const ZENITH_ARRIVAL_MS = 2100;
+
+/** The UNCOVER beat for a bonus gem dug out of the board: how long one gem's
+ *  grow-and-rise runs (matched by the `gl-uncover` keyframes in index.css), and
+ *  the gap between gems when a single action uncovers more than one. */
+const UNCOVER_MS = 1100;
+const UNCOVER_STAGGER_MS = 200;
 
 // Pretty display names for the COMBO LINEUP rows (mirrors the engine's log labels).
 const COMBO_PRETTY: Record<ComboName, string> = {
@@ -53,14 +75,15 @@ const T = {
   snap: 240, // magnetic "thick-thumbs" rescue snap to a neighbour
   zoomOut: 400, // wait for the focus-zoom to settle back OUT (0.36s transition + buffer)
 };
+// ONLINE: how long the WATCHER holds before a collapse / singularity / end-card,
+// to re-sync with the active player (whose full animation runs longer than the
+// watcher's quick disappear). A flat delay — good enough for same-room play.
+const SPECTATE_SYNC_MS = 2000;
 
 // COMBO CHOICE — when a placement could resolve more than one way, the best
-// option pre-lights blue and auto-confirms after this window (tap the grey
-// alternative to switch — which resets the window — or tap the blue to commit
-// instantly). Exported for the countdown chip in App.
-// legacy constant (the LIVE window is per-difficulty: gameOptions.choiceWindowMs
-// — easy 3000, medium/hard 2000); kept for reference and tests
-export const CHOICE_WINDOW = 2000;
+// option pre-lights blue and auto-confirms after a per-difficulty window
+// (gameOptions.choiceWindowMs — easy 3000, medium/hard 2000); tap the amber
+// alternative to switch (resets the window) or tap the blue to commit instantly.
 
 // COMBO LINEUP timings — shared with the overlay component (App.tsx), which runs
 // its own matching timeline: fly to the slots → linger (names shown) → dive in.
@@ -71,11 +94,6 @@ export const LINEUP_T = {
   dive: 400, // lineup slot → score box
   diveStagger: 35, // per-tile start offset while diving
 };
-
-/** Total length of the Zenith arrival flourish — the hold mid-screen plus the fly
- *  into the hand. The commitFinal choreography waits this long; the ZenithArrival
- *  overlay runs its own timeline against the same budget. */
-const ZENITH_ARRIVAL_MS = 2100;
 
 export interface FlyingTile {
   id: string;
@@ -126,7 +144,7 @@ interface AnimState {
   // THE ABYSS COLLAPSES: a multi-phase shrink. `phase` drives the big "SHRINKING"
   // word (which itself shrinks) and a scale transform on the board. `vanishing` are
   // cells (outer ring) currently being pulled in / removed, shown collapsing.
-  shrinking?: { phase: number; scale: number; vanishing: Set<string>; final?: boolean; fromCells: number; toCells: number } | null;
+  shrinking?: { phase: number; scale: number; vanishing: Set<string>; final?: boolean; fromCells: number; toCells: number; reveal?: boolean } | null;
   rushTitle?: boolean; // the "GLINT RUSH / FINAL ROUND" title after the final collapse
   // MOTHER LODE: the 6-tiles → Nebulite refine sequence. `phase` "gather" shows the
   // source gem ×count; "fuse" morphs it into the Nebulite(s). Null when idle.
@@ -168,6 +186,12 @@ interface AnimState {
   // light overlay, then flies into the active hand slot. While true, the footer
   // hides the (incoming) active gem so the flying one is the only Zenith on screen.
   zenithArrival?: boolean;
+  // BONUS GEM UNCOVERED — a Resurrect / Quadriant that was buried under the tile
+  // this action just cleared. The board has already resolved it away, so the
+  // reveal gets its own beat AT THE CELL: the gem grows out of the hex and rises
+  // (the placement drop played backwards) before the effect's flight follows.
+  // `delay` staggers a multi-uncover so they announce themselves one at a time.
+  bonusUncover?: { key: string; gem: TileVal; delay: number }[] | null;
 }
 
 const IDLE: AnimState = {
@@ -201,6 +225,16 @@ const IDLE: AnimState = {
 // running and commit the OLD game's state over the freshly-started board.
 const ABORT = Symbol("seq-abort");
 
+// Staggered SFX scheduled alongside animation beats. The awaited chain aborts via
+// `pause`, but a raw setTimeout is DETACHED — restarting mid-animation would still
+// fire the old run's sounds over the new game. `sfxAt` skips the sound if a new
+// game has started since it was scheduled (start() bumps the epoch).
+let sfxEpoch = 0;
+function sfxAt(fn: () => void, ms: number): void {
+  const e = sfxEpoch;
+  setTimeout(() => { if (sfxEpoch === e) fn(); }, ms);
+}
+
 function buildInitial(opts: NewGameOpts): GameState {
   return newGame({ handSize: 9, ...opts });
 }
@@ -212,11 +246,61 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   // OPTION 3: after the player makes a combo, an early-bank offer with a timed BANK
   // button. `cellKey` is the just-placed cell (whose cluster would bank).
   const [earlyBankOffer, setEarlyBankOffer] = useState<{ cellKey: string } | null>(null);
+  // GLINT VERSUS: the tap-to-claim window — picker-style. After your activating
+  // placement a countdown circle appears in your colour; tapping the combo
+  // again claims it, silence lets it lapse (3s, like the BANK NOW rhythm).
+  const [claimOffer, setClaimOffer] = useState<{ cellKey: string; n: number } | null>(null);
+  const claimSeqRef = useRef(0);
+  const claimOfferRef = useRef(claimOffer);
+  claimOfferRef.current = claimOffer;
+  const claimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeClaimOffer = () => {
+    if (claimTimerRef.current) clearTimeout(claimTimerRef.current);
+    claimTimerRef.current = null;
+    setClaimOffer(null);
+  };
+  const openClaimOffer = (cellKey: string) => {
+    if (claimTimerRef.current) clearTimeout(claimTimerRef.current);
+    // n re-keys the countdown ring so its drain RESTARTS for every fresh window
+    setClaimOffer({ cellKey, n: ++claimSeqRef.current });
+    claimTimerRef.current = setTimeout(() => setClaimOffer(null), 3000);
+  };
 
   const mapperRef = useRef<Mapper | null>(null);
   const busyRef = useRef(false);
+  // cells whose buried bonus gem has already taken its UNCOVER bow in THIS
+  // resolve — the choreography plays it at the seam, commitFinal's net skips it
+  const playedUncoversRef = useRef<Set<string>>(new Set());
+  // this RUN mutes the combo picker (start()'s suppressPicker — the tutorial's
+  // mid-way practice board, played before the blue/amber lesson exists)
+  const suppressPickerRef = useRef(false);
   const stateRef = useRef<GameState>(state);
   stateRef.current = state;
+  // ONLINE PLAY: when set, this device is one seat of a networked match. `entry`
+  // is its slot (0 = host, 1 = guest); `onLocal` reports a committed local move
+  // to the transport. Followers (not their turn) are blocked from input and from
+  // auto-behaviours; only the active device acts and emits. `applyingRemoteRef`
+  // guards the apply path so a replayed opponent move never re-emits.
+  const netRef = useRef<{ entry: Entry; onLocal: (m: NetMove) => void } | null>(null);
+  const applyingRemoteRef = useRef(false);
+  // is online input allowed right now? (solo/hot-seat: always; online: my turn)
+  const canActRef = useRef(true);
+  const online = () => netRef.current !== null;
+  const myTurn = (s: GameState) => !netRef.current || isMyTurn(s, netRef.current.entry);
+  // emit a committed local move to the transport (seat filled from my entry)
+  const emitLocal = (m: Omit<NetMove, "seq" | "seat">) => {
+    const net = netRef.current;
+    if (!net || applyingRemoteRef.current) return;
+    net.onLocal({ ...m, seq: 0, seat: seatForEntry(stateRef.current, net.entry) });
+  };
+  // ANTI-CHEAT RECORDER: while set, every committed local action is appended so a
+  // daily run's whole move stream can be replayed & scored server-side. Records
+  // the RESOLVED cell/choice, so the rescue-snap and combo-picker replay exactly.
+  const recordRef = useRef<NetMove[] | null>(null);
+  const record = (m: Omit<NetMove, "seq" | "seat">) => {
+    const rec = recordRef.current;
+    if (rec && !applyingRemoteRef.current) rec.push({ ...m, seq: rec.length, seat: 0 });
+  };
   // the last-rendered anim frame, so the commit-time safety net can contract
   // exactly the board the player is looking at
   const animRef = useRef<AnimState>(anim);
@@ -236,6 +320,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   const lastStartRef = useRef<{
     seed: number; side: number; collapseAt1: number; collapseAt2: number;
     singularityAt: number; revealAt: number; rescueMode: "off" | "easy" | "medium"; handSize: number;
+    nebuliteRig?: boolean;
   } | null>(null);
 
   // SNAP DETECTOR — the rendered board's side may never be smaller than the
@@ -361,30 +446,44 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     }
   }, [confirmChoice, paintChoice, armChoiceTimer]);
 
-  const start = useCallback((opts: NewGameOpts & { countdown?: boolean; exact?: boolean } = {}) => {
+  // monotonic per-started-game counter — App keys per-game one-shots (the
+  // reveal EYE) to it, since GameState itself carries no stable run identity
+  const [runSeq, setRunSeq] = useState(0);
+  const start = useCallback((opts: NewGameOpts & { countdown?: boolean; exact?: boolean; resumeMoves?: NetMove[]; suppressPicker?: boolean } = {}) => {
+    setRunSeq((n) => n + 1);
+    // per-run picker mute (the tutorial's mid-way practice board runs before the
+    // blue/amber lesson): auto-resolve the best combo regardless of the setting
+    suppressPickerRef.current = opts.suppressPicker === true;
+    netRef.current = null; // leave any online session (startOnline re-arms it after)
+    applyingRemoteRef.current = false;
+    recordRef.current = null; // stop any prior recording; the daily re-arms it after
     clearTrace(); // fresh dev play-by-play per run (?debug=1)
     seqGenRef.current++; // abort any in-flight animation sequence (see `pause`)
+    sfxEpoch++; // and silence its detached staggered SFX timers (see `sfxAt`)
     if (choiceRef.current?.timer) clearTimeout(choiceRef.current.timer);
     choiceRef.current = null;
     busyRef.current = false;
+    playedUncoversRef.current.clear(); // an aborted sequence must not mute the next run's uncovers
     shrinkAnimatedRef.current = false;
     singularityAnimatedRef.current = false;
     if (offerTimerRef.current) clearTimeout(offerTimerRef.current);
     setEarlyBankOffer(null);
+    closeClaimOffer();
     setSettling(false);
     // A resolved seed for EVERY game — Beat-my-board needs to know which board
     // this was, so the seed is decided here, never left to the engine's default.
     const seed = opts.seed ?? ((Math.random() * 0x7fffffff) | 0 || 1);
     let ns: GameState;
     if (opts.exact) {
-      // BEAT MY BOARD: replay the challenger's board exactly — the payload's
-      // values verbatim, no difficulty shift, and bonus gems OFF on both sides
-      // so an unlocked Zenith never tilts a shared board.
+      // EXACT mode — the caller's values verbatim, no difficulty shift. Two users:
+      // BEAT MY BOARD / dailies (bonus gems forced OFF so an unlocked Zenith never
+      // tilts a shared board), and SOLO runs pre-resolved via runOpts() for the
+      // anti-cheat replay (those pass their own bonusGems, honoured here).
       ns = buildInitial({
         side: 6,
         ...opts,
         seed,
-        bonusGems: { resurrect: false, quadriant: false, zenith: false },
+        bonusGems: opts.bonusGems ?? { resurrect: false, quadriant: false, zenith: false },
       });
     } else {
       // DIFFICULTY: shift the collapse / singularity triggers (easy +2 — the
@@ -421,7 +520,20 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       revealAt: ns.revealAt,
       rescueMode: ns.rescueMode,
       handSize: ns.startHandSize,
+      // the refine rig reshapes the deal — a link that drops it would rebuild a
+      // DIFFERENT board from the same seed (rigged dailies + campaign refine levels)
+      ...(opts.nebuliteRig ? { nebuliteRig: true } : {}),
     };
+    // RESUME (async): replay the whole move history NOW and load the board in its
+    // CURRENT state — no opening rain / countdown, and no fresh-board flash (a single
+    // setState straight to the caught-up board).
+    if (opts.resumeMoves && opts.resumeMoves.length) {
+      const resumed = opts.resumeMoves.reduce((acc, m) => applyNetMove(acc, m), ns);
+      performedSideRef.current = resumed.side;
+      setState(resumed);
+      setAnim(IDLE);
+      return;
+    }
     performedSideRef.current = ns.side; // fresh board: the ledger starts at its full size
     setState(ns);
     sfx.openingTune();
@@ -475,10 +587,26 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // one staggered volley: every special is airborne at once, but they LAND
         // one by one — each buried gem disappears at exactly its landing moment.
         let shown = buriedShown;
+        // EXTRA GEMS (depth reward + Easy's bonus) ride the SAME volley as the
+        // Dross/Nebulite drops — the tail of the starting hand, always different
+        // minerals — so the player sees what they were dealt without the opening
+        // running any longer than it already does.
+        const extras = ns.startExtraGems ?? 0;
+        const extraFlights: FlyingTile[] = ns.hand.slice(ns.hand.length - extras).map((v, i) => ({
+          id: `entry-extra-${i}`,
+          value: v as TileVal,
+          fromKey: null,
+          fromCentre: true,
+          to: "hand" as const,
+          delay: 200 + i * 240, // launched with the volley, home before the last special lands
+          fast: true,
+          glow: "#c084fc",
+        }));
+        extraFlights.forEach((f) => sfxAt(() => sfx.tileToHand(), f.delay + T.toHandFly));
         setAnim((a) => ({
           ...a,
           entryDrop: false,
-          flying: specials.map((k, i) => {
+          flying: specials.map((k, i): FlyingTile => {
             const at = mapperRef.current?.(k);
             return {
               id: `entry-special-${k}`,
@@ -493,7 +621,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
               delay: i * 260,
               fadeIn: true,
             };
-          }),
+          }).concat(extraFlights),
         }));
         let elapsed = 0;
         for (let i = 0; i < specials.length; i++) {
@@ -521,6 +649,56 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         if (e !== ABORT) throw e; // a restart mid-entry owns the screen
       }
     })();
+  }, []);
+
+  // THE UNCOVER, played INSIDE the choreography that dug the gem out: the moment
+  // the covering tile leaves its cell, the Resurrect / Quadriant under it grows
+  // back out of the empty hex and rises (its placement drop, backwards) under one
+  // discovery sparkle. It has to happen HERE — a bank that waits for the lineup
+  // and the score to come and go announces the find long after the moment.
+  //
+  // `cells` is the set of cells whose cover has JUST left: a gem is only allowed
+  // to rise from a hex the player has already seen empty. Everything else waits
+  // for a later seam, or for commitFinal's safety net. playedUncoversRef holds
+  // what this resolve already showed, so the net can't announce a gem twice.
+  const uncoverBeat = useCallback(async (
+    revealed: { key: string; gem: TileVal }[] | undefined,
+    cells: Set<string> | null,
+    view?: GameState | null
+  ) => {
+    const items = (revealed ?? [])
+      .filter((r) => (r.gem === RESURRECT || r.gem === QUADRIANT)
+        && r.key !== "hand" && r.key !== "collapsed"
+        && !playedUncoversRef.current.has(r.key)
+        && (!cells || cells.has(r.key))
+        && mapperRef.current?.(r.key))
+      .map((r, i) => ({ key: r.key, gem: r.gem as TileVal, delay: i * UNCOVER_STAGGER_MS }));
+    if (!items.length) return 0;
+    for (const it of items) playedUncoversRef.current.add(it.key);
+    const keys = new Set(items.map((i) => i.key));
+    // the cover has gone and the gem was never a tile: the cell reads EMPTY under
+    // the rising gem — but it KEEPS its bank light-up (a Quadriant hiding under a
+    // gold-lit tile must not punch a dark hole in the glowing cluster)
+    setAnim((a) => ({
+      ...a,
+      playing: true,
+      freezeState: view ?? a.freezeState,
+      hiddenCells: new Set([...a.hiddenCells, ...keys]),
+      bonusUncover: items,
+    }));
+    sfx.bonusUncover();
+    await pause(UNCOVER_MS + (items.length - 1) * UNCOVER_STAGGER_MS);
+    setAnim((a) => ({ ...a, bonusUncover: null }));
+    return items.length;
+  }, []);
+
+  // EAGER HUD COMMITS — each HUD element reacts the moment ITS OWN beat lands
+  // (hearts on the bust discard, bank pips at BANK NOW, the hand count at the
+  // placement, hand arrivals as they land) instead of waiting for the whole
+  // ceremony's commitFinal. Only presentation fields move mid-flight; the full
+  // engine truth still lands wholesale at commitFinal.
+  const hudCommit = useCallback((patch: (s: GameState) => Partial<GameState>) => {
+    setState((s) => (s.phase !== "playing" ? s : { ...s, ...patch(s) }));
   }, []);
 
   // Commit a fully-resolved state. If the game just ended, hold a brief "settling"
@@ -585,9 +763,21 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     if (reveals.length && next.phase === "playing") {
       const cx = typeof window !== "undefined" ? window.innerWidth / 2 : 0;
       const cy = typeof window !== "undefined" ? window.innerHeight / 2 : 0;
+      // a reveal's key is the BOARD CELL it came out of — except the bookkeeping
+      // pseudo-keys ("hand" = dealt, "collapsed" = swept up by a contraction),
+      // which have no cell to rise from.
+      const cellOf = (key: string) => (key !== "hand" && key !== "collapsed" ? mapperRef.current?.(key) ?? null : null);
+      // THE UNCOVER — SAFETY NET only. Every staged choreography plays it at the
+      // seam where the cover left (see uncoverBeat); this catches a gem surfaced
+      // by a path that goes straight to commit, so a reveal can never arrive with
+      // no visual at all. Gems already announced are skipped by their key.
+      const uncovers = await uncoverBeat(reveals, null, next);
       const flights: FlyingTile[] = [];
       reveals.forEach((rev, i) => {
-        if (rev.gem === RESURRECT) { sfx.resurrectReveal(); flights.push({ id: `rev-res-${i}`, value: RESURRECT as TileVal, fromKey: null, fromXY: { x: cx, y: cy }, to: "bust", delay: i * 220, glow: "#ff6e8e" }); }
+        // the heart flies FROM the cell it was just uncovered at (screen centre
+        // only when there is no cell — a deal, or a gem the collapse swallowed)
+        const at = cellOf(rev.key);
+        if (rev.gem === RESURRECT) { sfx.resurrectReveal(); flights.push({ id: `rev-res-${i}`, value: RESURRECT as TileVal, fromKey: null, fromXY: at ?? { x: cx, y: cy }, to: "bust", delay: i * 220, glow: "#ff6e8e" }); }
         else if (rev.gem === QUADRIANT) { sfx.quadriantReveal(); /* its overview line + the score carry the visual — no extra flight */ }
         else { sfx.zenithReveal(); flights.push({ id: `rev-zen-${i}`, value: ZENITH as TileVal, fromKey: null, fromXY: { x: cx, y: cy }, to: "score", delay: i * 220, glow: "#e4ff6b" }); }
       });
@@ -595,8 +785,13 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         setAnim((a) => ({ ...a, playing: true, freezeState: next, flying: flights }));
         await pause(1000 + flights.length * 220);
         setAnim(IDLE);
+      } else if (uncovers) {
+        // a Quadriant-only reveal: the uncover WAS the beat — hand the board back
+        setAnim(IDLE);
       }
     }
+    // this resolve is over: the next one may uncover a gem at the same cell
+    playedUncoversRef.current.clear();
     if (next.phase !== "playing") {
       if (next.phase === "won") sfx.boardCleared();
       else sfx.gameOver();
@@ -632,8 +827,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   const swapHand = useCallback((i: number) => {
     if (busyRef.current || choiceRef.current) return; // not while a placement is staged
     const s = stateRef.current;
+    if (!myTurn(s)) return; // online: only the active device reorders
     if (s.phase !== "playing" || s.hand.length > 3 || i <= 0 || i >= s.hand.length) return;
     sfx.click();
+    emitLocal({ kind: "swap", index: i }); // relay so both hands stay in sync
+    record({ kind: "swap", index: i });
     setState((prev) => {
       if (prev.phase !== "playing" || prev.hand.length > 3 || i >= prev.hand.length) return prev;
       const hand = prev.hand.slice();
@@ -648,8 +846,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   const rotateHand = useCallback((i: number) => {
     if (busyRef.current || choiceRef.current) return; // not while a placement is staged
     const s = stateRef.current;
+    if (!myTurn(s)) return; // online: only the active device reorders
     if (s.phase !== "playing") return;
     if (i <= 0 || i >= s.hand.length) return;
+    emitLocal({ kind: "rotate", index: i }); // relay so both hands stay in sync
+    record({ kind: "rotate", index: i });
     setState((prev) => {
       if (prev.phase !== "playing" || i >= prev.hand.length) return prev;
       return { ...prev, hand: [...prev.hand.slice(i), ...prev.hand.slice(0, i)] };
@@ -661,11 +862,45 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   const cashOutNow = useCallback(() => {
     if (busyRef.current || choiceRef.current) return; // not while a placement is staged
     const s = stateRef.current;
+    if (!myTurn(s)) return; // online: only the active device cashes out
     if (s.phase !== "playing" || !s.deathMatch) return;
+    // DEFERRED CASH-OUT: the OTHER player already offered and I chose "Continue
+    // playing" (so the turn came to me for one last move). If I now decide to cash
+    // out too, don't open a fresh offer they'd have to answer — they've already
+    // committed to ending, so just COMMIT the pending cash-out right here.
+    if (s.pendingCashout?.deferred) {
+      sfx.bankScore();
+      emitLocal({ kind: "cashoutAccept" });
+      setState(resolveCashOut(s, true));
+      setSettling(true);
+      setTimeout(() => setSettling(false), 700);
+      return;
+    }
+    // ONLINE CO-OP: cash-out is a JOINT end the partner can block — OFFER it (both
+    // cash out unless blocked); don't end here. VERSUS is NOT joint: cashing out is
+    // PERSONAL — you lock in your score and the opponent plays the board out (the
+    // race decides at the true end), so it falls through to the individual path.
+    if (online() && s.coop) {
+      sfx.click();
+      emitLocal({ kind: "cashoutOffer" });
+      setState(offerCashOut(s));
+      return;
+    }
     sfx.bankScore();
+    emitLocal({ kind: "cashout" });
+    record({ kind: "cashout" });
     setState(cashOut(s));
     setSettling(true);
     setTimeout(() => setSettling(false), 700);
+  }, []);
+  // ONLINE: the WATCHER answers a pending cash-out offer — accept (both cash out)
+  // or decline (block it, play resumes). Emitted by the non-active player.
+  const respondCashOut = useCallback((accept: boolean) => {
+    const s = stateRef.current;
+    if (!s.pendingCashout) return;
+    sfx.click();
+    emitLocal({ kind: accept ? "cashoutAccept" : "cashoutDecline" });
+    setState(resolveCashOut(s, accept));
   }, []);
 
   // OPTION 3: open the timed early-bank offer. It stays available for 4 seconds
@@ -690,28 +925,35 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     if (!offer) return;
     const st = stateRef.current;
     if (st.phase !== "playing" || busyRef.current) return;
+    if (!myTurn(st)) return; // online: only the active device banks
     if (!st.activatedCells.includes(offer.cellKey)) return;
 
     sfx.bankNowClick();
-    (async () => {
+    emitLocal({ kind: "bank", cell: offer.cellKey });
+    record({ kind: "bank", cell: offer.cellKey });
+    closeClaimOffer(); // banking resolves the cluster — the claim window is moot
+    void runBankAnimationRef.current(st, offer.cellKey);
+  }, []);
+
+  // THE BANK CHOREOGRAPHY, extracted so a REMOTE bank (the opponent's BANK NOW,
+  // arriving over the wire) plays the IDENTICAL animation on the watcher's device.
+  // Called via a ref (runBankAnimationRef) so bankNow above reaches it TDZ-free.
+  const runBankAnimation = useCallback(async (st: GameState, cellKey: string, spectateVersus = false) => {
       try {
       busyRef.current = true;
+      recordBankTrace(st, cellKey); // BANK NOW play-by-play (?debug=1) — closes the
+      // score/banks "gap" the placement-only tracer would otherwise leave here
+      // one engine commit up front (reused below): the BANKS pips react the
+      // moment the bank is initiated, not when the ceremony ends
+      const committed = bankClusterNow(st, cellKey);
+      const eager = myTurn(st) && !spectateVersus; // never move another seat's HUD
+      if (eager) hudCommit(() => ({ freeBanksLeft: committed.freeBanksLeft, banks: committed.banks }));
       const order = st.order;
-      const cellKey = offer.cellKey;
 
-      // BFS the connected activated cluster from the bank cell (the tiles that bank).
-      const activated = new Set(st.activatedCells);
-      const clusterOrder: string[] = [];
-      const seen = new Set<string>([cellKey]);
-      const queue = [cellKey];
-      while (queue.length) {
-        const k = queue.shift()!;
-        if (!activated.has(k)) continue;
-        clusterOrder.push(k);
-        for (const nb of st.adj.get(k) ?? []) {
-          if (activated.has(nb) && !seen.has(nb)) { seen.add(nb); queue.push(nb); }
-        }
-      }
+      // the connected activated cluster from the bank cell (the tiles that bank) —
+      // claim-aware, extracted pure and pinned by bankCeremony.test.ts so the
+      // ceremony can never again walk cells the engine refuses to bank
+      const clusterOrder = ceremonyCluster(st, cellKey);
 
       // Phase A: brief glow on the cluster.
       setAnim({ ...IDLE, playing: true, focused: true, freezeState: st });
@@ -726,6 +968,40 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         await pause(T.bankLightStep);
       }
       await pause(120);
+
+      // VERSUS WATCHER: the points are the OTHER player's (tallied in their box +
+      // the name-tagged log), so we DON'T fly the lineup to this device's score —
+      // the lit gems simply DISAPPEAR from the board. The collapse / reshuffle and
+      // final commit still play, in sync with the active device.
+      if (spectateVersus) {
+        const committedV = bankClusterNow(st, cellKey);
+        const resV = committedV.lastResolved;
+        const goneV = new Set<string>([
+          ...clusterOrder,
+          ...resV.isolatedToScore.map((t) => t.key),
+          ...resV.strandToHand.map((t) => t.key),
+          ...resV.pairToHand.map((t) => t.key),
+        ]);
+        setAnim((a) => ({ ...a, playing: true, freezeState: st, litCells: new Set(), hiddenCells: goneV, flying: [], comboLineup: null }));
+        await pause(280);
+        const cwV = withLateTiles(committedV);
+        // SYNC: the watcher's quick disappear finished sooner than the active
+        // player's full fly-to-score, so a collapse / singularity would fire too
+        // early. Hold a beat so it lands roughly together (also collapse → RUSH).
+        if (resV.shrunk || resV.singularity) await pause(SPECTATE_SYNC_MS);
+        const preShrinkV = await singularityBeat(boardWithout(st, goneV), resV);
+        if (resV.shrunk) {
+          await animateShrink(preShrinkV, resV.shrunk.mapping, cwV, resV.shrunk.final, undefined, { deferRush: true });
+        } else if (resV.reshuffled || resV.nudged.length > 0) {
+          await animateReshuffle(cwV);
+        }
+        await animateLateResolution(committedV);
+        if (resV.shrunk?.final) await playRushTitle(cwV);
+        await commitFinal(committedV); // sets the full state incl. the active player's score
+        setAnim(IDLE);
+        busyRef.current = false;
+        return;
+      }
 
       // Phase C: THE COMBO LINEUP — the cluster's activated combos form up in
       // named rows under the score, linger, then dive in (same as a placement
@@ -747,13 +1023,17 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // special stays hidden until that special itself flies off below, or the
       // departing special looks like it slid out from beneath its own gem
       const ebClusterSet = new Set(clusterOrder);
-      const ebBuried = bankClusterNow(st, cellKey).lastResolved.buriedToHand.filter((t) => ebClusterSet.has(t.key));
+      const ebResolved = committed.lastResolved;
+      const ebBuried = ebResolved.buriedToHand.filter((t) => ebClusterSet.has(t.key));
       const ebBuriedKeys = new Set(ebBuried.map((t) => t.key));
       // a joker-Core inside the cluster is COLLECTED — it flies to the wallet
       // rather than leaving silently with the lineup
       const ebCores: FlyingTile[] = clusterOrder
         .filter((k) => st.cells.get(k)?.tile === CORE)
         .map((k, i) => ({ id: `eb-core-${k}`, value: CORE as TileVal, fromKey: k, to: "wallet" as const, delay: nTiles * LINEUP_T.stagger + i * 90 }));
+      // BANK NOW's own uncover, at the same seam as a placement bank: the claimed
+      // tile lifts off its cell and the gem underneath rises, before the lineup.
+      await uncoverBeat(ebResolved.bonusRevealed, ebClusterSet, st);
       if (ebCores.length > 0) sfx.clearCore();
       setAnim((a) => ({
         ...a,
@@ -770,8 +1050,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       await pause(LINEUP_T.dive + nTiles * LINEUP_T.diveStagger + 150);
       setAnim((a) => ({ ...a, comboLineup: null }));
 
-      // Commit on a clone to learn what the bank resolved (isolated/strand/etc).
-      const committed = bankClusterNow(st, cellKey);
+      // The hoisted commit above already learned what the bank resolved.
       const res = committed.lastResolved;
 
       // Resolve isolated-to-score, strand/pair/buried-to-hand — same as a normal bank.
@@ -802,6 +1081,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         playHandSounds(toHand);
         setAnim((a) => ({ ...a, playing: true, freezeState: st, hiddenCells: new Set(cleared), flying: toHand }));
         await pause(T.toHandFly + toHand.length * 70 + 100);
+        if (eager) hudCommit((s) => ({ hand: [...s.hand, ...res.strandToHand.map((t) => t.value as TileVal), ...res.pairToHand.map((t) => t.value as TileVal), ...res.buriedToHand.map((t) => t.value as TileVal)] }));
       }
       if (res.clearBonus > 0) {
         setAnim((a) => ({ ...a, playing: true, freezeState: st, hiddenCells: new Set(cleared), flying: [{ id: "eb-clearbonus", value: 1 as TileVal, fromKey: null, fromCentre: true, to: "score", delay: 0, label: `+${res.clearBonus}` }] }));
@@ -820,7 +1100,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       const cwEB = withLateTiles(committed);
       const preShrinkEB = await singularityBeat(boardWithout(st, cleared), res);
       if (res.shrunk) {
-        await animateShrink(preShrinkEB, res.shrunk.mapping, cwEB, res.shrunk.final);
+        await animateShrink(preShrinkEB, res.shrunk.mapping, cwEB, res.shrunk.final, undefined, { deferRush: true });
       }
       // RESHUFFLE from a Glint clear / nudge during the early bank — always animated,
       // the word before the tiles move.
@@ -830,6 +1110,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
       // tiles isolated by a collapse / glint-clear reshuffle during the early bank
       await animateLateResolution(committed);
+      if (res.shrunk?.final) await playRushTitle(cwEB);
 
       await commitFinal(committed); // plays COLLAPSE / GLINT RUSH first if the board came down
       setAnim(IDLE);
@@ -838,8 +1119,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // a restart mid-animation aborted this sequence — the new game owns the screen
         if (e !== ABORT) throw e;
       }
-    })();
   }, [commitFinal]);
+  // latest runBankAnimation, so bankNow (declared above) and the remote-move queue
+  // can invoke it without a temporal-dead-zone reference to the const.
+  const runBankAnimationRef = useRef(runBankAnimation);
+  runBankAnimationRef.current = runBankAnimation;
 
   // NOTE (formerly RULE 5): a last tile with no legal move used to auto-end the
   // game with a forced BUST. Removed — with CASH OUT in play, ending the run is
@@ -902,12 +1186,35 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     return dropCells(frozen, fallKeys);
   };
 
+  // GLINT RUSH — announce the final round: the title sweeps in from the side with
+  // its own whoosh + stinger (see RushOverlay / gl-rush-slide). Played AFTER the
+  // collapse's stray tiles have flown (the rush is the LAST beat of the order:
+  // bust → singularity → collapse → strays → rush).
+  const playRushTitle = async (revealState: GameState) => {
+    sfx.boardCleared(); // a bright fanfare as the smaller board settles
+    await pause(120);
+    sfx.rushRise(); // the whoosh that carries the title in from the side
+    setAnim((a) => ({ ...a, freezeState: revealState, rushTitle: true }));
+    await pause(3000);
+    setAnim((a) => ({ ...a, rushTitle: false }));
+  };
+
   const animateShrink = async (
     frozen: GameState,
     _mapping: { from: string; to: string }[],
     revealState: GameState,
     isFinal = false,
-    keepHidden: Set<string> = new Set() // cells held back on the REVEALED board (e.g. a bust's forced tile, dropped as its own beat afterwards)
+    keepHidden: Set<string> = new Set(), // cells held back on the REVEALED board (e.g. a bust's forced tile, dropped as its own beat afterwards)
+    opts?: {
+      // a bust's wake discards on a collapse turn: they fall as PART of the
+      // collapse (banner → flash → drop → contraction). They left the board
+      // before the remap, so they have no cell on the smaller board — the
+      // abyss claiming them mid-collapse is the only truthful staging.
+      doomed?: Set<string>;
+      // callers that animate the collapse's stray tiles afterwards defer the
+      // GLINT RUSH title and play it themselves, last
+      deferRush?: boolean;
+    }
   ) => {
     await waitForBoardRelease(); // never start resizing the board under a held finger
     await settleOut(); // collapse runs on a zoomed-OUT board
@@ -925,6 +1232,19 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     setAnim((a) => ({ ...a, playing: true, freezeState: frozen, hiddenCells: new Set(), flying: [], redCells: new Set(), litCells: new Set(), activateReveal: null, banner: null, shake: true, shrinking: shr(0, 1) }));
     await pause(650);
 
+    // THE COLLAPSE CLAIMS ITS TILES — the doomed wake discards flash and fall
+    // into the abyss under the banner, BEFORE the contraction: the player sees
+    // the collapse take them, never a premature exit on the old layout.
+    if (opts?.doomed && opts.doomed.size > 0) {
+      setAnim((a) => ({ ...a, shake: false, redCells: new Set(opts.doomed) }));
+      await pause(520);
+      [...opts.doomed].forEach((_, i) => sfxAt(() => sfx.poof(), 130 + i * 70));
+      setAnim((a) => ({ ...a, fallCells: new Set(opts.doomed), fallGo: true }));
+      await pause(760);
+      setAnim((a) => ({ ...a, freezeState: boardWithout(frozen, opts.doomed!), redCells: new Set(), fallCells: null, fallGo: false }));
+      await pause(120);
+    }
+
     // Phases 1–4: the WHOLE board contracts in beats — every tile stays on it (no
     // instant removals), and the word shrinks with it.
     setAnim((a) => ({ ...a, shake: false, shrinking: shr(1, 1) }));
@@ -937,20 +1257,16 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     await pause(360);
 
     // Reveal the new, smaller board at full size — the tiles reappear, remapped.
-    // `keepHidden` cells stay held back: they get their own entrance beat after.
-    setAnim((a) => ({ ...a, freezeState: revealState, shrinking: null, hiddenCells: new Set(keepHidden), redCells: new Set(), shake: false }));
+    // `reveal:true` DISABLES the transform transition for this frame so the board
+    // SNAPS from the contracted scale straight to the new layout at full size — the
+    // new positions never bleed onto the still-shrinking board (a cross-browser
+    // transition-carryover was letting the new gems scale up in place). `keepHidden`
+    // cells stay held back: they get their own entrance beat after.
+    setAnim((a) => ({ ...a, freezeState: revealState, shrinking: { ...shr(5, 1), reveal: true }, hiddenCells: new Set(keepHidden), redCells: new Set(), shake: false }));
     await pause(isFinal ? 260 : 420);
+    setAnim((a) => ({ ...a, shrinking: null }));
 
-    // GLINT RUSH — announce the final round: the title sweeps in from the side with
-    // its own whoosh + stinger (see RushOverlay / gl-rush-slide).
-    if (isFinal) {
-      sfx.boardCleared(); // a bright fanfare as the smaller board settles
-      await pause(120);
-      sfx.rushRise(); // the whoosh that carries the title in from the side
-      setAnim((a) => ({ ...a, freezeState: revealState, rushTitle: true }));
-      await pause(3000);
-      setAnim((a) => ({ ...a, rushTitle: false }));
-    }
+    if (isFinal && !opts?.deferRush) await playRushTitle(revealState);
   };
 
   // MOTHER LODE — a big same-value overflow is refined into a Nebulite. The refined
@@ -992,6 +1308,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   // auto-placed inert tile, which shouldn't flash in during the shuffle and then
   // get re-dropped afterwards (it only appears once, when Phase B drops it in).
   const animateReshuffle = async (committed: GameState, keepHidden: Set<string> = new Set()) => {
+    // a shuffle of NOTHING isn't a moment: when the resolve emptied the board
+    // (a clear that also reshuffled the unrevealed hand), the banner would slam
+    // over bare hexes — skip the whole beat and let the finish own the screen
+    if (![...committed.cells.values()].some((c) => c.tile !== null)) return;
     const nudged = committed.lastResolved.nudged ?? [];
     // build a pre-nudge view: move each drifted tile back from its destination to
     // its origin, so the board shown during the banner matches the moment before
@@ -1006,15 +1326,19 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     }
     const preNudge: GameState = { ...committed, cells: preCells };
 
+    beat("reshuffle: settleOut (zoom out)", { nudged: nudged.length });
     await settleOut(); // reshuffle runs on a zoomed-OUT board
     // word appears, tiles still in old spots
     sfx.reshuffle();
     setAnim((a) => ({ ...a, playing: true, hiddenCells: new Set(keepHidden), flying: [], freezeState: preNudge, banner: "RESHUFFLE", shake: true }));
+    beat("reshuffle: banner up, OLD positions shown", { view: "pre-nudge" });
     await pause(1000);
     // now reveal the moved tiles (board contracts to committed); keep the word a beat longer
     setAnim((a) => ({ ...a, freezeState: committed, shake: true }));
+    beat("reshuffle: reveal NEW positions", { view: "committed" });
     await pause(450);
     setAnim((a) => ({ ...a, banner: null, shake: false }));
+    beat("reshuffle: banner down (done)");
   };
 
   // LATE ISOLATION — tiles left alone (or as a same-value pair) by a COLLAPSE or a
@@ -1072,12 +1396,30 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   };
 
   const onPlace = useCallback(
-    async (cellKey: string, tap?: { x: number; y: number }) => {
+    // `remote` = this placement is the OPPONENT's move arriving over the wire; it
+    // replays through the identical animation but skips all the local-input gates
+    // (turn ownership, the picker, claim taps) and never re-emits.
+    // `spectateVersus` = the watcher in a VERSUS match: a bank's gems DISAPPEAR
+    // instead of flying to this device's score (the points are the other player's).
+    async (cellKey: string, tap?: { x: number; y: number }, remote = false, spectateVersus = false) => {
       try {
       // a tap while the combo picker is open drives the picker, nothing else
-      if (choiceRef.current) { choiceTap(cellKey); return; }
-      if (busyRef.current) return;
+      if (!remote && choiceRef.current) { choiceTap(cellKey); return; }
+      // VERSUS: a tap on the fresh combo while the claim window is open CLAIMS it
+      if (!remote && claimOfferRef.current && stateRef.current.versus) {
+        const offerCell = claimOfferRef.current.cellKey;
+        if (stateRef.current.activatedCells.includes(cellKey)) {
+          sfx.activateTile(0);
+          emitLocal({ kind: "claim", cell: offerCell });
+          closeClaimOffer();
+          setState((s) => claimCluster(s, offerCell));
+        }
+        return; // the turn is spent either way — other taps do nothing
+      }
+      if (!remote && busyRef.current) return;
+      if (!remote && !myTurn(state)) return; // online: a follower's taps do nothing (spectating)
       if (state.phase !== "playing") return;
+      if (!remote && (state.coop?.moved || state.versus?.moved)) return; // TOGETHER: one placement per turn
       const tile = visibleTile(state);
       if (tile === null) return;
 
@@ -1099,7 +1441,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // placement there instead — a quick "magnetic" slide, then it plays normally. If
       // no neighbour qualifies (or it's a Dross, which always busts), the bust stands.
       // TOUCH ONLY: a mouse on desktop is precise, so the rescue is disabled there.
-      if (outcome.kind === "bust" && isCoarsePointer()) {
+      if (outcome.kind === "bust" && isCoarsePointer() && !online()) {
         const rescue = findRescueCell(state, cellKey, tap, mapperRef.current);
         if (rescue) {
           busyRef.current = true;
@@ -1121,6 +1463,15 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // classic best pick); it flows into every describe/commit below.
       const resolveMove = async (choiceIdx: number, pre?: typeof outcome) => {
       const outcome = pre ?? describePlace(state, cellKey, choiceIdx);
+      // ANTI-CHEAT: record the RESOLVED placement (post-rescue-snap cell + the chosen
+      // combo index) so a server replay reproduces this exact move.
+      record({ kind: "place", cell: cellKey, choice: choiceIdx });
+      // the placed tile is SPENT now — the hand count (and the next tile) update
+      // at the placement itself; later arrivals land back one by one below.
+      // EXCEPT an activation that swaps onto a covered mineral/Dross: that gem
+      // returns to the hand, so the count never really changes — updating early
+      // would show a one-beat dip to a number that was never true.
+      if (!remote && !(outcome.kind === "activate" && outcome.coveredToHand)) hudCommit((s) => ({ hand: s.hand.slice(1) }));
 
       // ACTIVATE (non-banking): zoom in on the action, animate the covered tile to
       // where it goes (HAND for a mineral/Glint, SCORE for a Core +500), then light
@@ -1154,7 +1505,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const coverBuried = next.lastResolved.buriedToHand.filter((t) => t.key === cellKey);
           coverBuried.forEach((t, i) => {
             flying.push({ id: `cover-buried-${i}`, value: t.value as TileVal, fromKey: cellKey, to: "hand", delay: 180 + i * 70, fast: true });
-            setTimeout(() => sfx.tileToHand(), 200 + i * 70);
+            sfxAt(() => sfx.tileToHand(), 200 + i * 70);
           });
           setAnim((a) => ({ ...a, focused: true, playing: true, freezeState: placedFrozen, hiddenCells: new Set([cellKey]), flying }));
           const mainFly = covered === CORE ? T.specialFly : T.toHandFly;
@@ -1203,17 +1554,23 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         if (next.lastResolved.shrunk) {
           // contract a board with the activation glow cleared, so no green combo borders
           // linger while the board collapses (it reappears on the settled board).
-          await animateShrink(preShrinkA, next.lastResolved.shrunk.mapping, nextCw, next.lastResolved.shrunk.final);
+          await animateShrink(preShrinkA, next.lastResolved.shrunk.mapping, nextCw, next.lastResolved.shrunk.final, undefined, { deferRush: true });
         } else if (next.lastResolved.reshuffled || next.lastResolved.nudged.length > 0) {
           await animateReshuffle(nextCw);
         }
         await animateLateResolution(next); // tiles isolated by the collapse / reshuffle
+        if (next.lastResolved.shrunk?.final) await playRushTitle(nextCw);
         await commitFinal(next); // plays COLLAPSE / GLINT RUSH first if the board came down
         setAnim(IDLE); // action + animation done -> zoom back out
         busyRef.current = false;
-        // OPTION 3: offer an early bank of the cluster just made.
-        if (next.phase === "playing" && next.activatedCells.includes(cellKey)) {
+        // OPTION 3: offer an early bank of the cluster just made — LOCAL player only
+        // (a remote replay must never pop the watcher's BANK NOW / claim window).
+        if (!remote && next.phase === "playing" && next.activatedCells.includes(cellKey)) {
           openEarlyBankOffer(cellKey);
+          // VERSUS: the tap-to-claim window opens alongside (one claim, strictly)
+          if (next.versus && !next.versus.claims[next.versus.turn]) {
+            openClaimOffer(cellKey);
+          }
         }
         return;
       }
@@ -1221,6 +1578,47 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // BANK
       if (outcome.kind === "bank") {
         busyRef.current = true;
+        // VERSUS WATCHER: a placement that banks — the points are the OTHER player's,
+        // so skip the fly-to-score ceremony. Drop the tile in, light the cluster up
+        // one-by-one, then let the gems DISAPPEAR; the collapse still plays, and the
+        // final commit carries the (active player's) score, which this device's HUD
+        // masks with its own total. The name-tagged log says what they scored.
+        if (spectateVersus) {
+          const placedV = withTileAt(state, cellKey, tile);
+          const committedV = place(state, cellKey, choiceIdx);
+          const resV = committedV.lastResolved;
+          setAnim({ ...IDLE, playing: true, focused: true, dropCell: cellKey, freezeState: placedV });
+          await pause(T.bankHoldGlow);
+          const litV = new Set<string>();
+          for (let i = 0; i < outcome.bankOrder.length; i++) {
+            litV.add(outcome.bankOrder[i]);
+            sfx.bankTile(i);
+            setAnim((a) => ({ ...a, playing: true, freezeState: placedV, litCells: new Set(litV) }));
+            await pause(T.bankLightStep);
+          }
+          const goneV = new Set<string>([
+            ...outcome.bankOrder,
+            ...resV.isolatedToScore.map((t) => t.key),
+            ...resV.strandToHand.map((t) => t.key),
+            ...resV.pairToHand.map((t) => t.key),
+          ]);
+          setAnim((a) => ({ ...a, playing: true, freezeState: placedV, litCells: new Set(), hiddenCells: goneV, flying: [], comboLineup: null }));
+          await pause(300);
+          const cwV = withLateTiles(committedV);
+          if (resV.shrunk || resV.singularity) await pause(SPECTATE_SYNC_MS); // sync the collapse w/ the active side
+          const preShrinkV = await singularityBeat(boardWithout(placedV, goneV), resV);
+          if (resV.shrunk) {
+            await animateShrink(preShrinkV, resV.shrunk.mapping, cwV, resV.shrunk.final, undefined, { deferRush: true });
+          } else if (resV.reshuffled || resV.nudged.length > 0) {
+            await animateReshuffle(cwV);
+          }
+          await animateLateResolution(committedV);
+          if (resV.shrunk?.final) await playRushTitle(cwV);
+          await commitFinal(committedV);
+          setAnim(IDLE);
+          busyRef.current = false;
+          return;
+        }
         // Show the board WITH the placed tile already in its cell, so the combo
         // looks complete during the animation — and WITH the outcome's combos
         // in activatedCombos, so a joker Core in the bank mirrors its mineral
@@ -1292,6 +1690,14 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           await pause(T.bankLightStep);
         }
         await pause(120);
+
+        // Phase B½: THE UNCOVER — a bonus gem buried under one of the tiles this
+        // bank just claimed. Its cover leaves the board HERE, so the gem rises
+        // here: before the lineup forms and the score plate stamps in, not after
+        // the whole ceremony has come and gone. (Gems under tiles that are still
+        // standing — an isolated special, a collapse stray — wait for their own
+        // exit below, or for commitFinal's net.)
+        await uncoverBeat(res.bonusRevealed, new Set(order), placedFrozen);
 
         // Phase C: THE COMBO LINEUP — the banked tiles fly up and form their
         // combos in rows just under the score (a ghost copy stands in where one
@@ -1385,6 +1791,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const stillRed = new Set(res.motherLode?.refinedCells ?? []);
           setAnim((a) => ({ ...a, hiddenCells: hiddenNow(), redCells: stillRed, flying: strandFly }));
           await pause(T.toHandFly + strandFly.length * 70 + 100);
+          if (!remote) hudCommit((s) => ({ hand: [...s.hand, ...res.strandToHand.map((t) => t.value as TileVal)] }));
         }
 
         if (isoFly.length > 0) {
@@ -1418,7 +1825,13 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           playHandSounds([...res.pairToHand, ...res.buriedToHand]);
           setAnim((a) => ({ ...a, hiddenCells: new Set(cleared), flying: toHandFly }));
           await pause(T.toHandFly + toHandFly.length * 70 + 100);
+          if (!remote) hudCommit((s) => ({ hand: [...s.hand, ...res.pairToHand.map((t) => t.value as TileVal), ...res.buriedToHand.map((t) => t.value as TileVal)] }));
         }
+
+        // …and a gem that was under one of the tiles the ISOLATION passes just
+        // flew off gets its beat now, at the same rule: it rises once its cover
+        // has actually left. (`cleared` is every cell emptied so far.)
+        await uncoverBeat(res.bonusRevealed, cleared);
 
         // MOTHER LODE: a big same-value overflow was refined into a Nebulite — gather
         // the tiles to centre, fuse, and drop the Nebulite into the hand.
@@ -1449,7 +1862,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // The SINGULARITY (if this bank triggered it) plays first — rim falls, then collapse.
         const preShrinkB = await singularityBeat(boardWithout(placedFrozen, cleared), res);
         if (res.shrunk) {
-          await animateShrink(preShrinkB, res.shrunk.mapping, cwb, res.shrunk.final);
+          await animateShrink(preShrinkB, res.shrunk.mapping, cwb, res.shrunk.final, undefined, { deferRush: true });
         }
 
         // Rule 4: the board-clear bonus is NO LONGER flown to the header here — it (and
@@ -1473,6 +1886,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
         // tiles isolated by the collapse / reshuffle bank / return to the hand now
         await animateLateResolution(committed);
+        if (res.shrunk?.final) await playRushTitle(cwb);
 
         // RULE 3 penalties: any leftover pre-banked combos that never banked get a
         // RED outline, then each flies a RED negative number to the score. Shown on
@@ -1514,6 +1928,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       if (outcome.kind === "bust") {
         busyRef.current = true;
         const frozen = state;
+        // #7 instrumentation (?debug=1): a timestamped timeline of every bust beat,
+        // tagged with this device's role + mode, so we can see whether the board
+        // reaches its committed positions before the RESHUFFLE beat plays.
+        beatStart(`BUST ${frozen.coop ? "coop" : frozen.versus ? "versus" : "solo"}/${remote ? "follower" : "active"}`);
 
         const placedFrozen = withTileAt(frozen, cellKey, tile);
 
@@ -1525,6 +1943,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         sfx.bust();
         haptic("bust");
         setAnim((a) => ({ ...a, banner: "BUST", shake: true }));
+        beat("BUST stamp", { view: "placedFrozen" });
         await pause(750);
 
         // Phase A: the placed tile lands, then lifts up; the covered tile is
@@ -1538,7 +1957,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           floaters.push({ id: "bust-covered", value: outcome.coveredVal, fromKey: cellKey, to: "bust", delay: T.bustLift + T.bustFlyStagger });
         }
         setAnim((a) => ({ ...a, flying: floaters }));
+        beat("phase A: placed + covered lift to BUSTS");
         await pause(T.bustLift + T.bustFly + floaters.length * T.bustFlyStagger);
+        // the heart goes out the moment the busted tile lands in the box — except
+        // the LAST life, whose tear-out IS the final-heart beat below
+        if (!remote && frozen.livesLeft > 1) hudCommit(() => ({ livesLeft: frozen.livesLeft - 1 }));
 
         // DISCARDED COMBO — the activated group you were building is forfeit on a
         // bust: strip its rings and drop the gems off the bottom of the board, one
@@ -1552,7 +1975,8 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const noRings: GameState = { ...placedFrozen, activatedCells: [], activatedCombos: [] };
           setAnim((a) => ({ ...a, freezeState: noRings, flying: [], redCells: new Set(), litCells: new Set(), hiddenCells: new Set([cellKey]), fallCells: discardCells, fallGo: true }));
           sfx.nebForfeit();
-          [...discardCells].forEach((_, i) => setTimeout(() => sfx.poof(), 130 + i * 70));
+          [...discardCells].forEach((_, i) => sfxAt(() => sfx.poof(), 130 + i * 70));
+          beat("discarded combo falls", { cells: discardCells.size });
           await pause(760);
           // the gems are gone now — remove them from the board so the rest of the
           // bust cleanup (fly-outs, reshuffle) never re-shows them
@@ -1563,11 +1987,19 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         const committed = place(frozen, cellKey);
         recordMoveTrace(state, committed, cellKey, choiceIdx); // dev play-by-play (?debug=1)
         const bres = committed.lastResolved;
+        beat("committed resolved", {
+          reshuffled: bres.reshuffled, shrunk: !!bres.shrunk, nudged: bres.nudged.length,
+          isoScore: bres.isolatedToScore.length, pairHand: bres.pairToHand.length,
+          buriedHand: bres.buriedToHand.length, lateDiscarded: bres.lateDiscarded.length,
+          gameOver: committed.phase !== "playing",
+        });
 
         // THE THIRD BUST — the run is over, immediately: the engine skipped the
         // forced tile and the reshuffle. The final heart tears out of the BUSTS
         // box, flies to the centre of the screen and BURSTS; then the end card.
         if (committed.phase !== "playing" && committed.livesLeft <= 0) {
+          beat("THIRD BUST — run over (no reshuffle/collapse)");
+          beatEnd();
           sfx.finalBust();
           haptic("bust");
           setAnim((a) => ({ ...a, flying: [], finalHeart: "fly" }));
@@ -1584,6 +2016,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           return;
         }
 
+        // THE UNCOVER: the bust cell and the forfeited combo have just left the
+        // board, so a bonus gem under any of them rises HERE — before the wreckage
+        // is cleared away. (A gem the isolation sweeps free later is caught by
+        // commitFinal's net, still at its own cell.)
+        await uncoverBeat(bres.bonusRevealed, new Set([...frozen.activatedCells, cellKey]));
+
         // Rule 2: every tile isolated by the bust flies UP to the score (minerals,
         // Core for 500, Glint for 0).
         const isoFly: FlyingTile[] = bres.isolatedToScore.map((t, i) => ({
@@ -1593,6 +2031,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const hide = new Set(bres.isolatedToScore.map((t) => t.key));
           playClearSounds(bres.isolatedToScore);
           setAnim((a) => ({ ...a, hiddenCells: hide, flying: isoFly }));
+          beat("isolated → score fly", { n: isoFly.length });
           await pause(T.specialFly + isoFly.length * 70 + 100);
         }
 
@@ -1609,7 +2048,9 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           const hide = new Set(bustToHand.map((f) => f.fromKey!).filter(Boolean));
           playHandSounds([...bres.pairToHand, ...bres.buriedToHand]);
           setAnim((a) => ({ ...a, hiddenCells: hide, flying: bustToHand }));
+          beat("bust → hand fly", { n: bustToHand.length });
           await pause(T.toHandFly + bustToHand.length * 70 + 100);
+          if (!remote) hudCommit((s) => ({ hand: [...s.hand, ...bres.pairToHand.map((t) => t.value as TileVal), ...bres.buriedToHand.map((t) => t.value as TileVal)] }));
         }
 
         // CAUSE-ORDER PRESENTATION (mirrors the engine, decision record): the
@@ -1637,6 +2078,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
             { id: "bust-next", value: dropVal, fromKey: null, fromXY: handOrigin(), to: "gap", toKey: cellKey, delay: 0 },
           ];
           setAnim({ ...IDLE, playing: true, focused: true, hiddenCells: new Set([cellKey]), flying: dropFly, freezeState: preWithDrop });
+          beat("forced tile drops", { view: "preWithDrop" });
           setTimeout(() => {
             sfx.place(); // the landing thud…
             sfx.gainDross(); // …under a negative sting: this tile was forced on you
@@ -1652,45 +2094,65 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // final positions itself). The forced tile is already down, so it simply
         // drifts along with everything else.
         if (!bres.shrunk && (bres.reshuffled || bres.nudged.length > 0)) {
+          beat("→ animateReshuffle (drift)");
           await animateReshuffle(cw);
+        } else {
+          beat("(no reshuffle drift)", { shrunk: !!bres.shrunk, reshuffled: bres.reshuffled, nudged: bres.nudged.length });
         }
 
         // THE WAKE DISCARDS — resolved BEFORE any collapse now. Without a
-        // collapse the committed board still has these coordinates (flash on the
-        // final view); with one, rebuild the pre-collapse board with the nudges
-        // applied so the flash happens where the player last saw the tiles.
-        let collapseBase = bres.shrunk ? applyNudges(preWithDrop, bres.nudged) : preWithDrop;
-        if (bres.lateDiscarded.length > 0) {
-          const keys = new Set(bres.lateDiscarded.map((t) => t.key));
-          const flashView = bres.shrunk ? collapseBase : cw;
-          // warning beat: the doomed isolated tiles (the forced tile included, if
-          // the wake cut it off) turn RED…
-          setAnim((a) => ({ ...a, playing: true, freezeState: flashView, flying: [], redCells: keys, hiddenCells: new Set() }));
+        // collapse the reshuffle beat above already showed the nudge drift, so
+        // the committed view's coordinates match the screen. WITH a collapse the
+        // reshuffle beat never played: the player last saw the PRE-nudge board,
+        // so the flash and the contraction both run on it. (Pre-applying the
+        // nudges here snapped every drifted gem to — mostly — its final spot one
+        // frame early, and the collapse then appeared to move nothing.) The
+        // discard keys are post-nudge, so pull each back to where the player
+        // still sees that tile.
+        let collapseBase = preWithDrop;
+        // where the player SEES each doomed tile: on a collapse turn the nudge
+        // drift is still invisible, so pull post-nudge discard keys back to
+        // pre-nudge; without a collapse the reshuffle beat above already showed
+        // the drift, so the keys match the screen as-is
+        const seenKeyOf = (k: string) => (bres.shrunk ? (bres.nudged.find((m) => m.to === k)?.from ?? k) : k);
+        const doomedKeys = new Set(bres.lateDiscarded.map((t) => seenKeyOf(t.key)));
+        if (bres.lateDiscarded.length > 0 && !bres.shrunk) {
+          // NO collapse this turn: the wake discards get their own beat on the
+          // settled (post-drift) board. On a collapse turn they ride the
+          // collapse instead — banner, flash, fall, contraction — inside
+          // animateShrink, so nothing ever exits before the collapse announces.
+          setAnim((a) => ({ ...a, playing: true, freezeState: cw, flying: [], redCells: doomedKeys, hiddenCells: new Set() }));
+          beat("wake discards flash RED", { n: doomedKeys.size });
           await pause(520);
           // …then they DROP off the board, exactly like a forfeited activated
           // combo — they don't bank, so they share its exit. Never a silent poof.
-          [...keys].forEach((_, i) => setTimeout(() => sfx.poof(), 130 + i * 70));
-          setAnim((a) => ({ ...a, redCells: new Set(), fallCells: keys, fallGo: true }));
+          [...doomedKeys].forEach((_, i) => sfxAt(() => sfx.poof(), 130 + i * 70));
+          setAnim((a) => ({ ...a, redCells: new Set(), fallCells: doomedKeys, fallGo: true }));
           await pause(760);
-          collapseBase = boardWithout(collapseBase, keys);
-          setAnim((a) => ({ ...a, freezeState: bres.shrunk ? collapseBase : boardWithout(cw, keys), fallCells: null, fallGo: false }));
+          collapseBase = boardWithout(collapseBase, doomedKeys);
+          setAnim((a) => ({ ...a, freezeState: boardWithout(cw, doomedKeys), fallCells: null, fallGo: false }));
           await pause(100);
         }
 
-        // THE ABYSS COLLAPSES — last, exactly as the engine now resolves it. The
-        // surviving forced tile contracts along with the board and reappears
-        // remapped; the strays the collapse cut off fly to score/hand afterwards
-        // by the standard isolation rules (the collapse pays — the bust never does).
+        // THE ABYSS COLLAPSES — the order the player reads: SINGULARITY wedges,
+        // the COLLAPSE banner, the doomed wake tiles falling into the abyss,
+        // the contraction, the reveal (nudges + remap in one move), the strays
+        // the collapse cut off flying to score/hand, and GLINT RUSH last.
         {
           const preShrinkC = await singularityBeat(collapseBase, bres);
           if (bres.shrunk) {
-            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final);
+            beat("→ animateShrink (collapse)", { doomed: doomedKeys.size });
+            await animateShrink(preShrinkC, bres.shrunk.mapping, cw, bres.shrunk.final, undefined, { doomed: doomedKeys, deferRush: true });
           }
         }
         await animateLateResolution(committed);
+        if (bres.shrunk?.final) await playRushTitle(cw);
 
+        beat("commitFinal (final state on screen)", { view: "committed" });
         await commitFinal(committed); // plays COLLAPSE / GLINT RUSH first if the board came down
         setAnim(IDLE);
+        beat("DONE — setAnim(IDLE)");
+        beatEnd();
         busyRef.current = false;
         return;
       }
@@ -1698,13 +2160,16 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
       // AMBIGUITY GATE — when the placement could resolve more than one way,
       // stage the pre-select-and-confirm picker instead of resolving now: the
-      // best option lights blue, the alternatives grey; it auto-confirms after
-      // CHOICE_WINDOW unless the player switches (which restarts the window)
+      // best option lights blue, the alternatives amber; it auto-confirms after
+      // the choice window (gameOptions.choiceWindowMs) unless the player switches
+      // (which restarts the window)
       // or taps the blue to commit instantly. Never appears for a single
       // resolution, a bust, a Dross or a wild Nebulite. When the player has
       // turned the combo picker OFF, skip staging entirely and auto-resolve the
       // best option (index 0) — the very same option the picker pre-selects.
-      if (gameOptions.comboPicker && outcome.kind !== "bust") {
+      // online: the picker is skipped entirely (both devices must resolve the
+      // SAME way, so we always take index 0 — the pick's own default choice)
+      if (gameOptions.comboPicker && !suppressPickerRef.current && outcome.kind !== "bust" && !online()) {
         const alts = placeAlternatives(state, cellKey);
         if (alts.length >= 2) {
           busyRef.current = false; // the picker needs taps to flow
@@ -1733,6 +2198,9 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         }
       }
 
+      // online: emit the placement (covers activate / bank / bust alike) before it
+      // resolves locally — the opponent replays the same cell through the engine
+      emitLocal({ kind: "place", cell: cellKey });
       await resolveMove(0, outcome);
       } catch (e) {
         // a restart mid-animation aborted this sequence — the new game owns the screen
@@ -1741,8 +2209,92 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
     },
     [state]
   );
+  // latest onPlace, so the remote-move queue always replays through the current
+  // render's closure (fresh state) after each animated step commits.
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
 
-  return { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld, getLastStart: () => lastStartRef.current };
+  // ONLINE: boot a networked match identically on both devices — the match seed
+  // verbatim (via `exact`, which also forces bonus gems off), the shared shape,
+  // and the seat mode. `entry` is this device's slot; `onLocal` relays each
+  // committed local move to the transport.
+  const startOnline = useCallback((opts: { seed: number; mode: MatchMode; shape: BoardShape; names: [string, string]; entry: Entry; onLocal: (m: NetMove) => void; catchUp?: NetMove[] }) => {
+    const modeOpt = opts.mode === "coop" ? { coop: { names: opts.names } } : { versus: { names: opts.names } };
+    // RESUME: `start` replays the whole history in one shot and loads the board in
+    // its current state — no opening ceremony, no fresh-board flash.
+    start({ exact: true, seed: opts.seed, side: 6, shape: opts.shape, ...modeOpt, resumeMoves: opts.catchUp });
+    netRef.current = { entry: opts.entry, onLocal: opts.onLocal }; // arm AFTER start (which clears it)
+  }, [start]);
+
+  // ONLINE: opponent moves arrive over the wire and are ANIMATED on the watcher's
+  // device through the SAME choreography the active player saw — a place replays
+  // through onPlace (activation lights up cell-by-cell, banks fly, the board
+  // collapses on BOTH sides at once), an explicit BANK NOW replays the bank
+  // animation. They queue and play strictly one at a time, so the watcher follows
+  // the play and the end-of-game summary waits for the animation to finish (rather
+  // than snapping to the result before the active side has resolved).
+  const remoteQueueRef = useRef<NetMove[]>([]);
+  const remotePumpingRef = useRef(false);
+  const pumpRemote = useCallback(async () => {
+    if (remotePumpingRef.current) return;
+    remotePumpingRef.current = true;
+    applyingRemoteRef.current = true; // suppress re-emit for the whole drain
+    try {
+      while (remoteQueueRef.current.length > 0) {
+        const move = remoteQueueRef.current.shift()!;
+        if (stateRef.current.phase !== "playing") break; // game already ended locally
+        const spectateVersus = !!stateRef.current.versus; // watcher in a versus match
+        if (move.kind === "place") {
+          await onPlaceRef.current(move.cell!, undefined, true, spectateVersus);
+        } else if (move.kind === "bank") {
+          await runBankAnimationRef.current(stateRef.current, move.cell!, spectateVersus);
+        } else {
+          // pass / claim / cashout / rotate / swap — a pure state step, no board anim
+          setState((s) => applyNetMove(s, move));
+        }
+        // yield so React flushes this move's commit before the next one reads
+        // stateRef/onPlaceRef (also paces the turn-label / hand update)
+        await pause(70);
+      }
+      // SYNC (#7): in versus the watcher's quick replay reaches game-over sooner
+      // than the active player's full animation — hold the end card a beat so the
+      // two summaries appear roughly together. (Co-op replays full-speed already.)
+      if (stateRef.current.phase !== "playing" && stateRef.current.versus) {
+        setSettling(true);
+        await pause(SPECTATE_SYNC_MS);
+        setSettling(false);
+      }
+    } catch (e) {
+      if (e !== ABORT) throw e;
+    } finally {
+      applyingRemoteRef.current = false;
+      remotePumpingRef.current = false;
+    }
+  }, []);
+  const applyRemoteMove = useCallback((move: NetMove) => {
+    remoteQueueRef.current.push(move);
+    void pumpRemote();
+  }, [pumpRemote]);
+
+  const isFollower = netRef.current ? !isMyTurn(state, netRef.current.entry) : false;
+
+  return {
+    state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, runSeq, setBoardHeld,
+    getLastStart: () => lastStartRef.current,
+    // pass emits online (only the active device) so the opponent's turn begins
+    coopPass: () => { const s = stateRef.current; if (!myTurn(s)) return; emitLocal({ kind: "pass" }); setState((st) => coopEndTurn(st)); },
+    versusPass: () => { const s = stateRef.current; if (!myTurn(s)) return; emitLocal({ kind: "pass" }); setState((st) => versusEndTurn(st)); },
+    claimOffer,
+    startOnline, applyRemoteMove, respondCashOut,
+    // inject a system log line (async step-away / return) — into the log + it floats
+    injectLog: (text: string, kind: "info" | "bust" = "info") =>
+      setState((s) => (s.phase !== "playing" ? s : { ...s, log: [{ text, kind, sticky: false }, ...s.log].slice(0, 40) })),
+    // ANTI-CHEAT: arm move recording for a daily run; read the stream at run-end
+    startRecording: () => { recordRef.current = []; },
+    getRecordedMoves: (): NetMove[] => recordRef.current ?? [],
+    online: netRef.current !== null,
+    isFollower,
+  };
 }
 
 // ---- helpers ----
@@ -1799,27 +2351,8 @@ function withLateTiles(committed: GameState): GameState {
   return { ...committed, cells };
 }
 
-// Apply the engine's nudge drifts forward onto a frozen view — used to rebuild
-// the PRE-collapse board a bust's wake discards flashed on (the engine nudges,
-// then discards, then collapses; the discard keys are post-nudge positions).
-function applyNudges(g: GameState, moves: { from: string; to: string }[]): GameState {
-  if (moves.length === 0) return g;
-  const cells = new Map(g.cells);
-  for (const { from, to } of moves) {
-    const src = cells.get(from);
-    const dst = cells.get(to);
-    if (!src || !dst) continue;
-    cells.set(to, { coord: dst.coord, tile: src.tile, inert: src.inert, buried: src.buried });
-    cells.set(from, { coord: src.coord, tile: null, inert: false, buried: null });
-  }
-  return { ...g, cells };
-}
-
-// The primary pointer is coarse (a finger) → a touch device. The thick-thumbs
-// rescue only applies here; a desktop mouse click is precise and never snapped.
-function isCoarsePointer(): boolean {
-  return typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-}
+// (isCoarsePointer — the thick-thumbs rescue gate — now lives in theme.ts,
+// shared with App/Tutorial/share instead of four copies.)
 
 // THICK-THUMBS RESCUE — when the tapped cell would bust, find the best adjacent
 // cell to snap to: a legal, non-bust placement that isn't part of a glowing combo,
@@ -1864,12 +2397,12 @@ function findRescueCell(
 // A short blip per tile flying to the hand (Dross gets the negative sound),
 // staggered to match the visual fly delays.
 function playHandSounds(tiles: { value: number }[]) {
-  tiles.forEach((t, i) => setTimeout(() => (t.value === GLINT ? sfx.gainDross() : sfx.tileToHand()), i * 70));
+  tiles.forEach((t, i) => sfxAt(() => (t.value === GLINT ? sfx.gainDross() : sfx.tileToHand()), i * 70));
 }
 // A clear sound for each special tile (Dross / Nebulite) resolving to the score.
 function playClearSounds(tiles: { value: number }[]) {
   tiles.forEach((t, i) => {
-    if (t.value === GLINT || t.value === CORE) setTimeout(() => sfx.clearSpecial(t.value), i * 70);
+    if (t.value === GLINT || t.value === CORE) sfxAt(() => sfx.clearSpecial(t.value), i * 70);
   });
 }
 
