@@ -586,56 +586,64 @@ export default function App() {
       }
       return;
     }
-    recordScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
-    // COMMUNITY LEADERBOARD: every run reports its score (the server keeps each
-    // redditor's best); fire-and-forget, silently a no-op outside Reddit
-    void submitAllTimeScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
+    // GAME-OVER FORFEIT (web 2026-08-04, ported with the freeze lift): a busted
+    // run forfeits ALL competitive output — the personal top scores, the
+    // community all-time board, and EVERY daily metric, skill feats included.
+    // What survives is the record of EXPERIENCE: reached GLINT RUSH, a game
+    // played, the no-bust streak resetting.
+    if (!gameOver) {
+      recordScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
+      // COMMUNITY LEADERBOARD: every legitimately finished run reports its score
+      // (the server keeps each redditor's best); fire-and-forget, a no-op outside Reddit
+      void submitAllTimeScore(state.finalScore, currentLevel ? levelScoreLabel(currentLevel) : "Quick Start");
+    }
     // DAILY CHALLENGE run -> submit today's METRIC to the subreddit board.
-    // Resource metrics (Nebulite refined/banked, banks) follow the game's own
-    // forfeit rule: a true game-over (busted out, no cash-out) banks nothing.
-    // Skill feats (score, biggest single bank, chains banked) always count,
-    // same as the personal leaderboard.
+    // A forfeited run submits nothing on ANY metric.
     if (dailyRun.day && !currentLevel) {
       const chainsBanked = (state.chainCounts.Convergence ?? 0) + (state.chainCounts.Harmony ?? 0) + (state.chainCounts.Accord ?? 0) + (state.chainCounts.Sweep ?? 0);
-      const metricValue =
-        dailyRun.metric === "bankscore" ? state.maxBankScore
-        : dailyRun.metric === "refined" ? (gameOver ? 0 : Math.max(0, state.nebulitesRefined))
-        : dailyRun.metric === "nebulite" ? (gameOver ? 0 : Math.max(0, state.coresCollected))
-        : dailyRun.metric === "banks" ? (gameOver ? 0 : state.banks)
+      const metricValue = gameOver ? 0
+        : dailyRun.metric === "bankscore" ? state.maxBankScore
+        : dailyRun.metric === "refined" ? Math.max(0, state.nebulitesRefined)
+        : dailyRun.metric === "nebulite" ? Math.max(0, state.coresCollected)
+        : dailyRun.metric === "banks" ? state.banks
         : dailyRun.metric === "chains" ? chainsBanked
         : state.finalScore;
       // zeros never go up (a forfeited game-over would read as a broken "0" row)
       if (metricValue > 0) void submitDailyScore(metricValue, dailyRun.day);
       dailyRun.day = null;
     }
-    // fold this run into the lifetime stats + today's daily-challenge progress
+    // fold this run into the lifetime stats + today's daily-challenge progress.
+    // GAME-OVER FORFEIT (2026-08-04): a busted run forfeits EVERYTHING it could
+    // be credited for — resources, score, biggest bank, chains, feat latches
+    // (Harmonizer, Full Drift). What survives is the record of EXPERIENCE:
+    // reached GLINT RUSH (+count), a game played, the streak resetting.
     const finished = {
-      score: state.finalScore,
+      score: gameOver ? 0 : state.finalScore,
       won: state.phase === "won",
       busts: state.busts,
-      // a game over forfeits every resource gain — they don't feed stats, dailies, grants,
-      // milestones or achievements (matching the wallet Nebulite forfeit)
       drossCleared: gameOver ? 0 : state.drossCleared,
       nebulitesAcquired: gameOver ? 0 : state.nebulitesRefined,
       banks: gameOver ? 0 : state.banks,
       reachedRush: state.deathMatch,
       cashedOut: state.cashedOut > 0,
-      fullDrift: (state.comboCounts.FullDrift ?? 0) > 0,
-      fullDrifts: state.comboCounts.FullDrift ?? 0, // the COUNT — same skill-feat rule as the flag above
+      fullDrift: !gameOver && (state.comboCounts.FullDrift ?? 0) > 0,
+      fullDrifts: gameOver ? 0 : state.comboCounts.FullDrift ?? 0,
       levelNum: currentLevel?.num ?? -1,
       // Shape Shifter counts any non-hexagon EXCEPT the square — the square has
       // its own achievement (Four Corners)
       shaped: currentLevel ? currentLevel.params.boardShape !== "hexagon" && currentLevel.params.boardShape !== "square" : false,
       square: currentLevel?.params.boardShape === "square",
-      harmony: (state.chainCounts.Harmony ?? 0) > 0,
+      harmony: !gameOver && (state.chainCounts.Harmony ?? 0) > 0,
       boss: currentLevel?.boss === true,
-      maxBankScore: state.maxBankScore,
-      chains: {
-        convergence: state.chainCounts.Convergence ?? 0,
-        harmony: state.chainCounts.Harmony ?? 0,
-        accord: state.chainCounts.Accord ?? 0,
-        turn: state.chainCounts.Sweep ?? 0, // internal name; player-facing = CMS
-      },
+      maxBankScore: gameOver ? 0 : state.maxBankScore,
+      chains: gameOver
+        ? { convergence: 0, harmony: 0, accord: 0, turn: 0 }
+        : {
+            convergence: state.chainCounts.Convergence ?? 0,
+            harmony: state.chainCounts.Harmony ?? 0,
+            accord: state.chainCounts.Accord ?? 0,
+            turn: state.chainCounts.Sweep ?? 0, // internal name; player-facing = CMS
+          },
     };
     const prevStats = loadStats(); // pre-run tallies, for milestone tier crossings
     // TUTORIAL GATE: before the Tutorial is finished nothing is earned — daily
