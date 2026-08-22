@@ -318,8 +318,10 @@ export default function App() {
   const [preAcademy] = useState(() => storedFrontier() < 2);
   const [quickTips, setQuickTips] = useState<{ open: boolean; page: number }>({ open: false, page: 0 });
   // QUICK PLAY tips eligibility — a plain solo run, pre-Academy; the Academy's
-  // CLOSING board carries the same tips
-  const isQuickRun = !currentLevel && !state.coop && !state.versus;
+  // CLOSING board carries the same tips. A COMMUNITY DAILY is never a quick run:
+  // it is a competitive, server-verified board and nobody's first board, so the
+  // new-starter pop-ups must not force themselves over it (web parity).
+  const isQuickRun = !currentLevel && !dailyRun.day && !state.coop && !state.versus;
   const quickTipsEligible = isQuickRun && preAcademy;
   const onAcademyBoard = currentLevel?.num === 1;
   const quickPageUnlocked = (key: string) =>
