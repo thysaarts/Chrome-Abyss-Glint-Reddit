@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { isMoveStream, replayDailyScore } from "./verifyDaily";
 import { serve } from "@hono/node-server";
 import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
 import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCodeResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
@@ -104,15 +105,38 @@ app.post("/api/daily/score", async (c) => {
     const day = utcDay();
     const username = (await reddit.getCurrentUsername()) ?? null;
     if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
-    const body = await c.req.json<{ score?: number; day?: string }>().catch(() => ({}) as { score?: number; day?: string });
-    const score = Math.floor(Number(body.score));
-    // sanity: scores are positive (zeros never land on the board) and bounded
-    if (!Number.isFinite(score) || score <= 0 || score > 1_000_000) {
-      return c.json<ErrorResponse>({ status: "error", message: "invalid score" }, 400);
-    }
+    const body = await c.req.json<{ score?: number; day?: string; moves?: unknown }>().catch(() => ({}) as { score?: number; day?: string; moves?: unknown });
     // a run that started on a previous day must not pollute today's board
     if (body.day && body.day !== day) {
       return c.json<ErrorResponse>({ status: "error", message: "challenge day rolled over" }, 409);
+    }
+    // ANTI-CHEAT: a submission carrying its move stream is REPLAYED — the board
+    // comes from the server's own seed + metric, and the score that lands is
+    // whatever the replay produces; the client's claimed number is ignored.
+    // A stream that is malformed, illegal mid-run, or unfinished posts nothing.
+    // Legacy clients (no stream) keep the old range check until they age out.
+    let score: number;
+    if (body.moves !== undefined) {
+      if (!isMoveStream(body.moves)) {
+        return c.json<ErrorResponse>({ status: "error", message: "invalid move stream" }, 400);
+      }
+      const replayed = replayDailyScore(dailySeed(day), metricFor(day), body.moves);
+      if (replayed === null) {
+        return c.json<ErrorResponse>({ status: "error", message: "replay failed" }, 400);
+      }
+      score = replayed;
+      if (score <= 0) {
+        // a forfeited (busted-out) or zero-metric run never lands on the board —
+        // report the current standings unchanged
+        const [leaderboard0, mine0] = await Promise.all([topStandings(day), standingFor(day, username)]);
+        return c.json<SubmitScoreResponse>({ type: "score", day, accepted: false, best: mine0.score ?? 0, leaderboard: leaderboard0, yourRank: mine0.rank });
+      }
+    } else {
+      score = Math.floor(Number(body.score));
+      // sanity: scores are positive (zeros never land on the board) and bounded
+      if (!Number.isFinite(score) || score <= 0 || score > 1_000_000) {
+        return c.json<ErrorResponse>({ status: "error", message: "invalid score" }, 400);
+      }
     }
     const key = boardKey(day);
     const prev = await redis.zScore(key, username);

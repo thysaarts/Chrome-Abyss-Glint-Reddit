@@ -46,6 +46,7 @@ import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, recordVersusWin, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE, extraGemsFor, extraGemsForLevel } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
+import { dailyGame } from "./game/daily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
@@ -104,7 +105,7 @@ function pendingAbilityCelebrations(stats = loadStats()): AbilityUnlock[] {
 }
 
 export default function App() {
-  const { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld, versusPass, claimOffer } = useNebuliteGame(6);
+  const { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld, versusPass, claimOffer, startRecording, getRecordedMoves } = useNebuliteGame(6);
   // which top-level screen is showing, plus the shared overlays.
   // "tutorial0" is Level 0's scripted walkthrough — it hands off into a real run.
   const [screen, setScreen] = useState<"start" | "levels" | "game" | "tutorial0">("start");
@@ -466,10 +467,14 @@ export default function App() {
     dailyRun.day = day;
     dailyRun.metric = metric;
     dailyGameRef.current = { day, seed, metric };
-    // REFINE-RIG PARITY (web e05c47e): a "Most Nebulite refined" day deals a
-    // board with the campaign's guaranteed refinable setup — the metric is won
-    // on merit, not on the luck of the deal. Same seed → same rig for everyone.
-    start({ seed, ...(metric === "refined" ? { nebuliteRig: true } : {}) });
+    // THE COMPETITIVE BOARD IS EXACT (web parity): dailyGame pins the whole
+    // config — no difficulty shift, no bonus gems, no bust rescue — and exact
+    // mode keeps it that way, so every player fights the identical board and
+    // the server's replay verifier re-derives it from the seed alone. The
+    // refine-rig parity rule rides in dailyGame (a "Most Nebulite refined" day
+    // deals the campaign's guaranteed refinable setup).
+    start({ ...dailyGame(seed, metric), exact: true });
+    startRecording(); // ANTI-CHEAT: capture the move stream for server verification
     setScreen("game");
   }, [start]);
 
@@ -986,7 +991,9 @@ export default function App() {
         : dailyRun.metric === "chains" ? chainsBanked
         : state.finalScore;
       // zeros never go up (a forfeited game-over would read as a broken "0" row)
-      if (metricValue > 0) void submitDailyScore(metricValue, dailyRun.day);
+      // the recorded stream rides along — the server replays it and posts the
+      // score the replay produces (the metricValue is the legacy fallback)
+      if (metricValue > 0) void submitDailyScore(metricValue, dailyRun.day, getRecordedMoves());
       dailyRun.day = null;
     }
     // fold this run into the lifetime stats + today's daily-challenge progress.
