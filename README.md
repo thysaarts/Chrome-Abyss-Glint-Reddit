@@ -11,6 +11,19 @@ a serverless backend hands out the daily seed and keeps the community leaderboar
 
 ---
 
+## v0.1.0 — the live-parity update (2026-08)
+
+The competition freeze is over: this build is now IN LINE with the live web
+game (chromeabyss.com), minus the deliberately excluded heavy surfaces (3D
+Ascent/decor scenes, video cut-scenes, Supabase accounts, online realtime
+play, the paywall). Highlights: the Zenith wager, the Dross cluster cap, the
+full game-over forfeit, the daily type wheel, faction packs + Settings ›
+Themes, extra gems, quick-play tips, daily characters with the DAILY CLEARED
+celebrations, YOU vs THE HOUSE (the Broker duel, fully local), an exact-mode
+community daily, and SERVER-SIDE REPLAY VERIFICATION for the daily board.
+The port plan + progress log: docs/superpowers/plans/2026-08-22-live-parity-update.md.
+
+
 ## How to play
 
 **Goal:** score as many points as you can before the run ends — then get on the community
