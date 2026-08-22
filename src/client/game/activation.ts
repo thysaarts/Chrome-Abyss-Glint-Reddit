@@ -229,7 +229,7 @@ function findAllStraights(
 /**
  * All DISTINCT ways this placement can resolve — the choice set for the
  * pre-select-and-confirm picker. Each entry is a full activation list (what
- * detectActivations would return had that straight been preferred): the
+ * a bare detection would return had that straight been preferred): the
  * same-value set is common to every option; the options differ in WHICH
  * straight fires (and, without a set, which disjoint second straight rides
  * along). Index 0 is always the engine's classic best pick.
@@ -499,91 +499,6 @@ function buildAllConnectedStraights(
     });
   });
   return results;
-}
-
-/**
- * Given a placement, return the BEST valid combo it forms (set blob or straight),
- * or null if it forms none. Prefers larger tile counts. (Single-combo helper kept
- * for callers that only need the primary combo.)
- */
-export function detectActivation(
-  placedKey: string,
-  placedVal: number,
-  view: BoardView
-): ActivatedCombo | null {
-  const all = detectActivations(placedKey, placedVal, view);
-  if (all.length === 0) return null;
-  // primary = the one with the most cells
-  return all.reduce((a, b) => (b.cells.length > a.cells.length ? b : a));
-}
-
-/**
- * Return EVERY combo a single placement legitimately forms, capped at two:
- *   - a same-value set (Echo/Trips/Quad/Pentad), or a Hex from the nearest 6 if
- *     the same-value strand is 6+
- *   - AND/OR a straight (Drift/FullDrift) through the placed cell
- * Allowed pairings: {set + straight} or {two distinct straights}. Two same-value
- * sets can't both apply (that's just one bigger blob). The placed cell is the
- * only tile that may belong to two combos.
- */
-export function detectActivations(
-  placedKey: string,
-  placedVal: number,
-  view: BoardView
-): ActivatedCombo[] {
-  if (!isMineral(placedVal)) return [];
-  const valueAt = makeValueAt(view.valueAt, placedKey, placedVal);
-
-  // RULE 1 (Core joker): a Core ADJACENT to the placed tile mirrors the placed
-  // value for a MATCHING SET (not a straight). A Core that is ALREADY part of an
-  // activated combo is LOCKED — it keeps the value it first mirrored and cannot be
-  // re-mirrored or absorbed into a new combo until it banks and respawns.
-  const jokerCores = new Set<string>();
-  for (const nb of view.adj.get(placedKey) ?? []) {
-    if (view.valueAt(nb) === CORE && !view.lockedCells?.has(nb)) jokerCores.add(nb);
-  }
-  const setValueAt = (k: string): number | null => {
-    if (k === placedKey) return placedVal;
-    if (jokerCores.has(k)) return placedVal; // Core mirrors the placed value
-    return view.valueAt(k);
-  };
-
-  // --- the same-value set (or Hex from nearest 6), Core-joker aware ---
-  let setCombo: ActivatedCombo | null = null;
-  const blob = sameValueBlob(placedKey, placedVal, view, setValueAt);
-  if (blob.size >= 6) {
-    const six = bfsNearestSameValue(placedKey, placedVal, 6, view, setValueAt);
-    setCombo = { name: "Hex", cells: six };
-  } else {
-    const setName = setComboName(blob.size, placedVal);
-    if (setName) setCombo = { name: setName, cells: [...blob] };
-  }
-
-  // --- the best straight through the placed cell (NO Core joker for straights) ---
-  const straight = findStraight(placedKey, placedVal, view, valueAt);
-
-  // Case A: both a set and a straight -> activate BOTH (Drift + set).
-  if (setCombo && straight) {
-    return [setCombo, { name: straight.name, cells: straight.cells }];
-  }
-
-  // Case B: a straight but no set -> look for a SECOND distinct straight (two
-  // Drifts through the placed cell, e.g. a 1-2-3-4 and a 3-4-5-6 sharing the 3).
-  if (straight && !setCombo) {
-    const exclude = new Set(straight.cells.filter((k) => k !== placedKey));
-    const second = findStraight(placedKey, placedVal, view, valueAt, exclude);
-    if (second) {
-      return [
-        { name: straight.name, cells: straight.cells },
-        { name: second.name, cells: second.cells },
-      ];
-    }
-    return [{ name: straight.name, cells: straight.cells }];
-  }
-
-  // Case C: only a set.
-  if (setCombo) return [setCombo];
-  return [];
 }
 
 /** Build a BoardView from a cells map + adjacency. */

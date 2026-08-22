@@ -1346,6 +1346,16 @@ function planMoveAs(s: GameState, cellKey: string, placedVal: number, choice = 0
 
 /** Is a placement at cellKey legal (forms a valid combo that connects)? */
 export function isLegalTarget(s: GameState, cellKey: string): boolean {
+  // wild fast path: legality is "ANY value forms a combo" — skip the expensive
+  // best-value ranking (the Zenith's ranking dry-runs whole placements)
+  const tile = visibleTile(s);
+  if ((tile === CORE || tile === ZENITH) && s.cells.get(cellKey) && !s.activatedCells.includes(cellKey)) {
+    for (let v = 1; v <= 6; v++) {
+      const p = planMoveAs(s, cellKey, v);
+      if (p && p.isLegalBuild) return true;
+    }
+    return false;
+  }
   const plan = planMove(s, cellKey);
   return !!plan && plan.isLegalBuild;
 }
@@ -1881,6 +1891,11 @@ function discardLateIsolation(s: GameState): void {
 /** Reshuffle the UNREVEALED hand (everything behind the current "now placing"
  *  tile). Values are fixed; only the order changes. Always runs. */
 function reshuffleHand(s: GameState, rng: () => number): boolean {
+  // Once the WHEEL is revealed every tile is visible, so shuffling the queue only
+  // scrambles what the player can already see — it makes the forced bust tile and
+  // the up-next order unpredictable for no reason. Only shuffle while the hand is
+  // still BLIND (the board nudge that pairs with a reshuffle still runs regardless).
+  if (s.handRevealed) return false;
   if (s.hand.length <= 1) return false; // only the visible tile remains — nothing behind it
   const head = s.hand[0];
   const rest = shuffle(s.hand.slice(1), rng);
@@ -2884,21 +2899,6 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   if (isEmptyBoard(s)) return endGame(s, true);
   if (s.hand.length === 0) return endGame(s, false);
   return s;
-}
-
-/**
- * (Formerly RULE 5, no moves.) UNUSED since CASH OUT landed: a last tile with no
- * legal move no longer auto-ends the game — ending the run is always the player's
- * decision (cash out during GLINT RUSH, or place the tile and take the bust).
- * Kept for reference should a stuck-detection prompt ever return.
- */
-export function endStuck(state: GameState): GameState {
-  if (state.phase !== "playing") return state;
-  const s = clone(state);
-  s.lastResolved = emptyResolved();
-  s.busts += 1;
-  pushLog(s, { text: logText("noLegalMove"), kind: "bust", sticky: logIsSticky("noLegalMove") });
-  return endGame(s, false);
 }
 
 // CASH OUT conversion rates: unspent resources become points when the player

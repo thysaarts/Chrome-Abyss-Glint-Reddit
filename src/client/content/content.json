@@ -262,7 +262,6 @@
     "outOfTiles": "Out of tiles — final score {score}",
     "handChoice": "You have {count} tiles left. Choose which one you want to place.",
     "cannotReplace": "You cannot replace this tile. Choose another spot.",
-    "noLegalMove": "You can't place this tile, You're Bust! Game over.",
     "rushWheel": "Your whole hand is revealed below — slide through the tiles to choose what to place.",
     "handRevealed": "Your hand is revealed below — slide through the tiles and choose what to place.",
     "clearedConverted": "Unspent riches convert — busts +{lives}, banks +{banks}, hand gems +{gems} ({total} total).",
