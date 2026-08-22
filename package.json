@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Chrome Abyss: Glint \u2014 push-your-luck gem puzzle as a Reddit community game (Devvit)",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node scripts/strip-maps.mjs",
     "dev": "devvit playtest",
     "deploy": "npm run typecheck && devvit upload",
     "launch": "npm run deploy && devvit publish",
