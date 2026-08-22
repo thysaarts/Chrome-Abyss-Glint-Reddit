@@ -225,6 +225,12 @@ export interface GameState {
   // the Core respawns and it resets to 0.
   coreRespawnPending: number;
 
+  // A Nebulite placed FROM THE HAND knows exactly which mineral value planWild
+  // chose for it (a Drift's missing value has no same-value neighbours to derive
+  // it from). cell key -> that value; entries are only read while the cell still
+  // holds a Core, and a respawn landing on a key clears its stale entry.
+  coreLocks: Record<string, number>;
+
   // the activated build for the current turn-in-progress:
   // a list of combos the player has activated, plus the union of their cells.
   activatedCombos: ActivatedCombo[];
@@ -658,6 +664,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     comboCounts: {},
     chainCounts: {},
     coreRespawnPending: 0,
+    coreLocks: {},
     lastResolved: emptyResolved(),
   };
 }
@@ -681,12 +688,18 @@ export function lockedCoreValues(s: GameState): Map<string, number> {
       const t = s.cells.get(k)?.tile;
       if (t != null && t !== GLINT && t !== CORE) { val = t as number; break; }
     }
-    if (val == null) continue;
-    // FIRST combo wins: a Nebulite locks onto the value of the combo it FIRST joined (always
-    // a same-value set — a Core only mirrors for a set) and never re-mirrors. Combos are
-    // appended, so its original set precedes any later straight it's pulled into; without
-    // this guard, that later straight's first mineral would overwrite its locked value.
-    for (const k of combo.cells) if (s.cells.get(k)?.tile === CORE && !m.has(k)) m.set(k, val);
+    for (const k of combo.cells) {
+      if (s.cells.get(k)?.tile !== CORE || m.has(k)) continue;
+      // A HAND-PLACED Nebulite recorded the exact value planWild chose (coreLocks) —
+      // authoritative, because a Core completing a DRIFT has mixed-value neighbours
+      // and "first mineral in the combo" would pick an arbitrary wrong one.
+      // A BOARD Core only ever mirrors inside a same-value set (activation.ts allows
+      // no Core joker in straights), so for those the combo's first mineral IS the
+      // set's value. FIRST combo wins: combos are appended, so a Core's original set
+      // precedes any later straight it's pulled into and it never re-mirrors.
+      const v = s.coreLocks[k] ?? val;
+      if (v != null) m.set(k, v);
+    }
   }
   return m;
 }
@@ -953,13 +966,19 @@ function failPlan(s: GameState, cellKey: string): MovePlan {
 function planWild(s: GameState, cellKey: string): MovePlan {
   let best: MovePlan | null = null;
   let bestScore = -1;
+  let bestVal = 0;
   for (let v = 1; v <= 6; v++) {
     const p = planMoveAs(s, cellKey, v);
     if (!p || !p.isLegalBuild) continue;
     const sc = wildScore(p);
-    if (!best || sc > bestScore) { best = p; bestScore = sc; }
+    if (!best || sc > bestScore) { best = p; bestScore = sc; bestVal = v; }
   }
-  return best ?? failPlan(s, cellKey);
+  if (!best) return failPlan(s, cellKey);
+  // The tile commits as a Core (so the joker-Core bank reward still fires), but
+  // the chosen value is recorded in coreLocks — a Core completing a DRIFT has no
+  // same-value neighbours, so the value can't be re-derived from the combo later.
+  best.wildValue = bestVal;
+  return best;
 }
 /** ZENITH wildcard: like planWild, but tags the winning value so place() stores a
  *  concrete mineral (+ the zenithFill flag) rather than a re-mirroring joker.
@@ -1188,6 +1207,7 @@ function clone(s: GameState): GameState {
     log: s.log.slice(),
     comboCounts: { ...s.comboCounts },
     chainCounts: { ...s.chainCounts },
+    coreLocks: { ...s.coreLocks },
   };
 }
 
@@ -1777,6 +1797,7 @@ function respawnCore(s: GameState, rng: () => number): string | null {
   }
   cell.tile = CORE;
   cell.inert = false;
+  delete s.coreLocks[k]; // a respawned Core is unshaped — drop any stale lock from a prior placed Core here
   pushLog(s, { text: logText("nebuliteRespawned"), kind: "core", sticky: logIsSticky("nebuliteRespawned") });
   return k;
 }
@@ -1844,6 +1865,9 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
   cell.inert = false;
   cell.buried = null;
   cell.zenithFill = isZenith ? true : cell.zenithFill;
+  // A hand-placed Nebulite stays a Core on the board but remembers the exact
+  // mineral value planWild chose for it (see coreLocks / lockedCoreValues).
+  if (tile === CORE && plan.wildValue != null) s.coreLocks[cellKey] = plan.wildValue;
   // If we just covered a Glint/Core that had a mineral buried beneath it, that
   // mineral returns to the player's hand.
   if ((covered === GLINT || covered === CORE) && buriedUnder !== null && buriedUnder !== GLINT && buriedUnder !== CORE) {

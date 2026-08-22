@@ -42,4 +42,22 @@ describe("a shaped Nebulite activates the Drift it sits in", () => {
     // and it locked to 6 (what it took), NOT the drift's leading mineral (3)
     expect(lockedCoreValues(after).get("0,0")).toBe(6);
   });
+
+  it("a HAND-placed Nebulite completing ONLY a Drift locks to the missing value (bug046)", () => {
+    // Board holds 3 _ 5 6 in a line; the Nebulite fills the gap. The only combo it
+    // can form is the Drift 3-4-5-6, so planWild must pick 4 — and the lock must
+    // read 4, not an arbitrary neighbour (the old first-mineral rule returned 3).
+    const g = newGame({ seed: 1, side: 6 });
+    clear(g);
+    g.cells.get("-1,0")!.tile = 3;
+    g.cells.get("1,0")!.tile = 5;
+    g.cells.get("2,0")!.tile = 6;
+    g.hand = [CORE, 1, 1];
+    const after = place(g, "0,0");
+    const names = after.activatedCombos.map((c) => c.name);
+    expect(names).toContain("Drift");
+    expect(after.cells.get("0,0")!.tile).toBe(CORE); // still a Core (joker bank reward intact)
+    expect(after.coreLocks["0,0"]).toBe(4);
+    expect(lockedCoreValues(after).get("0,0")).toBe(4);
+  });
 });
