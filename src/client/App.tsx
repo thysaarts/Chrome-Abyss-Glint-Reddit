@@ -4,7 +4,7 @@ import { REGIONS, regionVars } from "./theme/regions";
 import { Backdrop } from "./ui/Backdrop";
 import { RegionBackdrop } from "./ui/RegionBackdrop";
 import { GameState, CORE, GLINT, RESURRECT, QUADRIANT, ZENITH, TileVal, EndTallyKind, cashOutValue, bestPlacementHint } from "./game/engine";
-import { CONTENT } from "./content/content";
+import { CONTENT, DEFAULT_CONTENT } from "./content/content";
 import { Board } from "./ui/Board";
 import { TileGem } from "./ui/TileGem";
 import { HUD, Footer, ComboLegend, TileLegend, LogPanel } from "./ui/Panels";
@@ -70,6 +70,10 @@ import type { Avatar } from "./game/avatars";
 import { AvatarGem } from "./ui/AvatarGem";
 import { fmt } from "./content/content";
 import { PopupCard } from "./ui/PopupCard";
+import { StarField } from "./ui/StarField";
+import { TutorAvatar } from "./ui/TutorAvatar";
+import { renderRich } from "./ui/richText";
+import { quickTipFlags, markQuickIntroSeen, markQuickBankSeen, markQuickRushSeen } from "./game/quickplay";
 import { Tutorial } from "./ui/Tutorial";
 import { TutorialLevel } from "./ui/TutorialLevel";
 import { Level, LEVELS, LEVEL_DEFS, RunResult, levelScoreLabel } from "./levels/levels";
@@ -303,6 +307,29 @@ export default function App() {
   // first Academy launch (Nebulite page) and on the first GLINT RUSH there
   // (rush page); the TIP pill re-opens it any time in the Academy.
   const [academyTips, setAcademyTips] = useState<{ open: boolean; page: number; solo?: boolean }>({ open: false, page: 0 });
+  // the OPENING CHOREOGRAPHY (rain, specials dropping, GO!) releases the anim —
+  // board-start pop-ups wait on this, so none can land before the Dross arrives
+  const [boardSettled, setBoardSettled] = useState(false);
+  // QUICK PLAY new-starter tips (frontier < 2): pill + three one-time pop-ups.
+  // REDDIT ADAPTATION: this build has no Academy OPT-OUT flow (web's TutorialLevel
+  // feature) — the ref stays false and the web-shaped gating below just works.
+  const optOutRunRef = useRef(false);
+  const [preAcademy] = useState(() => storedFrontier() < 2);
+  const [quickTips, setQuickTips] = useState<{ open: boolean; page: number }>({ open: false, page: 0 });
+  // QUICK PLAY tips eligibility — a plain solo run, pre-Academy; the Academy's
+  // CLOSING board carries the same tips
+  const isQuickRun = !currentLevel && !state.coop && !state.versus;
+  const quickTipsEligible = isQuickRun && preAcademy;
+  const onAcademyBoard = currentLevel?.num === 1;
+  const quickPageUnlocked = (key: string) =>
+    key === "clearing" ? quickTipFlags().bankReached || state.banks >= 1
+    : key === "rush" ? quickTipFlags().rushReached || state.deathMatch
+    : true; // ropes — always
+  const quickPages = !quickTips.open
+    ? []
+    : onAcademyBoard && !optOutRunRef.current
+      ? (CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).pages
+      : (CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).pages.filter((pg) => quickPageUnlocked(pg.key));
   // the one-time PUZZLE BOARD briefing, opened over the board the first time the
   // first puzzle level is launched
   const [puzzleIntroOpen, setPuzzleIntroOpen] = useState(false);
@@ -1271,6 +1298,53 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [screen, homeTab]);
 
+  // boardSettled: false while the opening owns the screen; true 400ms after it ends
+  useEffect(() => {
+    if (anim.playing && state.moves === 0) setBoardSettled(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anim.playing]);
+  useEffect(() => {
+    if (screen !== "game") setBoardSettled(false);
+  }, [screen]);
+  useEffect(() => {
+    if (screen !== "game" || state.phase !== "playing" || boardSettled) return;
+    if (anim.playing) return; // the opening (rain → specials → GO!) still owns the screen
+    const t = window.setTimeout(() => setBoardSettled(true), 400);
+    return () => window.clearTimeout(t);
+  }, [screen, state.phase, anim.playing, boardSettled]);
+
+  // QUICK PLAY TIPS — beat one: the board settles on an eligible run — once ever.
+  useEffect(() => {
+    if (screen !== "game" || state.phase !== "playing" || !boardSettled) return;
+    if (!quickTipsEligible && !(onAcademyBoard && optOutRunRef.current)) return;
+    if (quickTips.open || quickTipFlags().seenIntro) return;
+    markQuickIntroSeen();
+    setQuickTips({ open: true, page: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, state.phase, boardSettled]);
+  // beat two: after the first BANK resolves — once ever.
+  useEffect(() => {
+    if (screen !== "game" || (!quickTipsEligible && !(onAcademyBoard && optOutRunRef.current))) return;
+    if (state.banks < 1 || anim.playing || state.phase !== "playing") return;
+    if (quickTips.open || quickTipFlags().seenBank) return;
+    markQuickBankSeen(); // unlocks the Clearing slide
+    const all = (CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).pages;
+    const cycle = onAcademyBoard && !optOutRunRef.current ? all : all.filter((pg) => quickPageUnlocked(pg.key));
+    setQuickTips({ open: true, page: Math.max(0, cycle.findIndex((pg) => pg.key === "clearing")) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.banks, anim.playing, screen, state.phase]);
+  // beat three: GLINT RUSH arms — once ever.
+  useEffect(() => {
+    if (screen !== "game" || (!quickTipsEligible && !(onAcademyBoard && optOutRunRef.current))) return;
+    if (!state.deathMatch || anim.playing || state.phase !== "playing") return;
+    if (quickTips.open || quickTipFlags().seenRush) return;
+    markQuickRushSeen(); // unlocks the GLINT RUSH slide
+    const all = (CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).pages;
+    const cycle = onAcademyBoard && !optOutRunRef.current ? all : all.filter((pg) => quickPageUnlocked(pg.key));
+    setQuickTips({ open: true, page: Math.max(0, cycle.findIndex((pg) => pg.key === "rush")) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.deathMatch, anim.playing, screen, state.phase]);
+
   // THE TEACHING HINT — on the Tutorial level's real run (first two turns,
   // after 1s) and in The Academy (first turn and the turn after each bust,
   // after 3s), the best available placement glows tutorial-blue. Runs favour
@@ -1369,6 +1443,11 @@ export default function App() {
             onNebuliteClick={() => { sfx.click(); setHomeTab("shop"); }}
           />
           <div style={{ position: "absolute", left: 0, right: 0, top: HEADER_HEIGHT, bottom: TAB_BAR_HEIGHT }}>
+            {/* subtle starry backdrop behind the FEATURE tabs — not Ascent (its own
+                parallax scene) and not the Sticker Book (own scene). Pure CSS. */}
+            {homeTab !== "ascent" && !(homeTab === "collection" && collectionSub === "book") && (
+              <StarField reduceMotion={settings.reduceMotion} />
+            )}
             {homeTab === "ascent" ? (
               // same keyed fade as the other tabs, so every tab switch feels alike
               <div key={homeTab} className="gl-rise-in" style={{ position: "absolute", inset: 0 }}>
@@ -1384,7 +1463,7 @@ export default function App() {
             ) : (
               <div key={homeTab} className="gl-rise-in" style={{ position: "absolute", inset: 0 }}>
                 {homeTab === "challenges" ? (
-                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} nebulite={nebulite} onPlayDuel={startBrokerDuel} focusHouse={houseSlideFirst} />
+                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} nebulite={nebulite} onPlayDuel={startBrokerDuel} focusHouse={houseSlideFirst} onSeeAchievements={() => setHomeTab("achievements")} />
                 ) : homeTab === "achievements" ? (
                   <AchievementsPage onOpenLeaderboard={() => setShowLB(true)} />
                 ) : homeTab === "collection" ? (
@@ -1598,6 +1677,19 @@ export default function App() {
               {anim.finalHeart && <FinalHeartOverlay phase={anim.finalHeart as "fly" | "break"} from={anchorOf(bustRef)()} />}
 
               {/* THE ACADEMY's TIP pill — reopen the briefing any time (Level 1 only) */}
+              {/* QUICK PLAY new-starter TIP pill — until Tutorial + Academy are done */}
+              {(quickTipsEligible || onAcademyBoard) && state.phase === "playing" && !quickTips.open && (
+                <button
+                  onClick={() => { sfx.click(); setQuickTips({ open: true, page: 0 }); }}
+                  style={{ ...tipPill, bottom: 64 }}
+                  aria-label="Open the quick play tips"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 3.6 10.8c-.7.6-1.1 1.3-1.1 2.2H9.5c0-.9-.4-1.6-1.1-2.2A6 6 0 0 1 12 3z" />
+                  </svg>
+                  {(CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips).tipLabel}
+                </button>
+              )}
               {currentLevel?.num === 1 && state.phase === "playing" && !academyTips.open && (
                 <button
                   onClick={() => { sfx.click(); setAcademyTips({ open: true, page: 0 }); }}
@@ -1819,12 +1911,30 @@ export default function App() {
           {/* THE ACADEMY briefing — the paged tips card; play resumes on close */}
           {academyTips.open && (
             <AcademyTips
+              content={CONTENT.academyTips}
               pages={academyPages}
               page={Math.min(academyTips.page, academyPages.length - 1)}
               onPage={(p) => setAcademyTips({ open: true, page: p })}
               onClose={() => { sfx.click(); setAcademyTips({ open: false, page: 0 }); }}
             />
           )}
+          {/* QUICK PLAY tips — the same card, its own content + per-page extras */}
+          {quickTips.open && (quickTipsEligible || onAcademyBoard) && (() => {
+            const QP = CONTENT.quickPlayTips ?? DEFAULT_CONTENT.quickPlayTips;
+            return (
+              <AcademyTips
+                content={QP}
+                pages={quickPages}
+                page={Math.min(quickTips.page, quickPages.length - 1)}
+                onPage={(p) => setQuickTips({ open: true, page: p })}
+                onClose={() => { sfx.click(); setQuickTips({ open: false, page: 0 }); }}
+                pageExtras={{ ropes: [
+                  { label: QP.combosButton, onClick: () => setSheet("combos") },
+                  { label: QP.howToButton, onClick: () => setTutorial("game") },
+                ] }}
+              />
+            );
+          })()}
 
           {/* full log — a collapsing drawer that slides up from the bottom */}
           <LogDrawer open={logOpen} onClose={() => setLogOpen(false)} state={state} />
@@ -2991,31 +3101,35 @@ function ChoiceTimerChip({ at, windowMs }: { at: { x: number; y: number } | null
 /** THE ACADEMY's tips — a paged briefing card. Page 1 stars the Nebulite; the
  *  GLINT RUSH page joins the cycle once the rush has been reached; page 3 is
  *  board-clearing strategy. All copy is CMS content (content.academyTips). */
-function AcademyTips({ pages, page, onPage, onClose }: { pages: (typeof CONTENT.academyTips.pages)[number][]; page: number; onPage: (p: number) => void; onClose: () => void }) {
-  const A = CONTENT.academyTips;
+function AcademyTips({ content, pages, page, onPage, onClose, pageExtras }: {
+  content: { button: string };
+  pages: { key: string; kicker: string; title: string; lines: string[] }[];
+  page: number;
+  onPage: (p: number) => void;
+  onClose: () => void;
+  /** per-page secondary buttons (quick play's Combos & Values / How to Play) */
+  pageExtras?: Record<string, { label: string; onClick: () => void }[]>;
+}) {
   const pg = pages[Math.min(page, pages.length - 1)];
   return (
     <div style={{ ...modalScrim, zIndex: 70 }}>
       <div className="gl-fade" style={academyCard}>
         <div style={{ fontFamily: theme.fonts.mono, fontSize: 9.5, letterSpacing: "0.3em", color: theme.color.accent }}>{pg.kicker}</div>
-        {/* per-page emblem: the Nebulite tile / the rush bolt / the clear check */}
-        {pg.key === "nebulite" ? (
-          <div className="gl-island-float" style={{ margin: "14px auto 4px", width: 64, filter: "drop-shadow(0 0 22px rgba(179,107,245,0.55))" }}>
-            <TileGem value={CORE} size={64} />
-          </div>
-        ) : (
-          <div style={{ margin: "14px auto 4px", width: 56, height: 56, borderRadius: 16, display: "grid", placeItems: "center", background: pg.key === "rush" ? "rgba(232,181,63,0.12)" : "rgba(52,217,139,0.12)", border: `1px solid ${pg.key === "rush" ? "rgba(232,181,63,0.45)" : "rgba(52,217,139,0.45)"}`, color: pg.key === "rush" ? theme.color.gold : theme.color.good, filter: `drop-shadow(0 0 18px ${pg.key === "rush" ? "rgba(232,181,63,0.4)" : "rgba(52,217,139,0.4)"})` }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {pg.key === "rush" ? <path d="M13 3 4 14h6l-1 7 9-11h-6z" fill="currentColor" stroke="none" /> : <path d="M20 6 9 17l-5-5" />}
-            </svg>
-          </div>
-        )}
+        {/* THE TUTOR fronts every tips page — the Broker's portrait replaces the
+            per-page emblems, with her greeting under the title (idea #3; all CMS) */}
+        <div style={{ display: "flex", justifyContent: "center", margin: "14px auto 4px" }}><TutorAvatar size={84} /></div>
         <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 26, letterSpacing: "0.02em", ...gradientText }}>{pg.title}</div>
+        <p style={{ fontFamily: theme.fonts.sans, fontStyle: "italic", fontSize: 12.5, lineHeight: 1.5, color: "#cdb9ff", margin: "8px 10px 0", textAlign: "center" }}>
+          “{CONTENT.characters.tutorLine}”
+        </p>
+        <div style={{ fontFamily: theme.fonts.mono, fontSize: 9, letterSpacing: "0.2em", color: theme.color.faint, marginTop: 4 }}>
+          — {(CONTENT.challenges.characterNames as Record<string, string>).broker} · {CONTENT.characters.tutorLabel}
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14, textAlign: "left", minHeight: 128 }}>
           {pg.lines.map((line, i) => (
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <span style={academyBullet}>{i + 1}</span>
-              <span style={{ fontFamily: theme.fonts.sans, fontSize: 13, lineHeight: 1.5, color: theme.color.dim }}>{line}</span>
+              <span style={{ fontFamily: theme.fonts.sans, fontSize: 13, lineHeight: 1.5, color: theme.color.dim }}>{renderRich(line)}</span>
             </div>
           ))}
         </div>
@@ -3029,8 +3143,15 @@ function AcademyTips({ pages, page, onPage, onClose }: { pages: (typeof CONTENT.
             <button style={academyArrow} aria-label="Next tip" onClick={() => { sfx.click(); onPage((page + 1) % pages.length); }}>›</button>
           </div>
         )}
-        <button style={{ ...primaryBtn, width: "100%", justifyContent: "center", marginTop: 14 }} onClick={onClose}>
-          {A.button}
+        {/* per-page side doors (Quick Play sends new starters to the combos
+            sheet or the full how-to before they carry on) */}
+        {(pageExtras?.[pg.key] ?? []).map((b) => (
+          <button key={b.label} style={{ ...secondaryEndBtn, width: "100%", justifyContent: "center", marginTop: 10 }} onClick={() => { sfx.click(); b.onClick(); }}>
+            {b.label}
+          </button>
+        ))}
+        <button style={{ ...primaryBtn, width: "100%", justifyContent: "center", marginTop: 10 }} onClick={onClose}>
+          {content.button}
         </button>
       </div>
     </div>
@@ -3050,7 +3171,6 @@ const academyArrow: React.CSSProperties = {
   placeItems: "center",
   cursor: "pointer",
 };
-
 const academyCard: React.CSSProperties = {
   width: 380,
   maxWidth: "94vw",

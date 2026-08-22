@@ -10,6 +10,12 @@ import { itemName } from "../game/collection";
 import { DailyRow, RewardPill, ResetCountdownLabel } from "./DailyRow";
 import { HouseDuelCard, TogetherSlider, DUEL_MIN_BET } from "./HouseDuel";
 import { DailyDetailPopup } from "./DailyDetailPopup";
+import { PopupCard } from "./PopupCard";
+import { GemDetailView, gemDetailItems } from "./GemDetail";
+import { TileGem } from "./TileGem";
+import type { TileVal } from "../game/engine";
+import { computeAchievements } from "../game/challenges";
+import { fmt } from "../content/content";
 import { SET_BONUS_NEBULITE } from "../game/challenges";
 import { NebuliteGem } from "./GameHeader";
 import type { RewardNav } from "./DailyRow";
@@ -21,12 +27,24 @@ import type { DailyMetric, DailyResponse } from "../../shared/api";
  * CHALLENGES tab — today's three daily challenges (pulled from the CMS bank,
  * date-seeded), lifetime milestone count-ups, and the next steps on the Ascent.
  */
-export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily, nebulite = 0, onPlayDuel, focusHouse = false }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void; nebulite?: number; onPlayDuel?: (bet: number) => void; focusHouse?: boolean }) {
+// Challenges-tab order of the three ability-gem achievements (resurrect,
+// quadriant, zenith) and the gem-detail slide each row opens
+const SPECIAL_GEM_ORDER = ["invincible", "crimsonEndurance", "superluminal"] as const;
+const SPECIAL_DETAIL_KEY: Record<string, string> = { invincible: "resurrect", crimsonEndurance: "quadriant", superluminal: "zenith" };
+
+export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily, nebulite = 0, onPlayDuel, focusHouse = false, onSeeAchievements }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void; nebulite?: number; onPlayDuel?: (bet: number) => void; focusHouse?: boolean; onSeeAchievements?: () => void }) {
   const C = CONTENT.challenges;
   const daily = loadDaily();
   const today = pickDailyChallenges(todayKey());
   const stats = loadStats();
   const milestones = computeMilestones(stats);
+  // UNLOCK SPECIAL GEMS — the three ability-gem achievements, ordered per the
+  // gem lineup; tapping a row opens the gem-detail pop-up scoped to the three
+  const achievements = computeAchievements(stats);
+  const specialGems = SPECIAL_GEM_ORDER.map((k) => achievements.find((a) => a.key === k)).filter((a): a is NonNullable<typeof a> => !!a);
+  const gemItems = gemDetailItems("gems");
+  const [gemDetail, setGemDetail] = useState<number | null>(null);
+  const gemNameOf = (achKey: string) => gemItems.find((g) => g.key === SPECIAL_DETAIL_KEY[achKey])?.title ?? "";
 
   const frontier = unlockedIndex();
   const active = LEVELS[frontier];
@@ -82,6 +100,75 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
       {dailyDetail !== null && today.length > 0 && (
         <DailyDetailPopup entries={today} daily={daily} startIndex={dailyDetail} onClose={() => setDailyDetail(null)} />
       )}
+
+      {specialGems.length > 0 && (
+        <>
+          <div style={eyebrow}><span>{C.specialGemsLabel}</span></div>
+          <div style={stack}>
+            {specialGems.map((a, i) => (
+              <button key={a.key} style={gemRowBtn} onClick={() => { sfx.click(); setGemDetail(i); }}>
+                {/* gem visual with its name underneath — same rendering recipe as
+                    the Achievements page (TileGem's own dim look + padlock pip;
+                    no CSS filter, so the glow is never clipped) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 64, flexShrink: 0 }}>
+                  <div style={{ position: "relative", width: 52, height: 52, display: "grid", placeItems: "center", filter: a.earned ? "drop-shadow(0 3px 10px rgba(0,0,0,0.5))" : "none" }}>
+                    <TileGem value={a.tileValue as TileVal} size={44} dim={!a.earned} />
+                    {!a.earned && (
+                      <svg viewBox="0 0 12 11" width="15" height="14" style={{ position: "absolute", right: 0, bottom: 2 }} aria-hidden>
+                        <rect x="1.5" y="4" width="9" height="7" rx="1.6" fill="#0b0d16" stroke="#6b6690" strokeWidth="1" />
+                        <path d="M3.4 4 v-1.6 a2.6 2.6 0 0 1 5.2 0 v1.6" fill="none" stroke="#6b6690" strokeWidth="1" />
+                      </svg>
+                    )}
+                  </div>
+                  <span style={{ fontFamily: theme.fonts.mono, fontSize: 8.5, letterSpacing: "0.14em", color: theme.color.faint, textTransform: "uppercase" }}>{gemNameOf(a.key)}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                      <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 13.5, color: theme.color.text }}>{a.name}</div>
+                      <div style={{ fontFamily: theme.fonts.sans, fontSize: 11.5, color: theme.color.dim, marginTop: 2, textDecoration: a.earned ? "line-through" : "none" }}>{a.desc}</div>
+                    </div>
+                    {/* far right: lock while locked, Done + tick once earned */}
+                    {a.earned ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, color: theme.color.good, fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 11.5 }}>
+                        {C.specialDone}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12.5 10 18 19.5 6.5" /></svg>
+                      </span>
+                    ) : (
+                      <span style={{ color: theme.color.faint, flexShrink: 0 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                      </span>
+                    )}
+                  </div>
+                  {/* progress bar with the target at its end (level with the gem's name) */}
+                  {a.progress && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ ...bar, flex: 1 }}>
+                        <i style={{ position: "absolute", inset: "0 auto 0 0", borderRadius: 8, width: `${Math.min(1, a.progress.current / a.progress.target) * 100}%`, background: "linear-gradient(90deg,#7fe9f5,#9d7bff)" }} />
+                      </div>
+                      <span style={{ fontFamily: theme.fonts.mono, fontSize: 10.5, color: theme.color.dim, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                        {a.progress.current.toLocaleString()}/{a.progress.target.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+          {onSeeAchievements && (
+            <button style={seeAchBtn} onClick={() => { sfx.click(); onSeeAchievements(); }}>{C.seeAchievements}</button>
+          )}
+        </>
+      )}
+
+      {/* gem detail pop-up — same drill-down as Combos & Values, scoped to the
+          three reward gems, with a LOCKED/UNLOCKED status */}
+      {gemDetail !== null && (
+        <PopupCard onClose={() => setGemDetail(null)} width={344} zIndex={95} bodyStyle={{ padding: "22px 18px 18px" }}>
+          <GemDetailView items={gemItems} index={gemDetail} onIndex={setGemDetail} onBack={() => setGemDetail(null)} showStatus />
+        </PopupCard>
+      )}
+
 
       {/* MILESTONES */}
       <div style={eyebrow}><span>{C.milestonesLabel}</span><span style={{ color: theme.color.faint }}>{C.milestonesSub}</span></div>
@@ -282,6 +369,9 @@ function LvlHex({ active, num }: { active?: boolean; num?: number }) {
 // content centred at 460px via horizontal padding — consistent across all tabs
 const page: React.CSSProperties = { position: "absolute", inset: 0, overflowY: "auto", paddingTop: 2, paddingBottom: 30, paddingLeft: "max(18px, calc(50% - 212px))", paddingRight: "max(18px, calc(50% - 212px))" };
 const eyebrow: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: theme.fonts.mono, fontSize: 10, letterSpacing: "0.22em", color: theme.color.faint, margin: "20px 2px 12px" };
+const gemRowBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", width: "100%", textAlign: "left", cursor: "pointer", font: "inherit", color: "inherit", background: "linear-gradient(180deg, var(--panel-hi, #1a1d2e), var(--panel, #101322))", border: `1px solid ${theme.color.border}`, borderRadius: 15, boxShadow: "0 10px 22px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)" };
+// "See Achievements" — the see-through full-width pattern the Show-all buttons use
+const seeAchBtn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", marginTop: 10, padding: "9px 0", background: "rgba(157,123,255,0.08)", border: `1px solid ${theme.color.border}`, borderRadius: 10, color: theme.color.accent, fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, cursor: "pointer" };
 const stack: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 10 };
 const card: React.CSSProperties = { background: "linear-gradient(180deg, var(--panel-hi, #1a1d2e), var(--panel, #101322))", border: `1px solid ${theme.color.border}`, borderRadius: 15, boxShadow: "0 10px 22px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)" };
 const emptyCard: React.CSSProperties = { ...card, padding: "18px 14px", textAlign: "center", fontFamily: theme.fonts.sans, fontSize: 12.5, color: theme.color.faint };
