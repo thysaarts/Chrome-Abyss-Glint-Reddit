@@ -6,6 +6,7 @@ import { itemName, resolveDailyReward } from "../game/collection";
 import type { DailyEntry } from "../game/challenges";
 import { Glyph } from "./Glyphs";
 import { NebuliteGem } from "./GameHeader";
+import { CHARACTER_FOR, characterAvatarUrl } from "./dailyCharacters";
 
 /**
  * One daily-challenge row — the shared design used by the Challenges tab AND the
@@ -14,12 +15,33 @@ import { NebuliteGem } from "./GameHeader";
 /** kind + id of a Collection reward you can jump to (sticker book / customise). */
 export type RewardNav = (kind: "sticker" | "music" | "theme", id: string) => void;
 
-export function DailyRow({ entry, done, best, onQuickPlay, onOpenReward }: { entry: DailyEntry; done: boolean; best: number; onQuickPlay?: () => void; onOpenReward?: RewardNav }) {
+export function DailyRow({ entry, done, best, onQuickPlay, onPlayVersus, onOpenReward, onOpen }: { entry: DailyEntry; done: boolean; best: number; onQuickPlay?: () => void; /** versus-type rows: Quick Play deals into a Broker duel, not a solo run */ onPlayVersus?: () => void; onOpenReward?: RewardNav; /** Challenges tab only: tapping the card opens the character detail pop-up */ onOpen?: () => void }) {
   const c = entry;
   const numeric = c.target > 1;
+  // CHARACTER ISSUER — the challenge's character avatar leads the row, with the
+  // type glyph as a corner badge (design picked from the 2026-08-20 mockups).
+  // Done: the avatar dims and the badge turns into the green check. Types
+  // without a character (future additions) fall back to the plain glyph box.
+  const character = CHARACTER_FOR[c.type];
   return (
-    <div style={{ ...card, ...dailyRow, ...(done ? { opacity: 0.85 } : {}) }}>
-      <div style={{ ...dailyIco, ...(done ? doneIco : {}) }}>{done ? <CheckIcon /> : <Glyph name={c.icon || c.type} />}</div>
+    <div
+      style={{ ...card, ...dailyRow, ...(done ? { opacity: 0.85 } : {}), ...(onOpen ? { cursor: "pointer" } : {}) }}
+      {...(onOpen ? { role: "button", tabIndex: 0, onClick: () => { sfx.click(); onOpen(); }, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sfx.click(); onOpen(); } } } : {})}
+    >
+      {character ? (
+        <div style={{ position: "relative", width: 46, height: 53, flexShrink: 0 }}>
+          <img
+            src={characterAvatarUrl(character)}
+            alt={CONTENT.challenges.characterNames[character] ?? character}
+            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", filter: "drop-shadow(0 4px 9px rgba(0,0,0,0.5))", ...(done ? { opacity: 0.55, filter: "grayscale(0.4)" } : {}) }}
+          />
+          <div style={{ ...avaBadge, ...(done ? avaBadgeDone : {}) }}>
+            {done ? <CheckIcon size={11} /> : <Glyph name={c.icon || c.type} size={11} />}
+          </div>
+        </div>
+      ) : (
+        <div style={{ ...dailyIco, ...(done ? doneIco : {}) }}>{done ? <CheckIcon /> : <Glyph name={c.icon || c.type} />}</div>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ ...dailyTitle, ...(done ? { color: theme.color.dim, textDecoration: "line-through" } : {}) }}>{c.text}</div>
         <div style={dailyMeta}>
@@ -40,8 +62,8 @@ export function DailyRow({ entry, done, best, onQuickPlay, onOpenReward }: { ent
           )}
         </div>
       </div>
-      {!done && onQuickPlay && (
-        <button style={qplay} onClick={() => { sfx.click(); onQuickPlay(); }}>
+      {!done && (onQuickPlay || (entry.type === "versus" && onPlayVersus)) && (
+        <button style={qplay} onClick={(e) => { e.stopPropagation(); sfx.click(); (entry.type === "versus" && onPlayVersus ? onPlayVersus : onQuickPlay!)(); }}>
           <span style={{ marginBottom: 1 }}>▶</span>
           <span>{CONTENT.challenges.quickPlay.split(" ")[0]}</span>
           <span>{CONTENT.challenges.quickPlay.split(" ").slice(1).join(" ")}</span>
@@ -49,6 +71,14 @@ export function DailyRow({ entry, done, best, onQuickPlay, onOpenReward }: { ent
       )}
     </div>
   );
+}
+
+/** The countdown as its own leaf component, so the 1-second tick re-renders
+ *  ONLY this label — not the whole page that shows it (the Challenges tab was
+ *  re-running its daily/milestone/achievement math at 1 Hz). */
+export function ResetCountdownLabel({ prefix, style }: { prefix?: string; style?: React.CSSProperties }) {
+  const resetIn = useResetCountdown();
+  return <span style={style}>{prefix ? `${prefix} ` : ""}{resetIn}</span>;
 }
 
 /** Live countdown to the local midnight daily reset (H:MM:SS). */
@@ -70,8 +100,8 @@ export function useResetCountdown(): string {
   return txt;
 }
 
-export function CheckIcon() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
+export function CheckIcon({ size = 22 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
 }
 
 // today's daily reward: the Nebulite payout, or the linked Collection item's name.
@@ -118,6 +148,9 @@ const card = dailyCard;
 const rwChip: React.CSSProperties = { fontFamily: theme.fonts.mono, fontSize: 9.5, letterSpacing: "0.06em", padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap", border: "1px solid" };
 const dailyRow: React.CSSProperties = { display: "flex", alignItems: "center", gap: 13, padding: "13px 14px" };
 const dailyIco: React.CSSProperties = { width: 42, height: 42, flexShrink: 0, borderRadius: 11, display: "grid", placeItems: "center", background: "radial-gradient(circle at 35% 30%, rgba(192,132,252,0.22), rgba(157,123,255,0.06))", border: "1px solid rgba(157,123,255,0.32)", color: theme.color.accent };
+// the avatar-variant corner badge (type glyph, or the green check when done)
+const avaBadge: React.CSSProperties = { position: "absolute", right: -5, bottom: -3, width: 19, height: 19, borderRadius: "50%", display: "grid", placeItems: "center", background: "#151829", border: "1px solid rgba(157,123,255,0.45)", color: theme.color.accent, boxShadow: "0 2px 6px rgba(0,0,0,0.5)" };
+const avaBadgeDone: React.CSSProperties = { background: "#12241c", border: "1px solid rgba(52,217,139,0.5)", color: theme.color.good };
 const doneIco: React.CSSProperties = { background: "radial-gradient(circle at 35% 30%, rgba(52,217,139,0.24), rgba(52,217,139,0.05))", border: "1px solid rgba(52,217,139,0.4)", color: theme.color.good };
 const dailyTitle: React.CSSProperties = { fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 14, color: theme.color.text };
 const dailyMeta: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, marginTop: 6 };

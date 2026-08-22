@@ -7,7 +7,10 @@ import { loadStats } from "../game/stats";
 import { loadDaily, todayKey } from "../game/stats";
 import { pickDailyChallenges, computeMilestones } from "../game/challenges";
 import { itemName } from "../game/collection";
-import { DailyRow, RewardPill, useResetCountdown } from "./DailyRow";
+import { DailyRow, RewardPill, ResetCountdownLabel } from "./DailyRow";
+import { HouseDuelCard, TogetherSlider, DUEL_MIN_BET } from "./HouseDuel";
+import { SET_BONUS_NEBULITE } from "../game/challenges";
+import { NebuliteGem } from "./GameHeader";
 import type { RewardNav } from "./DailyRow";
 import { useEffect, useState } from "react";
 import { fetchDaily } from "../game/redditDaily";
@@ -17,7 +20,7 @@ import type { DailyMetric, DailyResponse } from "../../shared/api";
  * CHALLENGES tab — today's three daily challenges (pulled from the CMS bank,
  * date-seeded), lifetime milestone count-ups, and the next steps on the Ascent.
  */
-export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void }) {
+export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayDaily, nebulite = 0, onPlayDuel, focusHouse = false }: { onQuickPlay: () => void; onPlayLevel: (l: Level) => void; onOpenReward?: RewardNav; onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void; nebulite?: number; onPlayDuel?: (bet: number) => void; focusHouse?: boolean }) {
   const C = CONTENT.challenges;
   const daily = loadDaily();
   const today = pickDailyChallenges(todayKey());
@@ -32,22 +35,45 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
   // REACH it). It's not about the location — it's the objective you're playing for.
   const goalOf = (l: Level): string => LEVELS[l.num + 1]?.unlock || "Clear the board to conquer the Abyss";
 
-  const resetIn = useResetCountdown();
+  // all three of today's challenges cleared -> the set bonus is banked
+  const setDone = today.length > 0 && today.every((c) => daily.done.includes(c.id));
+  // a versus daily's QUICK PLAY deals straight into a minimum-stake Broker duel
+  // (locked until the Academy is complete and the wallet covers the stake)
+  const playVersusDaily = onPlayDuel && frontier >= 2 && nebulite >= DUEL_MIN_BET
+    ? () => onPlayDuel(DUEL_MIN_BET)
+    : undefined;
 
   return (
     <div style={page}>
-      {/* SUBREDDIT DAILY — the shared community board (only renders on Reddit) */}
-      <CommunityDaily onPlayDaily={onPlayDaily} />
+      {/* COMMUNITY DAILY / YOU vs THE HOUSE — the sliding pair (gold title =
+          active slide; auto-swaps; swipe or tap the titles) */}
+      <CommunityDaily onPlayDaily={onPlayDaily} nebulite={nebulite} onPlayDuel={onPlayDuel} focusHouse={focusHouse} />
 
       {/* DAILY */}
       <div style={eyebrow}>
-        <span>{C.dailyLabel} · {today.length} TODAY</span>
-        <span style={{ color: theme.color.gold }}>{C.resetPrefix} {resetIn}</span>
+        <span>{C.dailyLabel} · {today.length} {C.todaySuffix}</span>
+        {/* THE SET BONUS, promised up front: clear all three today and the +10
+            lands. Once they are all done it strikes through and turns green. */}
+        {today.length > 0 && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              color: setDone ? theme.color.good : theme.color.accent,
+              textDecoration: setDone ? "line-through" : "none",
+              letterSpacing: "0.08em",
+            }}
+          >
+            <NebuliteGem size={11} />+{SET_BONUS_NEBULITE}
+          </span>
+        )}
+        <ResetCountdownLabel prefix={C.resetPrefix} style={{ color: theme.color.gold }} />
       </div>
       <div style={stack}>
         {today.length === 0 && <div style={emptyCard}>{C.emptyBank}</div>}
         {today.map((c) => (
-          <DailyRow key={c.id} entry={c} done={daily.done.includes(c.id)} best={daily.progress[c.id] ?? 0} onQuickPlay={onQuickPlay} onOpenReward={onOpenReward} />
+          <DailyRow key={c.id} entry={c} done={daily.done.includes(c.id)} best={daily.progress[c.id] ?? 0} onQuickPlay={onQuickPlay} onPlayVersus={playVersusDaily} onOpenReward={onOpenReward} />
         ))}
       </div>
 
@@ -132,22 +158,45 @@ export function ChallengesPage({ onQuickPlay, onPlayLevel, onOpenReward, onPlayD
 /** Today's SHARED board: one seed for the whole subreddit, best score per
  *  player on a Redis leaderboard. Renders nothing outside Reddit (the /api
  *  endpoints only exist inside the Devvit app). */
-function CommunityDaily({ onPlayDaily }: { onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void }) {
+function CommunityDaily({ onPlayDaily, nebulite = 0, onPlayDuel, focusHouse = false }: { onPlayDaily?: (day: string, seed: number, metric: DailyMetric) => void; nebulite?: number; onPlayDuel?: (bet: number) => void; focusHouse?: boolean }) {
   const [daily, setDaily] = useState<DailyResponse | null>(null);
   useEffect(() => {
     let live = true;
     void fetchDaily().then((d) => { if (live) setDaily(d); });
     return () => { live = false; };
   }, []);
-  if (!daily || !onPlayDaily) return null;
+  const frontier = unlockedIndex();
+  const house = onPlayDuel ? <HouseDuelCard nebulite={nebulite} locked={frontier < 2} onPlay={onPlayDuel} /> : null;
+  if (!daily || !onPlayDaily) {
+    // no community board (off Reddit / fetch pending): the HOUSE still stands alone
+    if (!house) return null;
+    return (
+      <>
+        <div style={eyebrow}><span>{CONTENT.characters.duel.title}</span></div>
+        <div style={{ marginBottom: 18 }}>{house}</div>
+      </>
+    );
+  }
+  if (!house) {
+    return (
+      <>
+        <div style={eyebrow}>
+          <span>COMMUNITY DAILY</span>
+          <span style={{ color: theme.color.gold }}>{daily.day}</span>
+        </div>
+        <CommunityDailyCard daily={daily} onPlay={() => onPlayDaily(daily.day, daily.seed, daily.metric)} />
+      </>
+    );
+  }
+  // the sliding pair: the community board leads, the Broker's table rides second
+  // (focusHouse — the promo's deep link — opens on the house slide)
   return (
-    <>
-      <div style={eyebrow}>
-        <span>COMMUNITY DAILY</span>
-        <span style={{ color: theme.color.gold }}>{daily.day}</span>
-      </div>
-      <CommunityDailyCard daily={daily} onPlay={() => onPlayDaily(daily.day, daily.seed, daily.metric)} />
-    </>
+    <div style={{ marginBottom: 18 }}>
+      <TogetherSlider titles={["COMMUNITY DAILY", CONTENT.characters.duel.title]} initial={focusHouse ? 1 : 0}>
+        <CommunityDailyCard daily={daily} onPlay={() => onPlayDaily(daily.day, daily.seed, daily.metric)} />
+        {house}
+      </TogetherSlider>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { theme, bevelPrimary } from "./theme/theme";
+import { theme, bevelPrimary, SEAT_GREEN, SEAT_PURPLE } from "./theme/theme";
 import { REGIONS, regionVars } from "./theme/regions";
 import { Backdrop } from "./ui/Backdrop";
 import { RegionBackdrop } from "./ui/RegionBackdrop";
@@ -40,7 +40,7 @@ import { ChallengesPage } from "./ui/ChallengesPage";
 import { DailyChallengePopup } from "./ui/DailyChallengePopup";
 import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
-import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
+import { recordRun, recordVersusWin, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE, extraGemsFor, extraGemsForLevel } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
@@ -60,6 +60,13 @@ import { academyFlags, markIntroSeen, markRushSeen, markBankTipSeen } from "./ga
 import { GameHeader } from "./ui/GameHeader";
 import { ShopPage } from "./ui/ShopPage";
 import { loadWallet, saveWallet } from "./game/wallet";
+import { BrokerPromoPopup, brokerPromoSeenAt, markBrokerPromoSeen } from "./ui/BrokerPromo";
+import { DUEL_MIN_BET } from "./ui/HouseDuel";
+import { chooseBrokerAction, shouldBankNow, tierForBet, type BrokerTier } from "./game/brokerAI";
+import type { Avatar } from "./game/avatars";
+import { AvatarGem } from "./ui/AvatarGem";
+import { fmt } from "./content/content";
+import { PopupCard } from "./ui/PopupCard";
 import { Tutorial } from "./ui/Tutorial";
 import { TutorialLevel } from "./ui/TutorialLevel";
 import { Level, LEVELS, LEVEL_DEFS, RunResult, levelScoreLabel } from "./levels/levels";
@@ -90,7 +97,7 @@ function pendingAbilityCelebrations(stats = loadStats()): AbilityUnlock[] {
 }
 
 export default function App() {
-  const { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld } = useNebuliteGame(6);
+  const { state, anim, settling, onPlace, start, setMapper, earlyBankOffer, bankNow, swapHand, rotateHand, cashOutNow, handRevealed, setBoardHeld, versusPass, claimOffer } = useNebuliteGame(6);
   // which top-level screen is showing, plus the shared overlays.
   // "tutorial0" is Level 0's scripted walkthrough — it hands off into a real run.
   const [screen, setScreen] = useState<"start" | "levels" | "game" | "tutorial0">("start");
@@ -429,6 +436,271 @@ export default function App() {
     start({ seed, ...(metric === "refined" ? { nebuliteRig: true } : {}) });
     setScreen("game");
   }, [start]);
+
+  // ================= YOU vs THE HOUSE — the Broker duel (local versus) =================
+  // The stake is escrowed up front: win pays 2x back, a tie refunds, a loss
+  // (or walking out mid-game after your first placement) forfeits it to the house.
+  const newRunSeed = () => (Math.random() * 0x7fffffff) | 0 || 1;
+  const [brokerDuel, setBrokerDuel] = useState<{ bet: number; tier: BrokerTier } | null>(null);
+  const brokerDuelRef = useRef(brokerDuel);
+  useEffect(() => { brokerDuelRef.current = brokerDuel; });
+  const stateRef2 = useRef(state);
+  useEffect(() => { stateRef2.current = state; });
+  // the Broker's transient catchphrase bubble (rendered by CoopFooterHud)
+  const [championSay, setChampionSay] = useState<{ seat: number; champion: string; text: string; id: number } | null>(null);
+  const champSeq = useRef(0);
+  const championSayTimer = useRef<number | null>(null);
+  // REDDIT ADAPTATION: the player has no champion at the Broker's table and there
+  // is no online versus here, so champion catchphrases for PLAYER seats are a
+  // no-op — only the Broker speaks (via setFace's duelLines below).
+  const sayChampionRef = useRef<(seat: number, event: string) => void>(() => {});
+  // HER FACE — the duel-only expression system (5 portraits, min 4s each,
+  // some held until a side's next placement; CMS lines ride the same bubble)
+  const [brokerFace, setBrokerFace] = useState<"neutral" | "shocked" | "angry" | "defeated" | "laugh">("neutral");
+  const faceRef = useRef<{ face: typeof brokerFace; since: number; hold: "brokerMove" | "playerMove" | "sticky" | null }>({ face: "neutral", since: 0, hold: null });
+  const faceTimer = useRef<number | null>(null);
+  const setFace = useCallback((face: "neutral" | "shocked" | "angry" | "defeated" | "laugh", hold: "brokerMove" | "playerMove" | "sticky" | null) => {
+    if (faceRef.current.hold === "sticky" && hold !== "sticky") return; // defeat/victory owns the face
+    faceRef.current = { face, since: Date.now(), hold };
+    if (faceTimer.current) window.clearTimeout(faceTimer.current);
+    setBrokerFace(face);
+    const lines = (CONTENT.characters.duelLines ?? {}) as Record<string, string>;
+    const line = face === "laugh" && hold === "sticky" ? lines.victory : lines[face];
+    if (face !== "neutral" && line) {
+      champSeq.current += 1;
+      setChampionSay({ seat: brokerSeatOf(stateRef2.current), champion: "broker", text: line, id: champSeq.current });
+      if (championSayTimer.current) window.clearTimeout(championSayTimer.current);
+      championSayTimer.current = window.setTimeout(() => setChampionSay(null), 5200);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /** a held expression relaxes to neutral once its release condition met AND 4s shown */
+  const relaxFace = useCallback((movedBy: "brokerMove" | "playerMove") => {
+    const f = faceRef.current;
+    if (f.hold !== movedBy) return;
+    const left = Math.max(0, 4000 - (Date.now() - f.since));
+    if (faceTimer.current) window.clearTimeout(faceTimer.current);
+    faceTimer.current = window.setTimeout(() => {
+      if (faceRef.current.hold !== "sticky") { faceRef.current = { face: "neutral", since: Date.now(), hold: null }; setBrokerFace("neutral"); }
+    }, left);
+  }, []);
+  // her activated combos, for the ANGRY trigger: cells SHE activated that the
+  // player later banks. Reset per duel.
+  const herCellsRef = useRef<Set<string>>(new Set());
+
+  // the opening RITUAL reseats players (highest gem opens as seat 0) — the
+  // Broker is passed as ENTRY 1, so her SEAT comes from seatByEntry, never
+  // assumed (bug049: she won the ritual and played from the player's side)
+  const brokerSeatOf = (s: GameState): 0 | 1 => (s.versus?.seatByEntry?.[1] ?? 1) as 0 | 1;
+  const duelPlayerSeatOf = (s: GameState): 0 | 1 => (s.versus?.seatByEntry?.[0] ?? 0) as 0 | 1;
+  const duelSettledRef = useRef(false);
+  // re-arm the settle guard whenever no result is on the table (a fresh game)
+  useEffect(() => { if (!state.versus?.result) duelSettledRef.current = false; }, [state.versus?.result]);
+  const duelStartLatch = useRef(0);
+  const startBrokerDuel = useCallback((bet: number) => {
+    // double-fire guard: multiple call sites debit the wallet — a double tap
+    // before the screen swap must not escrow two stakes for one game
+    if (Date.now() - duelStartLatch.current < 1500) return;
+    if (loadWallet() < bet) return;
+    duelStartLatch.current = Date.now();
+    sfx.unlock(); sfx.click();
+    addNebulite(-bet); // the stake goes to the table
+    duelSettledRef.current = false;
+    faceRef.current = { face: "neutral", since: 0, hold: null };
+    setBrokerFace("neutral");
+    herCellsRef.current = new Set();
+    // a rematch reuses the "duel" tracker key — reset per-game event state or
+    // busts/idle/victory-shown carry across games (stale defeated face, no splash)
+    champTrackRef.current = null;
+    victoryShownRef.current = null;
+    pendingPlaceRef.current = null;
+    duelPlayerMovedRef.current = false; // fresh table -> the refund window re-opens
+    setBrokerDuel({ bet, tier: tierForBet(bet) });
+    setCelebrate(null);
+    setCurrentLevel(null);
+    dailyRun.day = null;
+    dailyGameRef.current = null;
+    // HOUSE RULE: the clearer takes the WHOLE board-clear bonus (no split) —
+    // online versus keeps the classic split on its bigger board (Thys 2026-08-22)
+    start({ seed: newRunSeed(), versus: { names: [CONTENT.friends.playerFallback, CONTENT.characters.duel.opponentName], clearWinnerTakesAll: true } });
+    setScreen("game");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start]);
+  // leaving a duel mid-game (exit / play again elsewhere) keeps the forfeit:
+  // the stake was already taken — clear the table when a NON-duel run starts
+  useEffect(() => {
+    if (!state.versus && brokerDuelRef.current) setBrokerDuel(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // THE REFUND WINDOW: has the PLAYER placed anything this duel? Latched from
+  // the turn state (the Broker winning the ritual and moving first must NOT
+  // close the window — only the player's own first placement does).
+  const duelPlayerMovedRef = useRef(false);
+  useEffect(() => {
+    if (!brokerDuel || !state.versus) return;
+    if (state.versus.moved && state.versus.turn === duelPlayerSeatOf(state)) duelPlayerMovedRef.current = true;
+  }, [state, brokerDuel]);
+  // HER TURN — the AI driver. Runs when the board settles on her seat: think for
+  // a human beat, optionally rotate to the chosen tile, then place (or cash
+  // out). The BANK NOW window gets its own decision below.
+  const pendingPlaceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!brokerDuel || screen !== "game" || !state.versus) return;
+    if (state.phase !== "playing" || state.versus.turn !== brokerSeatOf(state) || state.versus.moved) return;
+    if (anim.playing || settling || earlyBankOffer || claimOffer) return;
+    let cancelled = false;
+    // a rotation from the previous pass re-fires this effect (hand is in the
+    // deps, so the cleanup cancelled the scheduled place) — finish the committed
+    // placement instead of re-thinking, which doubled her delay and let tier-1
+    // noise re-roll into another rotation
+    if (pendingPlaceRef.current) {
+      const cell = pendingPlaceRef.current;
+      pendingPlaceRef.current = null;
+      const t = window.setTimeout(() => { if (!cancelled) onPlace(cell); }, 420);
+      return () => { cancelled = true; window.clearTimeout(t); };
+    }
+    const think = window.setTimeout(() => {
+      if (cancelled) return;
+      const action = chooseBrokerAction(state, brokerDuel.tier, Math.random, { noBank: true });
+      if (!action) { versusPass(); return; } // nothing she can do — hand it back
+      if (action.kind === "cashout") { cashOutNow(); return; }
+      if (action.kind === "place" && (action.rotateTo ?? 0) > 0 && action.cell) {
+        pendingPlaceRef.current = action.cell;
+        rotateHand(action.rotateTo!);
+      } else if (action.kind === "place" && action.cell) {
+        onPlace(action.cell);
+      }
+    }, 850 + Math.random() * 700);
+    return () => { cancelled = true; window.clearTimeout(think); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokerDuel, screen, state, anim.playing, settling, earlyBankOffer, claimOffer]);
+
+  // her BANK NOW window: bank when the maths says so, else let it lapse
+  useEffect(() => {
+    if (!brokerDuel || !state.versus || state.versus.turn !== brokerSeatOf(state) || !earlyBankOffer) return;
+    const t = window.setTimeout(() => {
+      if (shouldBankNow(stateRef2.current, earlyBankOffer.cellKey, brokerDuel.tier)) bankNow();
+    }, 700);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokerDuel, earlyBankOffer, state.versus?.turn]);
+
+  // a completed VERSUS daily pays its reward — mirrors the run-end payout path.
+  // (The DAILY CLEARED celebration pop-up arrives with the daily-characters port;
+  // until then the reward itself is granted here, silently.)
+  const payVersusDailies = (newly: string[]): void => {
+    if (!newly.length) return;
+    const todays = pickDailyChallenges(todayKey());
+    const per = CONTENT.challenges.nebulitePerDaily ?? 5;
+    let neb = 0;
+    for (const id of newly) {
+      const entry = todays.find((e) => e.id === id);
+      if (!entry) continue;
+      if (entry.rewardKind === "nebulite") neb += per;
+      else {
+        const r = earnItem(entry.rewardKind, entry.rewardId);
+        if (r) { markUnseen([r]); setCollectionAlert(true); }
+        else neb += per; // item already owned — the daily still pays
+      }
+    }
+    const doneNow = loadDaily().done;
+    if (todays.length > 0 && todays.every((c) => doneNow.includes(c.id))) neb += SET_BONUS_NEBULITE;
+    if (neb > 0) addNebulite(neb);
+  };
+
+  // SETTLE the duel the moment the result lands: win pays 2x the stake, a tie
+  // refunds it, a loss pays nothing (the stake was escrowed at the start).
+  // A win also counts toward today's "versus" dailies (and can complete them).
+  useEffect(() => {
+    const r = state.versus?.result;
+    if (!r || duelSettledRef.current || !brokerDuel) return;
+    duelSettledRef.current = true;
+    const pSeat = duelPlayerSeatOf(state);
+    if (r.winner === pSeat) setFace("defeated", "sticky");
+    else if (r.winner !== -1) setFace("laugh", "sticky"); // the house wins — she savours it
+    if (r.winner === pSeat) addNebulite(brokerDuel.bet * 2);
+    else if (r.winner === -1) addNebulite(brokerDuel.bet);
+    if (r.winner === pSeat) payVersusDailies(recordVersusWin(pickDailyChallenges(todayKey()), "duel"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.versus?.result, brokerDuel]);
+
+  // VICTORY SPLASH (versus): a brief celebration of the WINNER'S champion,
+  // shown once per match over the end card, before the summary is read.
+  // Auto-dismisses (tap skips); the player has no champion, so only HER wins splash.
+  const [victorySplash, setVictorySplash] = useState<{ champion: string; name: string } | null>(null);
+  const victoryShownRef = useRef<string | null>(null);
+  const victoryTimer = useRef<number | null>(null);
+  useEffect(() => {
+    const vres = state.versus?.result;
+    if (!vres || vres.winner < 0 || state.phase === "playing" || screen !== "game") return;
+    if (victoryShownRef.current === "duel") return;
+    victoryShownRef.current = "duel"; // once per match, champion known or not
+    const winnerChamp = brokerDuelRef.current
+      ? (vres.winner === duelPlayerSeatOf(state) ? null : "broker")
+      : null;
+    if (!winnerChamp) return;
+    setVictorySplash({ champion: winnerChamp, name: state.versus!.names[vres.winner as 0 | 1] });
+    if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
+    victoryTimer.current = window.setTimeout(() => setVictorySplash(null), 2800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.versus?.result, state.phase, screen]);
+
+  // per-game event tracker: busts per seat, idle-once, chain baseline — drives
+  // HER FACE (the player's champion lines are a no-op on Reddit, see sayChampionRef)
+  const champTrackRef = useRef<{ key: string; busts: [number, number]; saidIdle: boolean; chains: number; lives: number; score: number; act: string[]; turn: number; lastActivity: number } | null>(null);
+  useEffect(() => {
+    const tg = state.coop ?? state.versus;
+    if (!brokerDuelRef.current || !tg) { champTrackRef.current = null; return; }
+    const key = "duel";
+    const chains = (state.chainCounts.Convergence ?? 0) + (state.chainCounts.Harmony ?? 0) + (state.chainCounts.Accord ?? 0) + (state.chainCounts.Sweep ?? 0);
+    const t = champTrackRef.current;
+    if (!t || t.key !== key) {
+      champTrackRef.current = { key, busts: [0, 0], saidIdle: false, chains, lives: state.livesLeft, score: state.score, act: state.activatedCells.slice(), turn: tg.turn, lastActivity: Date.now() };
+      return;
+    }
+    const actor = t.turn; // the seat whose action produced this state
+    const bSeat: number = brokerSeatOf(state);
+    const sameTurn = tg.turn === t.turn;
+    // chains compare only while the turn is UNCHANGED — the counters swap
+    // seats on the flip exactly like lives (cross-turn compare false-fired)
+    if (sameTurn && chains > t.chains && actor === bSeat) setFace("laugh", "playerMove"); // her 3-chain — she gloats until you answer
+    if (sameTurn) {
+      // maintain HER activated combos; a player bank that eats one riles her
+      const prevAct = new Set(t.act);
+      const nextAct = new Set(state.activatedCells);
+      if (actor === bSeat) {
+        for (const c of nextAct) if (!prevAct.has(c)) herCellsRef.current.add(c);
+      } else {
+        const removed = [...prevAct].filter((c) => !nextAct.has(c));
+        const ateHers = removed.some((c) => herCellsRef.current.has(c));
+        for (const c of removed) herCellsRef.current.delete(c);
+        if (ateHers && state.score > t.score) setFace("angry", "brokerMove");
+        else if (chains > t.chains) setFace("shocked", "brokerMove"); // your 3-chain stuns her
+      }
+      // a completed action lets held expressions relax (min 4s enforced inside)
+      relaxFace(actor === bSeat ? "brokerMove" : "playerMove");
+    }
+    // lives compare only while the turn is UNCHANGED — in versus the state's
+    // livesLeft swaps to the other player's on the turn flip (hot-seat mirror)
+    if (sameTurn && state.livesLeft < t.lives) {
+      t.busts[actor] = (t.busts[actor] ?? 0) + 1;
+      if (actor === bSeat && t.busts[actor] >= 3) setFace("defeated", "sticky"); // her third bust breaks her
+    }
+    t.chains = chains; t.lives = state.livesLeft; t.score = state.score; t.act = state.activatedCells.slice(); t.turn = tg.turn; t.lastActivity = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // SPECTATING her turn: taps on the board are hers, not yours
+  const spectating = !!brokerDuel && !!state.versus && state.versus.turn === brokerSeatOf(state);
+  // Restart in a duel RE-STAKES the table: the same bet if the wallet covers it,
+  // else the minimum stake, else the button greys out (web 9d4a7a8)
+  const duelRestartBet = !brokerDuel ? null
+    : nebulite >= brokerDuel.bet ? brokerDuel.bet
+    : nebulite >= DUEL_MIN_BET ? DUEL_MIN_BET
+    : null;
+
+
   // QUICK PLAY routes to the COMMUNITY DAILY until the player has a score on
   // today's board — the shared board IS the quick game of the day. Once scored
   // (or outside Reddit, or with a dev ?seed), quick play deals a fresh board.
@@ -554,6 +826,32 @@ export default function App() {
   const [endNav, setEndNav] = useState<{ nextNum: number; fresh: boolean } | null>(null);
   // the level-menu unlock celebration payload (set when Continue is pressed)
   const [celebrate, setCelebrate] = useState<{ played: number; next: number | null } | null>(null);
+
+  // THE BROKER'S PITCH — the start-up promo card. Fires on the Ascent landing when:
+  // >min-stake Nebulite, today's three dailies DONE, the table unlocked,
+  // and at most once per 48h / once per local day (persisted timestamp).
+  const [brokerPromo, setBrokerPromo] = useState(false);
+  const [houseSlideFirst, setHouseSlideFirst] = useState(false);
+  // the house-first hint is one visit's worth — leaving the tab clears it
+  useEffect(() => { if (homeTab !== "challenges" && houseSlideFirst) setHouseSlideFirst(false); }, [homeTab, houseSlideFirst]);
+  const promoTriedRef = useRef(false);
+  useEffect(() => {
+    if (promoTriedRef.current || brokerPromo) return;
+    if (!(screen === "levels" && homeTab === "ascent" && !celebrate && !abilityRevealOpen && !revealOpen)) return;
+    promoTriedRef.current = true; // the start-up landing is consumed either way
+    const last = brokerPromoSeenAt();
+    const now = Date.now();
+    if (now - last < 48 * 3600_000) return;
+    if (new Date(last).toDateString() === new Date(now).toDateString()) return;
+    if (loadWallet() <= DUEL_MIN_BET) return; // strictly MORE than the min stake to be worth pitching
+    if (storedFrontier() < 2) return; // her table is still locked
+    const dailyNow = loadDaily();
+    const todays = pickDailyChallenges(todayKey());
+    if (!(todays.length > 0 && todays.every((c) => dailyNow.done.includes(c.id)))) return;
+    markBrokerPromoSeen();
+    setBrokerPromo(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, homeTab, celebrate, abilityRevealOpen, revealOpen, brokerPromo]);
 
   // AMBIENT ability celebrations: an unlock pop-up skipped at its run end
   // resurfaces on the Ascent or shortly after a run starts — until seen
@@ -1040,7 +1338,7 @@ export default function App() {
             ) : (
               <div key={homeTab} className="gl-rise-in" style={{ position: "absolute", inset: 0 }}>
                 {homeTab === "challenges" ? (
-                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} />
+                  <ChallengesPage onQuickPlay={startQuick} onPlayLevel={startLevel} onOpenReward={openReward} onPlayDaily={startDaily} nebulite={nebulite} onPlayDuel={startBrokerDuel} focusHouse={houseSlideFirst} />
                 ) : homeTab === "achievements" ? (
                   <AchievementsPage onOpenLeaderboard={() => setShowLB(true)} />
                 ) : homeTab === "collection" ? (
@@ -1217,6 +1515,10 @@ export default function App() {
                           // best-hint's placement cell (bestPlacementHint returns it first)
                           focusCell={anim.choice?.key ?? (autoHint ? [...autoHint][0] : null)}
                           litCells={anim.litCells}
+                          claimRings={state.versus ? (state.versus.claims
+                            .map((c, i) => (c ? { cells: new Set(c.cells), color: i === 0 ? COOP_GREEN : COOP_PURPLE } : null))
+                            .filter(Boolean) as { cells: Set<string>; color: string }[]) : undefined}
+                          claimOffer={state.versus && claimOffer ? { cell: claimOffer.cellKey, color: state.versus.turn === 0 ? COOP_GREEN : COOP_PURPLE, n: claimOffer.n } : undefined}
                           redCells={anim.redCells}
                           hiddenCells={anim.hiddenCells}
                           activatedFilter={anim.activateReveal ?? undefined}
@@ -1323,18 +1625,45 @@ export default function App() {
           {/* the redesigned footer control bar — paddingTop reserves room for the
               raised NOW PLACING focal point that pokes above the bar. Sits ABOVE the
               sheen (which reaches up behind the focal point). */}
-          <div style={{ paddingTop: FOOTER_POKE, position: "relative", zIndex: 6 }}>
+          <div style={{ paddingTop: state.coop || state.versus ? 52 : FOOTER_POKE, position: "relative", zIndex: 6 }}>
+            {(state.coop || state.versus) && (
+              <CoopFooterHud
+                state={state}
+                spectate={spectating}
+                champs={brokerDuel
+                  // no CHOOSE YOUR CHAMPION at a duel's start -> the player side stays
+                  // BLANK, in-game and on the end card; champions are multiplayer-only.
+                  // Only the Broker fronts her side (Thys ruling, 2026-08-21)
+                  ? { mine: null, theirs: "broker" }
+                  : null}
+                say={championSay}
+                mySeat={brokerDuel ? duelPlayerSeatOf(state) : null}
+                duelFace={brokerDuel ? brokerFace : null}
+              />
+            )}
             <Footer
               state={state}
+              hideNpLabel={!!(state.coop || state.versus)}
+              dimmed={spectating}
+              seatColor={(() => {
+                const tg = state.coop ?? state.versus;
+                if (!tg) return undefined;
+                const seat = brokerDuel ? duelPlayerSeatOf(state) : tg.turn;
+                return seat === 0 ? COOP_GREEN : COOP_PURPLE;
+              })()}
               hideNext={anim.playing}
               hideActiveGem={anim.zenithArrival}
               handRef={handRef}
-              onRestart={startGame}
+              onRestart={() => {
+                if (brokerDuel) { if (duelRestartBet !== null) startBrokerDuel(duelRestartBet); return; }
+                startGame();
+              }}
+              restartDisabled={!!brokerDuel && duelRestartBet === null}
               onInfo={() => setSheet("combos")}
               onLog={() => setLogOpen((v) => !v)}
               onSwap={swapHand}
               onRotate={rotateHand}
-              handRevealed={handRevealed}
+              handRevealed={state.deathMatch || (spectating ? (state.versus?.partnerHandRevealed ?? false) : handRevealed)}
             />
           </div>
         </div>
@@ -1353,8 +1682,20 @@ export default function App() {
           {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && (
             <EndCard
               state={state}
+              champsBySeat={brokerDuel
+                // duel: ONLY the Broker fronts her column — the player never picked
+                // a champion for this match, so their column stays bare (Thys ruling)
+                ? (brokerSeatOf(state) === 1 ? [null, "broker"] : ["broker", null])
+                : null}
+              localSeat={brokerDuel ? duelPlayerSeatOf(state) : state.versus?.turn ?? 0}
+              onExit={brokerDuel ? () => { setCelebrate(null); forceTabRef.current = "challenges"; setScreen("levels"); } : undefined}
               onPlayAgain={
-                !currentLevel && endDaily
+                brokerDuel ? () => {
+                    const bet = brokerDuel.bet;
+                    if (loadWallet() >= bet) startBrokerDuel(bet);
+                    else { setBrokerDuel(null); forceTabRef.current = "challenges"; setScreen("levels"); }
+                  }
+                : !currentLevel && endDaily
                   ? () => startDaily(endDaily.day, endDaily.seed, endDaily.metric)
                   : startGame
               }
@@ -1490,7 +1831,7 @@ export default function App() {
       {exitConfirm && (
         <ConfirmDialog
           title={CONTENT.exitDialog.title}
-          message={CONTENT.exitDialog.body}
+          message={brokerDuel ? fmt(CONTENT.exitDialog.duelBody, { bet: brokerDuel.bet }) : CONTENT.exitDialog.body}
           cancelLabel={CONTENT.exitDialog.cancel}
           confirmLabel={CONTENT.exitDialog.confirm}
           onCancel={() => setExitConfirm(null)}
@@ -1498,9 +1839,45 @@ export default function App() {
             const target = exitConfirm;
             setExitConfirm(null);
             setCelebrate(null);
+            // duel EXIT before your first move refunds the stake in full (web 7300027);
+            // after it, the escrowed stake stays with the house
+            if (brokerDuel && !duelPlayerMovedRef.current) addNebulite(brokerDuel.bet);
             if (target === "shop") forceTabRef.current = "shop";
             setScreen("levels");
           }}
+        />
+      )}
+      {/* VICTORY — the winner's champion takes the stage for a beat before the
+          summary (only the Broker can splash here; the player has no champion) */}
+      {victorySplash && (() => {
+        const names = (CONTENT.challenges.characterNames ?? {}) as Record<string, string>;
+        const lines = (CONTENT.characters.catchphrases as Record<string, Record<string, string>>)[victorySplash.champion];
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 97, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, background: "rgba(4,5,12,0.82)", backdropFilter: "blur(4px)", cursor: "pointer" }}
+            onClick={() => { if (victoryTimer.current) window.clearTimeout(victoryTimer.current); setVictorySplash(null); }}
+          >
+            <img src={`/avatars/${victorySplash.champion}-lg.webp`} alt="" className="gl-float-y" style={{ width: 150, height: "auto", filter: "drop-shadow(0 16px 40px rgba(0,0,0,0.7)) drop-shadow(0 0 30px rgba(157,123,255,0.45))" }} />
+            <div className="gl-rise" style={{ fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 34, letterSpacing: "0.06em", color: theme.color.gold, textShadow: "0 0 30px rgba(232,181,63,0.5)", marginTop: 14 }}>
+              {CONTENT.characters.victoryTitle}
+            </div>
+            <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 18, color: theme.color.text }}>{victorySplash.name}</div>
+            {lines?.victory && (
+              <p style={{ fontFamily: theme.fonts.sans, fontStyle: "italic", fontSize: 13, color: "#cdb9ff", margin: "8px 24px 0", textAlign: "center" }}>
+                “{lines.victory}”
+              </p>
+            )}
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 9, letterSpacing: "0.2em", color: names[victorySplash.champion] ? theme.color.faint : "transparent", marginTop: 2 }}>
+              {names[victorySplash.champion] ?? "."}
+            </div>
+          </div>
+        );
+      })()}
+      {/* THE BROKER'S PITCH — the duel promo card (start-up, gated above) */}
+      {brokerPromo && (
+        <BrokerPromoPopup
+          onPlay={() => { setBrokerPromo(false); setHouseSlideFirst(true); forceTabRef.current = "challenges"; setHomeTab("challenges"); }}
+          onClose={() => setBrokerPromo(false)}
         />
       )}
       {/* PUZZLE IMAGE reveal — shown first on a puzzle-board clear, before the end card */}
@@ -1799,6 +2176,12 @@ function MotherLodeOverlay({ ml }: { ml: { phase: "gather" | "fuse"; sourceValue
 /* ============================== end card ============================== */
 
 // Label + colour for each end-of-run tally step, shown as it lands on the summary.
+
+// seat colours (one source of truth in theme.ts — SEAT_GREEN opens)
+const COOP_GREEN = SEAT_GREEN;
+const COOP_PURPLE = SEAT_PURPLE; // player 1
+const primaryEndBtn: React.CSSProperties = { ...bevelPrimary, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "13px 16px", borderRadius: 12, fontFamily: theme.fonts.disp, fontWeight: 800, fontSize: 15, cursor: "pointer" };
+
 const TALLY_META: Record<EndTallyKind, { label: string; color: string }> = {
   boardTiles: { label: "Board tiles banked", color: theme.color.gold },
   busts: { label: "Busts remaining", color: theme.color.bad },
@@ -1810,10 +2193,33 @@ const TALLY_META: Record<EndTallyKind, { label: string; color: string }> = {
   tiles: { label: "Tiles on board", color: theme.color.bad },
 };
 
-function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: GameState; onPlayAgain: () => void; onContinue?: () => void; onFreshBoard?: () => void }) {
+function EndCard({ state, onPlayAgain, onContinue, onExit, challenge, onShare, shareLabel, onFreshBoard = null, challengePrimary = false, localSeat = 0, hud, champsBySeat = null, gemsBySeat = null }: { state: GameState; /** champion avatars for the face-off columns, by SEAT (online only) */ champsBySeat?: [string | null, string | null] | null; /** account GEM avatars for champion-less columns (the duel's player side) */ gemsBySeat?: [Avatar | null, Avatar | null] | null; onPlayAgain: () => void; onContinue?: () => void; onExit?: () => void; challenge?: { name: string; target: number } | null; onShare?: (() => void) | null; shareLabel?: string; /** daily runs: Play again re-deals the SAME board, so this offers the quick-play escape */ onFreshBoard?: (() => void) | null; /** the run just RANKED on today's board: Challenge a friend leads, replays follow */ challengePrimary?: boolean; localSeat?: number; /** pre-blurred HUD stand-in — the game shell is hidden while this card is up */ hud?: React.ReactNode }) {
+  // TWO slides in versus AND co-op: first the score summary (single-player style,
+  // live-calculated), a Continue, then the face-to-face / contribution comparison.
+  const vres = state.versus?.result ?? null;
+  const twoSlide = !!vres || !!state.coop;
+  const [vPage, setVPage] = useState(0);
+  // PER-SEAT SUMMARY: versus computes each seat's own tally; this device shows its
+  // own (localSeat). Co-op / single-player use the shared state.* tally unchanged.
+  const vsum = state.versus?.summary?.[localSeat] ?? null;
+  const scoreBase = vsum ? vsum.scoreBase : state.scoreBase;
+  const endTally = vsum ? vsum.tally : state.endTally;
+  const finalScore = vsum ? vsum.finalScore : state.finalScore;
+  const activeSeat = state.versus?.turn ?? 0;
+  const myBanks = state.versus ? (localSeat === activeSeat ? state.banks : state.versus.partnerBanks) : state.banks;
+  const myBusts = state.versus ? (localSeat === activeSeat ? state.busts : state.versus.partnerBusts) : state.busts;
   const won = state.phase === "won";
   const outOfLives = state.livesLeft <= 0;
-  const outcome = state.cashedOut > 0 ? "cashedout" : won ? "cleared" : outOfLives ? "gameover" : "outoftiles";
+  // VERSUS: the headline reflects how the MATCH ended, not how the seat that
+  // happened to be active finished — she ran dry rounds before your cash-out
+  // concluded the duel, and the card still said OUT OF GEMS. Priority: cleared,
+  // knockout, then ANY cash-out; OUT OF GEMS only when both seats ran dry.
+  const anyCashOut = state.cashedOut > 0 || (state.versus?.partnerCashedOut ?? 0) > 0;
+  const outcome = state.versus
+    ? (won ? "cleared" : outOfLives ? "gameover" : anyCashOut ? "cashedout" : "outoftiles")
+    : (state.cashedOut > 0 ? "cashedout" : won ? "cleared" : outOfLives ? "gameover" : "outoftiles");
+  // the banked amount on the CASHED OUT pill: the seat that actually cashed
+  const cashedShown = state.cashedOut > 0 ? state.cashedOut : (state.versus?.partnerCashedOut ?? 0);
 
   // a LOST run forfeits its in-run Nebulite: the summary counter drains back to
   // zero (with the forfeit sting) so the player watches the claim slip away.
@@ -1823,7 +2229,12 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
   // a true LOST run forfeits its in-run Nebulite; a CASH-OUT (lost + cashedOut) banks it
   const forfeits = state.phase === "lost" && state.cashedOut === 0 && state.coresCollected > 0;
   const doubles = won && state.coresCollected > 0;
-  const reducedMotion = document.documentElement.getAttribute("data-motion") === "reduced" || osPrefersReducedMotion();
+  // read ONCE on mount — this component re-renders ~30+ times while the score
+  // tallies, and matchMedia/DOM reads per frame are wasted work; a motion-setting
+  // change mid-card (a few seconds) isn't worth tracking
+  const [reducedMotion] = useState(
+    () => document.documentElement.getAttribute("data-motion") === "reduced" || osPrefersReducedMotion()
+  );
   const [nebShown, setNebShown] = useState(state.coresCollected);
   const [showX2, setShowX2] = useState(false);
 
@@ -1831,13 +2242,13 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
   // pop-up; here each end-of-run adjustment is applied FOR REAL — board-clear bonus,
   // unspent busts/banks/hand, tiles-left penalty — stepping the number up or down and
   // lighting the matching summary row as its delta lands, ending on the floored final.
-  const [scoreShown, setScoreShown] = useState(state.scoreBase);
+  const [scoreShown, setScoreShown] = useState(scoreBase);
   const [revealed, setRevealed] = useState(0); // how many endTally steps have landed
-  const tallyDur = 380 + state.endTally.length * 720; // total reveal time (for the Nebulite beat)
+  const tallyDur = 380 + endTally.length * 720; // total reveal time (for the Nebulite beat)
   useEffect(() => {
-    const steps = state.endTally;
-    if (reducedMotion || steps.length === 0) { setScoreShown(state.finalScore); setRevealed(steps.length); return; }
-    let cancelled = false, raf = 0, cur = state.scoreBase;
+    const steps = endTally;
+    if (reducedMotion || steps.length === 0) { setScoreShown(finalScore); setRevealed(steps.length); return; }
+    let cancelled = false, raf = 0, cur = scoreBase;
     const timers: number[] = [];
     const ease = (t: number) => 1 - Math.pow(1 - t, 3);
     const animateTo = (target: number, tick: () => void, done: () => void) => {
@@ -1889,26 +2300,33 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
   // the board-clear reward, read straight from the tally step the summary reveals — the
   // pill is a NOTIFICATION of it; the points are added for real when the score ticks past
   // the "Board cleared" row below (nothing is awarded before the pop-up).
-  const clearBonusAmt = state.endTally.find((t) => t.kind === "clear")?.delta ?? 0;
+  const clearBonusAmt = endTally.find((t) => t.kind === "clear")?.delta ?? 0;
   const cfg = {
     // pills are flavour notifications of the reward — the actual numbers tally in below, live
-    cleared: { color: theme.color.good, rgb: "52,217,139", title: "BOARD CLEARED", sub: "", pill: `+${clearBonusAmt.toLocaleString()} board-clear bonus`, icon: "check" as const },
-    cashedout: { color: theme.color.gold, rgb: "232,181,63", title: "CASHED OUT", sub: "RUN BANKED", pill: `+${state.cashedOut.toLocaleString()} banked from the abyss`, icon: "check" as const },
-    gameover: { color: theme.color.bad, rgb: "255,90,118", title: "GAME OVER", sub: "OUT OF LIVES", pill: "Three busts — abyss claims the board", icon: "x" as const },
-    outoftiles: { color: theme.color.pink, rgb: "255,111,165", title: "OUT OF TILES", sub: "STACK EMPTY", pill: "No tiles left to place", icon: "stack" as const },
+    cleared: { color: theme.color.good, rgb: "52,217,139", title: CONTENT.endCard.clearedTitle, sub: "", pill: fmt(CONTENT.endCard.clearedPill, { n: clearBonusAmt.toLocaleString() }), icon: "check" as const },
+    cashedout: { color: theme.color.gold, rgb: "232,181,63", title: CONTENT.endCard.cashedTitle, sub: CONTENT.endCard.cashedSub, pill: fmt(CONTENT.endCard.cashedPill, { n: cashedShown.toLocaleString() }), icon: "check" as const },
+    gameover: { color: theme.color.bad, rgb: "255,90,118", title: CONTENT.endCard.overTitle, sub: CONTENT.endCard.overSub, pill: CONTENT.endCard.overPill, icon: "x" as const },
+    outoftiles: { color: theme.color.pink, rgb: "255,111,165", title: CONTENT.endCard.tilesTitle, sub: CONTENT.endCard.tilesSub, pill: CONTENT.endCard.tilesPill, icon: "stack" as const },
   }[outcome];
 
   return (
-    <div style={modalScrim} onClick={onPlayAgain}>
-      <div
-        className="gl-fade"
-        style={{
-          ...endCard,
-          background: `radial-gradient(420px 240px at 50% -10%, rgba(${cfg.rgb},0.14), transparent 60%), ${theme.color.panel}`,
-          border: `1px solid rgba(${cfg.rgb},0.4)`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <PopupCard
+      onClose={onExit ?? (() => {})}
+      onBackdrop={onPlayAgain}
+      hud={hud}
+      // EXIT ✕ — only END OF THE LINE (no Continue leading to rewards / next level /
+      // the versus comparison). Tapping outside always = Play again.
+      showClose={!!(onExit && !onContinue && !(twoSlide && vPage === 0))}
+      closeLabel="Exit to menu"
+      width={380}
+      zIndex={60}
+      cardStyle={{
+        borderRadius: 22,
+        background: `radial-gradient(420px 240px at 50% -10%, rgba(${cfg.rgb},0.14), transparent 60%), ${theme.color.panel}`,
+        border: `1px solid rgba(${cfg.rgb},0.4)`,
+      }}
+      bodyStyle={{ padding: "32px 40px 28px", textAlign: "center" }}
+    >
         {/* gloss sweep across the card surface */}
         <div style={{ position: "absolute", inset: 0, borderRadius: 22, overflow: "hidden", pointerEvents: "none" }}>
           <div className="gl-gloss" style={{ position: "absolute", top: 0, left: 0, width: "36%", height: "100%", background: "linear-gradient(100deg, transparent, rgba(210,230,255,0.07), transparent)" }} />
@@ -1920,6 +2338,33 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
         {cfg.sub && (
           <div style={{ fontFamily: theme.fonts.mono, fontSize: 10.5, letterSpacing: "0.22em", color: theme.color.dim, marginTop: 4 }}>
             {cfg.sub}
+          </div>
+        )}
+        {state.coop && (
+          <div style={{ fontFamily: theme.fonts.mono, fontSize: 10.5, letterSpacing: "0.18em", marginTop: 6 }}>
+            <span style={{ color: COOP_GREEN }}>{state.coop.names[0]}</span>
+            <span style={{ color: theme.color.dim }}> &amp; </span>
+            <span style={{ color: COOP_PURPLE }}>{state.coop.names[1]}</span>
+          </div>
+        )}
+        {vres && vPage === 1 && (
+          <div
+            style={{
+              fontFamily: theme.fonts.disp,
+              fontWeight: 700,
+              fontSize: 24,
+              marginTop: 10,
+              color: vres.winner === -1 ? theme.color.gold : vres.winner === 0 ? COOP_GREEN : COOP_PURPLE,
+            }}
+          >
+            {vres.winner === -1
+              ? CONTENT.friends.versusTieTitle
+              : CONTENT.friends.versusWinnerTitle.replace("{name}", state.versus!.names[vres.winner])}
+          </div>
+        )}
+        {state.coop && vPage === 1 && (
+          <div style={{ fontFamily: theme.fonts.mono, fontSize: 10.5, letterSpacing: "0.22em", color: theme.color.dim, marginTop: 8 }}>
+            {CONTENT.friends.coopContribTitle}
           </div>
         )}
 
@@ -1944,51 +2389,353 @@ function EndCard({ state, onPlayAgain, onContinue, onFreshBoard }: { state: Game
 
         <div style={{ height: 1, background: theme.color.border, margin: "14px 0 2px" }} />
 
-        <SummaryRow label="Times banked" value={`${state.banks}`} color={theme.color.gold} delay={140} info />
-        <SummaryRow label="Times busted" value={`${state.busts}`} color={theme.color.bad} delay={220} info />
+        {twoSlide && vPage === 1 ? (
+          vres ? <VersusCompare state={state} champs={champsBySeat} gems={gemsBySeat} /> : <CoopCompare state={state} champs={champsBySeat} gems={gemsBySeat} />
+        ) : (
+        <SummaryRow label={CONTENT.endCard.rowTimesBanked} value={`${myBanks}`} color={theme.color.gold} delay={140} info />
+        )}
+        {!(twoSlide && vPage === 1) && (
+        <SummaryRow label={CONTENT.endCard.rowTimesBusted} value={`${myBusts}`} color={theme.color.bad} delay={220} info />
+        )}
         {/* each end-of-run adjustment lights up as the big score ticks onto it */}
-        {state.endTally.map((t, i) => {
+        {(!twoSlide || vPage === 0) && endTally.map((t, i) => {
           const meta = TALLY_META[t.kind];
-          const label = t.kind === "tiles" && state.gemsLeftPenalty ? `Tiles on board (${state.gemsLeftPenalty.count})` : meta.label;
+          const label = t.kind === "tiles" && state.gemsLeftPenalty ? fmt(CONTENT.endCard.rowTilesOnBoard, { count: state.gemsLeftPenalty.count }) : meta.label;
           return (
             <SummaryRow key={i} label={label} value={`${t.delta >= 0 ? "+" : "−"}${Math.abs(t.delta).toLocaleString()}`} color={meta.color} show={revealed > i} />
           );
         })}
-        <SummaryRow label="Nebulite banked" value={`${nebShown}`} color={forfeits && nebShown === 0 ? theme.color.dim : "#c99cff"} badge={showX2 ? <span className="gl-drop-in" style={x2Badge}>×2</span> : undefined} show={revealed >= state.endTally.length} />
+        {!(twoSlide && vPage === 1) && (
+        <SummaryRow label={CONTENT.endCard.rowNebuliteBanked} value={`${nebShown}`} color={forfeits && nebShown === 0 ? theme.color.dim : "#c99cff"} badge={showX2 ? <span className="gl-drop-in" style={x2Badge}>×2</span> : undefined} show={revealed >= endTally.length} />
+        )}
 
-        {onContinue ? (
+        {/* BEAT MY BOARD — the verdict against the challenger's score */}
+        {challenge && (
+          <div
+            style={{
+              marginTop: 12,
+              fontFamily: theme.fonts.sans,
+              fontWeight: 600,
+              fontSize: 13.5,
+              color: state.finalScore > challenge.target ? theme.color.good : theme.color.gold,
+            }}
+          >
+            {(state.finalScore > challenge.target ? CONTENT.friends.endCardBeat : CONTENT.friends.endCardShort)
+              .replace("{name}", challenge.name)
+              .replace("{score}", challenge.target.toLocaleString())}
+          </div>
+        )}
+        {twoSlide && vPage === 0 ? (
+          <button style={{ ...primaryEndBtn, marginTop: 22 }} onClick={() => { sfx.click(); setVPage(1); }}>
+            {CONTENT.endCard.continueBtn}
+          </button>
+        ) : onContinue ? (
           <>
             {/* next level unlocked → Continue is the preferred path */}
-            <button style={{ ...primaryBtn, width: "100%", justifyContent: "center", marginTop: 22 }} onClick={onContinue}>
+            <button style={{ ...primaryEndBtn, marginTop: 22 }} onClick={onContinue}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z" />
               </svg>
-              Continue
+              {CONTENT.endCard.continueBtn}
             </button>
             <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onPlayAgain}>
-              Play again <RefreshIcon />
+              {CONTENT.endCard.playAgain} <RefreshIcon />
+            </button>
+            {/* three buttons, never four: Continue takes Fresh board's seat —
+                the quick-play escape can wait a screen */}
+            {onShare && shareLabel && (
+              <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onShare}>{shareLabel}</button>
+            )}
+          </>
+        ) : challengePrimary && onShare && shareLabel ? (
+          <>
+            {/* the run RANKED — telling a friend leads; both replays follow */}
+            <button style={{ ...primaryEndBtn, marginTop: 22 }} onClick={onShare}>{shareLabel}</button>
+            <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onPlayAgain}>
+              {CONTENT.endCard.playAgain} <RefreshIcon />
             </button>
             {onFreshBoard && (
-              <button style={{ ...secondaryEndBtn, marginTop: 8 }} onClick={onFreshBoard}>
-                Fresh board
+              <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onFreshBoard}>
+                {CONTENT.endCard.freshBoard}
               </button>
             )}
           </>
         ) : (
           <>
-            {/* PLAY AGAIN re-deals today's COMMUNITY DAILY board (when one exists);
-                FRESH BOARD is the random, non-daily alternative */}
-            <button style={{ ...primaryBtn, marginTop: 22 }} onClick={onPlayAgain}>
-              Play again <RefreshIcon />
+            <button style={{ ...primaryEndBtn, marginTop: 22 }} onClick={onPlayAgain}>
+              {CONTENT.endCard.playAgain} <RefreshIcon />
             </button>
+            {onShare && shareLabel && (
+              <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onShare}>{shareLabel}</button>
+            )}
+            {/* YOU vs THE WORLD: Play again re-deals TODAY'S board — this is the
+                way OUT to an ordinary quick deal instead */}
             {onFreshBoard && (
-              <button style={{ ...secondaryEndBtn, marginTop: 10, width: "100%", justifyContent: "center" }} onClick={onFreshBoard}>
-                Fresh board
+              <button style={{ ...secondaryEndBtn, marginTop: 10 }} onClick={onFreshBoard}>
+                {CONTENT.endCard.freshBoard}
               </button>
             )}
           </>
         )}
+    </PopupCard>
+  );
+}
+
+function CoopFooterHud({ state, spectate, connectivity, champs, say, mySeat, duelFace }: {
+  state: GameState;
+  spectate: boolean;
+  connectivity?: "live" | "async" | null;
+  /** champion avatars floating above each side (online only; null = hidden) */
+  champs?: { mine: string | null; theirs: string | null } | null;
+  /** the transient catchphrase bubble (anchored to the speaking side) */
+  say?: { seat: number; champion: string; text: string; id: number } | null;
+  mySeat?: number | null;
+  /** YOU vs THE HOUSE: the Broker's current expression — swaps the small
+   *  floating avatar for her tall FIXED portrait behind the opponent box */
+  duelFace?: string | null;
+}) {
+  const coop = (state.coop ?? state.versus)!;
+  const active = coop.turn;
+  const col = (idx: number) => (idx === 0 ? COOP_GREEN : COOP_PURPLE);
+  // the viewer: hot-seat renders the ACTIVE seat; spectate preview renders the waiting seat
+  const boxIdx = spectate ? active : active === 0 ? 1 : 0; // the right box = the OTHER seat
+  const boxCol = col(boxIdx);
+  const boxTiles = spectate ? state.hand.length : coop.partnerHand.length;
+  // the box's NEXT is the tile the shown player will COME OUT WITH — the one
+  // under their own NOW PLACING. Never hand[1]: that's the tile hidden in
+  // their stack, which even they haven't been shown yet (info-leak, fixed
+  // 2026-08-20 — the spectator could read the active player's upcoming gem).
+  const boxNext = spectate ? state.hand[0] ?? null : coop.partnerHand[0] ?? null;
+  const boxScore = state.versus ? (spectate ? state.score : state.versus.partnerScore) : null;
+  const turnCol = col(active);
+  const champNames = (CONTENT.challenges.characterNames ?? {}) as Record<string, string>;
+  const sayMine = say && say.seat === mySeat;
+  const hexPts = (cx: number, cy: number, r: number) =>
+    Array.from({ length: 6 }, (_, k) => {
+      const a = Math.PI / 2 + (k * Math.PI) / 3;
+      return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy - r * Math.sin(a)).toFixed(1)}`;
+    }).join(" ");
+  return (
+    <>
+      {!spectate && (
+        <div key={`np-${active}`} className="gl-late-fade" style={{ position: "absolute", left: 0, right: 0, top: 2, zIndex: 8, textAlign: "center", pointerEvents: "none" }}>
+          {/* the TIGHT cut (solo's former style, bug051 swap): every duo mode,
+              every viewport — it must sit clear of the opponent's box */}
+          <span style={{ fontFamily: theme.fonts.mono, fontWeight: 700, fontSize: 8.5, letterSpacing: "0.2em", color: theme.color.accent, opacity: 0.9 }}>
+            {CONTENT.hud.nowPlacing}
+          </span>
+        </div>
+      )}
+      {/* the CHAMPION CATCHPHRASE — transient (5s), rising from the speaking
+          side, briefly overlapping the board's bottom edge (by design) */}
+      {say && (
+        <div key={say.id} className="gl-fade" style={{ position: "absolute", left: 12, right: 12, bottom: "100%", marginBottom: !sayMine && duelFace ? 152 : 56, paddingRight: !sayMine && duelFace ? 28 : 0, zIndex: 9, pointerEvents: "none", display: "flex", justifyContent: sayMine ? "flex-start" : "flex-end" }}>
+          <div style={{ position: "relative", maxWidth: 250, padding: "10px 13px", borderRadius: 14, ...(sayMine ? { borderBottomLeftRadius: 4 } : { borderBottomRightRadius: 4 }), background: "rgba(16,18,29,0.96)", border: "1px solid rgba(157,123,255,0.45)", boxShadow: "0 14px 30px rgba(0,0,0,0.55)", fontFamily: theme.fonts.sans, fontSize: 12.5, lineHeight: 1.45, color: "#e6ddff", textAlign: "left" }}>
+            <span style={{ fontStyle: "italic" }}>“{say.text}”</span>
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 8.5, letterSpacing: "0.16em", color: theme.color.faint, marginTop: 6 }}>
+              {champNames[say.champion] ?? say.champion}{sayMine ? ` · ${CONTENT.characters.championLabel}` : ""}
+            </div>
+            <div style={{ position: "absolute", bottom: -6, ...(sayMine ? { left: 20 } : { right: 20 }), width: 10, height: 10, transform: "rotate(45deg)", background: "rgba(16,18,29,0.96)", borderRight: "1px solid rgba(157,123,255,0.45)", borderBottom: "1px solid rgba(157,123,255,0.45)" }} />
+          </div>
+        </div>
+      )}
+      {/* champions FLOAT slightly above each player's side of the footer — the
+          footer itself is untouched (design settled through 4 mockup rounds):
+          mine far left above the turn line, theirs smaller above their box.
+          In a HOUSE duel the Broker herself stands FIXED behind her box
+          instead (expression-driven portrait, lower body tucked behind it). */}
+      {champs?.mine && <img src={`/avatars/${champs.mine}.webp`} alt="" className="gl-float-y" style={{ position: "absolute", left: 12, top: -34, width: 30, height: "auto", zIndex: 7, pointerEvents: "none", filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))" }} />}
+      {duelFace ? (
+        <img
+          key={duelFace}
+          src={`/avatars/broker-face-${duelFace}.webp`}
+          alt=""
+          className="gl-fade"
+          style={{ position: "absolute", right: 10, top: -140, width: 120, height: "auto", zIndex: 7, pointerEvents: "none", filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.6))" }}
+        />
+      ) : champs?.theirs ? (
+        <img src={`/avatars/${champs.theirs}.webp`} alt="" className="gl-float-y" style={{ position: "absolute", right: 12, top: -26, width: 26, height: "auto", zIndex: 7, pointerEvents: "none", filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))" }} />
+      ) : null}
+      <div key={`turn-${active}`} className="gl-turn-pop" style={{ position: "absolute", left: 16, top: 6, zIndex: 8, pointerEvents: "none" }}>
+        {/* LIVE / ASYNC connectivity — a subtle indicator in the COMBO/LOG grey;
+            the LIVE dot flickers + pulses ("I'm alive"), above the turn line */}
+        {connectivity && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+            <span style={{ fontFamily: theme.fonts.mono, fontSize: 8, letterSpacing: "0.22em", color: theme.color.faint }}>
+              {connectivity === "live" ? CONTENT.friends.connLive : CONTENT.friends.connAsync}
+            </span>
+            {connectivity === "live" && <span className="gl-live-flicker" style={{ width: 5, height: 5, borderRadius: 5, background: theme.color.faint }} />}
+          </div>
+        )}
+        <div style={{ fontFamily: theme.fonts.mono, fontSize: 8.5, letterSpacing: "0.24em", color: turnCol, opacity: 0.85 }}>
+          {spectate ? CONTENT.friends.coopTurnLabel : CONTENT.friends.coopYourTurn}
+        </div>
+        <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 18, lineHeight: 1.25, color: turnCol, textShadow: `0 0 14px ${turnCol}66`, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {coop.names[active]}
+        </div>
       </div>
+      <div
+        style={{
+          position: "absolute",
+          right: 0, // flush with the footer card's right edge (bug031)
+          top: 2,
+          zIndex: 8,
+          pointerEvents: "none",
+          display: "flex",
+          // the box reads inward: NEXT gem left, hex count centre, the player's
+          // name/status/score RIGHT-aligned under their floating champion
+          // (flipped 2026-08-20 with the champions feature)
+          flexDirection: "row-reverse",
+          alignItems: "center",
+          gap: 9,
+          // one height in BOTH modes: versus fills it with the score line,
+          // co-op simply breathes — and both get the same footer overlap
+          minHeight: 62,
+          boxSizing: "border-box",
+          padding: "6px 10px",
+          borderRadius: 12,
+          border: `1.5px solid ${boxCol}77`,
+          background: duelFace
+            ? `linear-gradient(180deg, ${boxCol}33, rgba(5,6,13,0.94))` // darker over her portrait, still translucent
+            : `linear-gradient(180deg, ${boxCol}14, rgba(5,6,13,0.82))`,
+          boxShadow: `0 4px 14px rgba(0,0,0,0.35)`,
+        }}
+      >
+        <div style={{ minWidth: 0, textAlign: "right" }}>
+          <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 14.5, color: boxCol, maxWidth: 78, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {coop.names[boxIdx]}
+          </div>
+          <div style={{ fontFamily: theme.fonts.mono, fontSize: 7.5, letterSpacing: "0.2em", color: connectivity === "async" ? theme.color.gold : theme.color.dim }}>
+            {connectivity === "async" ? CONTENT.friends.connAway : spectate ? CONTENT.friends.coopPlaying : CONTENT.friends.coopWaiting}
+          </div>
+          {boxScore !== null && (
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 9, letterSpacing: "0.08em", color: boxCol, marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
+              {boxScore.toLocaleString()}
+            </div>
+          )}
+        </div>
+        <svg width="27" height="27" viewBox="0 0 27 27">
+          <polygon points={hexPts(13.5, 13.5, 11.5)} fill="rgba(0,0,0,0.4)" stroke={boxCol} strokeWidth="1.4" />
+          <text x="13.5" y="17" textAnchor="middle" fontFamily={theme.fonts.mono} fontSize="10.5" fill={boxCol}>
+            {boxTiles}
+          </text>
+        </svg>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+          <span style={{ fontFamily: theme.fonts.mono, fontSize: 7, letterSpacing: "0.2em", color: theme.color.dim }}>
+            {CONTENT.friends.coopTheirNext}
+          </span>
+          {boxNext !== null ? <MiniGem value={boxNext} /> : <span style={{ color: theme.color.faint, fontSize: 11 }}>—</span>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MiniGem({ value }: { value: number }) {
+  const size = 20;
+  const m = (theme.minerals as Record<number, { shape: string; hue: string }>)[value];
+  const hue = value === 0 ? "#e8b53f" : value === 7 ? theme.color.accent : m?.hue ?? "#aeb6c2";
+  const shape = m?.shape ?? "circle";
+  const h = size / 2;
+  const poly = (pts: [number, number][]) => pts.map(([x, y]) => `${x},${y}`).join(" ");
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {shape === "circle" || value === 0 || value === 7 ? (
+        <circle cx={h} cy={h} r={h - 3} fill={hue} />
+      ) : shape === "triangle" ? (
+        <polygon points={poly([[h, 3], [size - 3, size - 4], [3, size - 4]])} fill={hue} />
+      ) : shape === "diamond" ? (
+        <polygon points={poly([[h, 2], [size - 3, h], [h, size - 2], [3, h]])} fill={hue} />
+      ) : shape === "almond" ? (
+        <ellipse cx={h} cy={h} rx={h - 6} ry={h - 3} transform={`rotate(28 ${h} ${h})`} fill={hue} />
+      ) : shape === "pentagon" ? (
+        <polygon points={poly([[h, 2], [size - 2.5, h - 1.5], [size - 5.5, size - 2.5], [5.5, size - 2.5], [2.5, h - 1.5]])} fill={hue} />
+      ) : (
+        <polygon points={poly([[h, 2], [size - 3, h - 3.5], [size - 3, h + 3.5], [h, size - 2], [3, h + 3.5], [3, h - 3.5]])} fill={hue} />
+      )}
+    </svg>
+  );
+}
+
+/** The face-off column header: a fixed-height avatar slot (champion, else the
+ *  player's account GEM, else empty) so both names always sit on the same line —
+ *  a bare column must not let its name float up to avatar height (bug050). */
+function CompareColHead({ champ, gem, name, color }: { champ?: string | null; gem?: Avatar | null; name: string; color: string }) {
+  return (
+    <span style={{ width: 76, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+      <span style={{ height: 28, display: "flex", alignItems: "flex-end" }}>
+        {champ
+          ? <img src={`/avatars/${champ}.webp`} alt="" style={{ width: 24, height: "auto", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }} />
+          : gem ? <AvatarGem avatar={gem} size={22} /> : null}
+      </span>
+      <span style={{ maxWidth: 76, textAlign: "right", fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 12, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+    </span>
+  );
+}
+
+/** VERSUS end card: the face-to-face table — every stat the engine tracks per
+ *  seat, two colour-coded columns, seat 0 (green) left. */
+function VersusCompare({ state, champs, gems }: { state: GameState; champs?: [string | null, string | null] | null; gems?: [Avatar | null, Avatar | null] | null }) {
+  const v = state.versus!;
+  const act = v.turn; // the state's own fields are the ACTIVE seat's
+  const seat = <T,>(mine: T, theirs: T): [T, T] => (act === 0 ? [mine, theirs] : [theirs, mine]);
+  const F = CONTENT.friends;
+  const rows: { label: string; vals: [string, string] }[] = [
+    { label: F.versusRowScore, vals: seat(state.finalScore, v.partnerScore).map((n) => n.toLocaleString()) as [string, string] },
+    { label: F.versusRowMaxBank, vals: seat(state.maxBankScore, v.partnerMaxBank).map((n) => n.toLocaleString()) as [string, string] },
+    { label: F.versusRowBanks, vals: seat(state.banks, v.partnerBanks).map(String) as [string, string] },
+    { label: F.versusRowFreeBanks, vals: seat(state.freeBanksLeft, v.partnerFreeBanks).map(String) as [string, string] },
+    { label: F.versusRowLives, vals: seat(state.livesLeft, v.partnerLives).map(String) as [string, string] },
+    { label: F.versusRowNebulite, vals: seat(state.coresCollected, v.partnerCores).map(String) as [string, string] },
+  ];
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 0, marginBottom: 4 }}>
+        {([0, 1] as const).map((i) => (
+          <CompareColHead key={i} champ={champs?.[i]} gem={gems?.[i]} name={v.names[i]} color={i === 0 ? COOP_GREEN : COOP_PURPLE} />
+        ))}
+      </div>
+      {rows.map((r) => (
+        <div key={r.label} style={{ display: "flex", alignItems: "baseline", padding: "4px 0", borderTop: `1px solid ${theme.color.border}` }}>
+          <span style={{ flex: 1, textAlign: "left", fontFamily: theme.fonts.sans, fontSize: 12.5, color: theme.color.dim }}>{r.label}</span>
+          <span style={{ width: 76, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13, color: COOP_GREEN, fontVariantNumeric: "tabular-nums" }}>{r.vals[0]}</span>
+          <span style={{ width: 76, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13, color: COOP_PURPLE, fontVariantNumeric: "tabular-nums" }}>{r.vals[1]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** CO-OP end card second slide: how much each player contributed to the shared
+ *  score during play (banked points), plus their share of the total. */
+function CoopCompare({ state, champs, gems }: { state: GameState; champs?: [string | null, string | null] | null; gems?: [Avatar | null, Avatar | null] | null }) {
+  const c = state.coop!;
+  const F = CONTENT.friends;
+  const total = c.contrib[0] + c.contrib[1];
+  const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}%` : "—");
+  // shared totals (banks/lives) are identical for both, so we skip those; the rest
+  // are the per-player breakdown tracked at each turn boundary
+  const rows: { label: string; vals: [string, string] }[] = [
+    { label: F.coopRowBanked, vals: [c.contrib[0].toLocaleString(), c.contrib[1].toLocaleString()] },
+    { label: F.coopRowShare, vals: [pct(c.contrib[0]), pct(c.contrib[1])] },
+    { label: F.versusRowMaxBank, vals: [c.contribMaxBank[0].toLocaleString(), c.contribMaxBank[1].toLocaleString()] },
+    { label: F.coopRowTimesBanked, vals: [String(c.contribBanks[0]), String(c.contribBanks[1])] },
+    { label: F.versusRowNebulite, vals: [String(c.contribCores[0]), String(c.contribCores[1])] },
+  ];
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 0, marginBottom: 4 }}>
+        {([0, 1] as const).map((i) => (
+          <CompareColHead key={i} champ={champs?.[i]} gem={gems?.[i]} name={c.names[i]} color={i === 0 ? COOP_GREEN : COOP_PURPLE} />
+        ))}
+      </div>
+      {rows.map((r) => (
+        <div key={r.label} style={{ display: "flex", alignItems: "baseline", padding: "4px 0", borderTop: `1px solid ${theme.color.border}` }}>
+          <span style={{ flex: 1, textAlign: "left", fontFamily: theme.fonts.sans, fontSize: 12.5, color: theme.color.dim }}>{r.label}</span>
+          <span style={{ width: 76, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13, color: COOP_GREEN, fontVariantNumeric: "tabular-nums" }}>{r.vals[0]}</span>
+          <span style={{ width: 76, textAlign: "right", fontFamily: theme.fonts.mono, fontSize: 13, color: COOP_PURPLE, fontVariantNumeric: "tabular-nums" }}>{r.vals[1]}</span>
+        </div>
+      ))}
     </div>
   );
 }

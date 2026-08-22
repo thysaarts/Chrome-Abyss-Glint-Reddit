@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from "react";
-import { GameState } from "../game/engine";
+import { GameState, lockedCoreValues } from "../game/engine";
 import { TileGem } from "./TileGem";
 import { computeLayout, HEX_RADIUS } from "./layout";
 
@@ -10,6 +10,12 @@ interface BoardProps {
   litCells?: Set<string>; // cells lit-up (gold "banked" flash) during a bank animation
   redCells?: Set<string>; // cells flashed red ("danger" ring) — strand overflow / penalties / collapse
   hiddenCells?: Set<string>; // cells whose tile is mid-flight and should not render in place
+  /** GLINT VERSUS: claimed clusters, ringed in the owning player's colour */
+  claimRings?: { cells: Set<string>; color: string }[];
+  /** GLINT VERSUS: the tap-to-claim window — a countdown chip beside the fresh
+   *  combo, picker-style (full ring draining to empty); tap the combo to claim.
+   *  `n` re-keys the chip so the drain restarts for every window. */
+  claimOffer?: { cell: string; color: string; n: number };
   // During a sequential activation reveal, only show the white activated ring for
   // cells in this set (a subset of the frozen board's activated cells). Undefined =
   // show all activated cells (normal).
@@ -56,7 +62,7 @@ interface BoardProps {
   onFractionMapper?: (fn: (key: string) => { fx: number; fy: number } | null) => void;
 }
 
-export function Board({ state, onPlace, interactive, litCells, redCells, hiddenCells, activatedFilter, dropCell, spinCells, fallCells, fallGo, fallGemsOnly, hintCells, greyCells, targetCell, focusCell, chipCells, clearAll, dropAll, maxHeightCss, puzzleImage, puzzleFocalX, puzzleFocalY, onMapper, onFractionMapper }: BoardProps) {
+export function Board({ state, onPlace, interactive, litCells, redCells, hiddenCells, claimRings, claimOffer, activatedFilter, dropCell, spinCells, fallCells, fallGo, fallGemsOnly, hintCells, greyCells, targetCell, focusCell, chipCells, clearAll, dropAll, maxHeightCss, puzzleImage, puzzleFocalX, puzzleFocalY, onMapper, onFractionMapper }: BoardProps) {
   const HEX = HEX_RADIUS;
   const svgRef = useRef<SVGSVGElement | null>(null);
   // load the puzzle image's native size so the on-board crop can honour a focal
@@ -107,26 +113,13 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealedKey, puzzleImage]);
 
-  // A Nebulite that's part of an activated combo is a "joker" mirroring that
-  // combo's mineral value. Map its cell key -> the mirrored value so the gem
-  // renders the mimicked mineral inside its purple Core ring.
-  const jokerCoreValues = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const combo of state.activatedCombos) {
-      let mineralVal: number | null = null;
-      for (const k of combo.cells) {
-        const t = state.cells.get(k)?.tile;
-        if (t != null && t !== 0 && t !== 7) { mineralVal = t as number; break; }
-      }
-      if (mineralVal == null) continue;
-      for (const k of combo.cells) {
-        // FIRST combo wins — a Nebulite keeps the appearance it took the first time it
-        // joined a combo; a later combo it's pulled into never changes its shape.
-        if (state.cells.get(k)?.tile === 7 && !m.has(k)) m.set(k, mineralVal); // 7 = CORE
-      }
-    }
-    return m;
-  }, [state.activatedCombos, state.cells]);
+  // A Nebulite that's part of an activated combo is a "joker" mirroring the value
+  // it locked onto — the engine is the single source of truth (a hand-placed
+  // Nebulite completing a Drift shows the Drift's missing value, not a neighbour).
+  const jokerCoreValues = useMemo(
+    () => lockedCoreValues(state),
+    [state.activatedCombos, state.cells, state.coreLocks],
+  );
 
   // flat-top hexagon vertices (points left/right, flat edges top/bottom) — matches the
   // flat-top axial layout, which makes the overall board taller than wide.
@@ -533,12 +526,15 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
         const isLit = litCells?.has(k);
         const isRed = redCells?.has(k);
         const isHidden = hiddenCells?.has(k);
+        const claim = claimRings?.find((c) => c.cells.has(k)) ?? null;
 
-        // ring state precedence: danger > banked(lit) > activated
-        const ring: "danger" | "banked" | "activated" | null = isRed
+        // ring state precedence: danger > banked(lit) > claim > activated
+        const ring: "danger" | "banked" | "claim" | "activated" | null = isRed
           ? "danger"
           : isLit
           ? "banked"
+          : claim
+          ? "claim"
           : isActivated
           ? "activated"
           : null;
@@ -556,7 +552,7 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
         if (!ring) return null;
         return (
           <g key={`ov-${k}`} style={{ pointerEvents: "none" }}>
-            <RingOverlay path={(f: number) => hexPath(p.x, p.y, HEX * 0.98 * f)} ring={ring} />
+            <RingOverlay path={(f: number) => hexPath(p.x, p.y, HEX * 0.98 * f)} ring={ring} claimColor={claim?.color} />
           </g>
         );
       })}
@@ -573,6 +569,84 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
         );
       })()}
 
+      {/* VERSUS tap-to-claim: dashed halo over the WHOLE claimable cluster and a
+          picker-style countdown chip (full ring radially draining to empty)
+          parked OUTSIDE the cluster's bounding box — tap the combo to claim */}
+      {claimOffer && (() => {
+        // the claimable cluster = activated cells connected to the placed one
+        const activated = new Set(state.activatedCells);
+        const cluster: string[] = [];
+        const seen = new Set([claimOffer.cell]);
+        const stack = [claimOffer.cell];
+        while (stack.length) {
+          const k = stack.pop()!;
+          if (!activated.has(k)) continue;
+          cluster.push(k);
+          for (const nb of state.adj.get(k) ?? []) if (!seen.has(nb)) { seen.add(nb); stack.push(nb); }
+        }
+        const pts = cluster.map((k) => layout.pos.get(k)).filter(Boolean) as { x: number; y: number }[];
+        if (pts.length === 0) return null;
+        const minY = Math.min(...pts.map((p) => p.y));
+        const maxY = Math.max(...pts.map((p) => p.y));
+        let cx = pts.reduce((n, p) => n + p.x, 0) / pts.length;
+        // park the chip clear of the cluster: above it, or below when the
+        // cluster hugs the board's top edge; clamp into the drawing area
+        let cy = minY - HEX * 2.0;
+        if (cy < layout.minY + HEX * 1.1) cy = maxY + HEX * 2.0;
+        cx = Math.max(layout.minX + HEX * 1.4, Math.min(layout.minX + layout.w - HEX * 1.4, cx));
+        const R = 9;
+        const C = 2 * Math.PI * R;
+        return (
+          <g key={`claim-${claimOffer.n}`} style={{ pointerEvents: "none" }}>
+            {cluster.map((k) => {
+              const p = layout.pos.get(k)!;
+              return (
+                <polygon
+                  key={k}
+                  className="gl-pulse"
+                  points={hexPath(p.x, p.y, HEX * 1.1)}
+                  fill="none"
+                  stroke={claimOffer.color}
+                  strokeWidth={1.8}
+                  strokeDasharray="6 5"
+                  opacity={0.85}
+                />
+              );
+            })}
+            {/* the countdown chip — same anatomy as the picker's: dark disc,
+                faint track ring, bright ring draining from FULL to empty */}
+            <circle cx={cx} cy={cy} r={R + 4.5} fill="rgba(10,14,24,0.88)" stroke={claimOffer.color} strokeWidth={1.2} opacity={0.95} />
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke={claimOffer.color} strokeWidth={2.6} opacity={0.22} />
+            <circle
+              className="gl-claim-drain"
+              cx={cx}
+              cy={cy}
+              r={R}
+              fill="none"
+              stroke={claimOffer.color}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              strokeDasharray={C}
+              transform={`rotate(-90 ${cx} ${cy})`}
+            />
+            <text
+              x={cx}
+              y={cy - R - 9}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={700}
+              letterSpacing="0.2em"
+              fill={claimOffer.color}
+              stroke="#05060d"
+              strokeWidth={3}
+              paintOrder="stroke"
+              style={{ fontFamily: "inherit" }}
+            >
+              CLAIM
+            </text>
+          </g>
+        );
+      })()}
       {/* choice layer: the picker's dashed ALTERNATIVES (blue wins overlaps).
           Amber, not grey — an alternative can run through already-activated
           tiles whose white glow swallowed a grey ring entirely; the warm dash
@@ -681,7 +755,24 @@ function glimmerPath(cx: number, cy: number, r: number, variant: number): string
   );
 }
 
-function RingOverlay({ path, ring }: { path: (f: number) => string; ring: "danger" | "banked" | "activated" }) {
+function RingOverlay({ path, ring, claimColor }: { path: (f: number) => string; ring: "danger" | "banked" | "claim" | "activated"; claimColor?: string }) {
+  if (ring === "claim" && claimColor) {
+    // the Wicked pair — the claim ring in the owning player's colour (green opens,
+    // purple answers). SUBTLER glow than the gold bank, and a GREEN claim glows a
+    // touch bluer than its ring so it separates further from the (oranger) gold —
+    // for colour-blind readability. Purple is unchanged.
+    const [gr, gg, gb] = [1, 3, 5].map((i) => parseInt(claimColor.slice(i, i + 2) || "0", 16));
+    const isGreen = gg > 150 && gr < 90 && gb < gg;
+    const glow = isGreen ? "#12d6c4" : claimColor; // bluer green glow
+    return (
+      <g style={{ filter: `drop-shadow(0 0 3.5px ${glow}88)` }}>
+        <polygon points={path(1.0)} fill={claimColor} opacity={0.09} />
+        <polygon points={path(1.0)} fill="none" stroke={claimColor} strokeWidth={2.6} opacity={0.9} />
+        <polygon points={path(1.1)} fill="none" stroke={glow} strokeWidth={1.7} opacity={0.26} />
+        <polygon points={path(1.2)} fill="none" stroke={glow} strokeWidth={1.3} opacity={0.11} />
+      </g>
+    );
+  }
   if (ring === "activated") {
     // the ring pops in (scale 1.35 -> 1) when it first mounts during the reveal
     return (
@@ -693,12 +784,14 @@ function RingOverlay({ path, ring }: { path: (f: number) => string; ring: "dange
     );
   }
   if (ring === "banked") {
+    // BIGGER, ORANGER glow than the seat claims — pushes the gold well clear of the
+    // (bluer) green for colour-blind readability.
     return (
-      <g style={{ filter: "drop-shadow(0 0 6px rgba(232,181,63,0.7))" }}>
-        <polygon points={path(1.0)} fill="#e8b53f" opacity={0.16} />
-        <polygon points={path(1.0)} fill="none" stroke="#ffd980" strokeWidth={3} opacity={0.97} />
-        <polygon points={path(1.1)} fill="none" stroke="#e8b53f" strokeWidth={2} opacity={0.4} />
-        <polygon points={path(1.2)} fill="none" stroke="#ffe6a8" strokeWidth={1.6} opacity={0.2} />
+      <g style={{ filter: "drop-shadow(0 0 13px rgba(255,138,26,0.85))" }}>
+        <polygon points={path(1.0)} fill="#f0972c" opacity={0.18} />
+        <polygon points={path(1.0)} fill="none" stroke="#ffce6a" strokeWidth={3} opacity={0.97} />
+        <polygon points={path(1.1)} fill="none" stroke="#ff9e2e" strokeWidth={2.2} opacity={0.5} />
+        <polygon points={path(1.2)} fill="none" stroke="#ffb84e" strokeWidth={1.8} opacity={0.28} />
       </g>
     );
   }
