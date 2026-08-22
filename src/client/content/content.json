@@ -2,15 +2,17 @@
   "startScreen": {
     "kicker": "CHROME ABYSS",
     "title": "GLINT",
-    "tagline": "Bank glowing gem combos and push your luck before the abyss collapses the board.",
+    "tagline": "Bank glowing gem combos and push your luck before the abyss collapses.",
     "startButton": "START",
     "quickStartButton": "Quick start",
     "howToPlayButton": "How to play",
     "footer": "v1.0 · STUDIO FUNK",
-    "settingsButton": "Settings"
+    "settingsButton": "Settings",
+    "introSkip": "SKIP",
+    "introClose": "CLOSE"
   },
   "combos": {
-    "combosTitle": "COMBOS · BANK A GROUP OF TILES",
+    "combosTitle": "COMBOS · BANK A GROUP OF GEMS",
     "combosRows": [
       {
         "name": "Echo",
@@ -76,7 +78,7 @@
         "pts": "+200"
       }
     ],
-    "footnote": "Multiplier = value of the tile you replace to complete a 6+ combo or chain. Fill a gap = no multiplier.",
+    "footnote": "*Multiplier = value of the gem you replace to complete a 6+ combo or chain. Fill a gap = no multiplier.*",
     "overlayTitle": "COMBOS — group of tiles",
     "overlayChainsNote": "CHAINS — two or more combos in one bank"
   },
@@ -101,19 +103,19 @@
       },
       {
         "name": "Umbrite",
-        "desc": "pentagram"
+        "desc": "pentagon"
       },
       {
         "name": "Nuracite",
         "desc": "hexagon"
       }
     ],
-    "specialTitle": "SPECIAL TILES",
+    "specialTitle": "SPECIAL GEMS",
     "drossName": "Dross",
     "drossDesc": "A trap that always busts",
     "nebuliteName": "Nebulite",
-    "nebuliteDesc": "A wild card · +500",
-    "nebuliteNote": "↳ place it to copy a neighbour · earn one with an overflow of 6+ tiles",
+    "nebuliteDesc": "A 'joker' gem · +500",
+    "nebuliteNote": "↳ place it to copy a neighbour · earn one with an overflow of 6+ gems",
     "bonusTiles": [
       {
         "key": "invincible",
@@ -123,12 +125,12 @@
       {
         "key": "crimsonEndurance",
         "name": "Quadriant",
-        "desc": "Quadruple the covered tile's value."
+        "desc": "Quadruple the covered gem's value."
       },
       {
         "key": "superluminal",
         "name": "Zenith",
-        "desc": "Rewarded at GLINT RUSH. A wild card · +6000"
+        "desc": "A 'joker' gem · up to +6000"
       }
     ]
   },
@@ -136,39 +138,39 @@
     "slides": [
       {
         "title": "Clear the board",
-        "copy": "Your goal: clear the whole board of mineral gems by building combos and banking them for points, before you bust!"
+        "copy": "Your goal: **clear the whole board of mineral gems by building combos** and banking them for points, before you bust! Clearing the board gives you a bonus of up to 10,000 points, depending on the board size."
       },
       {
-        "title": "Your tiles: now & next",
-        "copy": "You place one gem at a time. UP NEXT counts your tiles, but their values stay hidden, until you have only 4 remaining. Not knowing what's coming is the gamble."
+        "title": "Your gems: now & next",
+        "copy": "You place one gem at a time. **UP NEXT **counts your gems, but their values stay hidden, until you have only 4 remaining. Not knowing what's coming is the gamble."
       },
       {
         "title": "Build a combo",
-        "copy": "Every gem has a unique name, colour and value. Place one next to matching gems to activate a combo — it lights up. If there's more than one combo to make, the game auto-selects the best one, which you can switch if you want to. Tap the ⓘ to learn more about values and combos."
+        "copy": "Every gem has a unique name, colour and value. **Place one next to matching gems to activate a combo** — it lights up. If there's more than one combo to make, the game auto-selects the best one, which you can switch if you want to. *Tap the ⓘ to learn more about values and combos.*"
       },
       {
         "title": "Drifts",
-        "copy": "A gem's shape is its value. Count its points to read it. For example a triangle is 3, a diamond is 4, a pentagon is 5, etc. Gems in sequence form a straight: 4 in a run is a Drift, 5 a Long Drift, and 6 a Full Drift.  You can even combine multiple drifts in one combo. "
+        "copy": "A gem's shape is its value. Count its points to read it. For example a triangle is 3, a diamond is 4, a pentagon is 5, etc. **Gems in sequence form a straight**: 4 in a run is a Drift, 5 a Long Drift, and 6 a Full Drift. You can even combine multiple drifts in one combo. "
       },
       {
         "title": "Bank for points",
-        "copy": "When a glowing group reaches 6 connected tiles it banks — you score and they clear. Finish on a high-value gem for a bigger ×multiplier. When you overflow, tiles are added to your hand. This will help you stay in the game longer."
+        "copy": "When a glowing group reaches 6 connected tiles it banks — you score and they clear. **Finish on a high-value gem for a bigger ×multiplier. **When you overflow, tiles are added to your hand. Collecting gems for your hand will keep you in the game longer."
       },
       {
         "title": "Push your luck",
-        "copy": "Push for a bigger combo, but place a gem that can't combo and you bust, losing the group. 3 lives, 3 free banks. Tap BANK to lock safe points first. Remember, you will automatically bank any combo or chain of 6+ gems."
+        "copy": "Push for a bigger combo, but **place a gem that can't combo and you bust**, losing the group and a penatly gem from your hand. 3 lives, 3 free banks. **Tap BANK NOW to bank early**. Remember, you will automatically bank any combo or chain of 6+ gems."
       },
       {
         "title": "Traps & treasure",
-        "copy": "Dross is worthless gold — it always busts.  Clear it from the board for a reshuffle. A Nebulite gem is a wild card. Place it to copy a neighbour, or bank one for +500. When you overflow with 6+ tiles, a Nebulite gem will be added to your hand. "
+        "copy": "Dross is worthless gold — it always busts.  Clear it from the board for a reshuffle. A Nebulite gem is a wild card. Place it to copy a neighbour, or bank one for +500. When you overflow with 6+ gems, a Nebulite gem will be added to your hand. "
       },
       {
         "title": "The collapse & GLINT RUSH",
-        "copy": "As the board empties, the Abyss collapses. In a normal game with 91 tiles, it collapses twice (91→61→37 cells). The final stage of the game is GLINT RUSH: banks are infinite and any combo banks immediately."
+        "copy": "As the board empties, the Abyss collapses. In a normal game with 91 tiles, it collapses twice (91→61→37 cells). The final stage of the game is **GLINT RUSH**: your hand is visible, banks are infinite and any combo banks immediately."
       },
       {
         "title": "Cash out",
-        "copy": "During GLINT RUSH you can end the run on your terms: CASH OUT converts your remaining lives, free banks and hand gems into points. Do this when you cannot clear the board."
+        "copy": "During **GLINT RUSH** you can end the run on your terms: **CASH OUT** converts your remaining lives, free banks and hand gems into points. Do this when you cannot clear the board. You get penalty points for gems left on the board."
       },
       {
         "title": "Climb the levels",
@@ -178,61 +180,156 @@
   },
   "tutorialLevel": {
     "intro": "Follow the steps below to learn the ropes.",
+    "text": {
+      "kickerTutorial": "TUTORIAL",
+      "kickerAcademy": "THE ACADEMY",
+      "gateNext": "Next",
+      "gateContinue": "Continue",
+      "bannerBust": "BUST",
+      "bannerReshuffle": "RESHUFFLE",
+      "plateBanked": "BANKED",
+      "plateBankedTimes": "BANKED ×{n}",
+      "comboName2": "Echo",
+      "comboName3": "Trips",
+      "comboName4": "Quad",
+      "comboName5": "Pentad",
+      "comboName6": "Hex",
+      "comboFallback": "Combo",
+      "logTryAgain": "Try again — place your Vigilite touching the Vigilite cluster",
+      "logReshuffled": "Gems in your stack are reshuffled.",
+      "logQuad": "Quad activated · 4 / 6 gems",
+      "logPentad": "Pentad activated · 5 / 6 gems",
+      "logDrift": "Drift activated · 4 / 6 gems",
+      "logDriftLocked": "Drift locked in and activated · 4 / 6 gems",
+      "logSwitched": "Switched. Tap the blue combo to lock it in.",
+      "logTapAmber": "First, tap an amber tile to try switching the pick.",
+      "logActivated": "{name} activated · {n} gems",
+      "logBuriedVerdite": "A Verdite was buried under the Dross — it returns to your hand.",
+      "logOverflowSeven": "Seven of a kind: six bank as a Hex, the extra Duneglass overflows to your hand.",
+      "logNuracitePair": "One Nuracite banked, the other went to your hand.",
+      "logDrossCleared": "Dross isolated and cleared — no points.",
+      "logIsolatedFace": "Isolated Nuracite banked for face value · +600",
+      "logIsolatedBanked": "Isolated Nuracite banked · +600",
+      "toastConvergence": "+4,300 · Quad + Trips · Convergence ×6",
+      "toastHexUmbrite": "+600 · Hex of Umbrite claimed",
+      "toastHexUmbriteTimes": "+{pts} · Hex of Umbrite ×{n}",
+      "toastAccord2": "+1,600 · Accord: Drift + Trips ×2",
+      "toastFullDrift": "+4,800 · Full Drift ×6",
+      "toastHexVigilite": "+600 · Hex of Vigilite",
+      "toastHexDuneglass": "+600 · Hex of Duneglass",
+      "toastAccord6": "+4,400 · Accord: Drift + Trips ×6",
+      "toastFreeBank": "+{pts} · {name} · free bank used",
+      "hintNext": "Tap the Next button to continue.",
+      "hintSwitch": "Tap an amber tile to switch, then tap the blue combo to lock it in.",
+      "hintBank": "Tap the BANK NOW button to continue.",
+      "hintCashOut": "Tap the Cash Out button to continue.",
+      "hintPlace": "Place your gem on the board to continue."
+    },
     "completion": {
       "kicker": "GREAT JOB",
       "title": "TUTORIAL COMPLETE",
       "lines": [
-        "You've learned the ropes of the Foundry — nicely done.",
-        "New features are now unlocked: Daily challenges, your Collection, Achievements and the Shop are all open.",
-        "And here's your very first sticker to start the book."
+        "You've learnt the basics — nicely done. Continue learning in **Level 1: The Academy.**",
+        "New features are now unlocked: Daily challenges, your Collection, Achievements, Friends and the Shop are all open.",
+        "And here's your first music track to play in the **Sticker Book**."
       ],
-      "rewardLabel": "FIRST STICKER EARNED",
+      "rewardLabel": "FIRST MUSIC TRACK EARNED",
       "button": "Continue"
     },
     "steps": [
-      "In this game, you are trying to collect as many gems and minerals as you can. You do so by creating a combo. Let’s try and make a combo with your Chromite tile.",
-      "There’s already three Chromite tiles connected on the board. Let’s turn it into a Quad. Place your tile onto the highlighted spot.",
-      "You have now activated a combo on the board. And you replaced your Chromite tile with the Duneglass piece on the board, which went into your hand.",
-      "But a combo of less than 6 tiles isn’t enough to bank automatically. So, we need to make another combo. Let’s see where you can place this Umbrite gem.",
-      "Perfect! There’s a pair of Umbrite gems close to your Quad of Chromite. Place your Umbrite gem onto the highlighted spot.",
-      "You have connected two combos. Notice how the tile you replaced did not go into your hand this time. When a combo banks, the replaced tile is used as a multiplier for your combo. Your score was multiplied by 6!",
-      "Let’s talk about Combos. You just banked a Quad and a Trips with a Nuracite multiplier. To bank these, you needed to activate them first. Look at the board and try to make a Pentad with your Umbrite gem.",
-      "The five Umbrite tiles that you connected are now activated. They lit up, which means you’ve claimed them. When you make a combo of 6 tiles or more, they are banked immediately. You can’t bank combos you haven’t claimed yet. Place your gem to bank this combo.",
-      "There’s more than one type of combo in this game. The combos you just made were all tiles and gems of the same kind. Sets. You can also make combos of gems in a sequence, called a Drift.",
-      "Let’s replace the Verdite gem used in this Drift with the Verdite gem in your hand. That way, you activate this combo. Place your gem onto the highlighted spot.",
-      "A Drift is sequence of gems that form a straight. Look at the numbers above these tiles. You can easily work out a tile’s value by counting its points. Now, place your Duneglass onto the highlighted tile.",
-      "Now, you created an Accord. An Accord consists of a Drift and a set-combo, in your case a Trips of Duneglass. Because this is exactly 6 tiles, it’s banked automatically.",
-      "Your next gem is a Nuracite. Notice there’s a Full Drift on the board already. Let’s claim it by replacing the Nuracite gem in the Full Drift with yours. Place your gem in the highlighted spot.",
-      "A Full Drift is already 6 tiles, so it banks immediately. Remember that this will happen automatically for every combo or chain of 6 tiles and more.",
+      "In this game, you are trying to **collect as many gems as you can**. You do so **by creating combos**. Let’s try and make a combo with this Chromite.",
+      "There’s already three Chromite on the board. Let’s turn it into a Quad. Place your Chromite onto the highlighted spot. This will replace it with the Duneglass on the board.",
+      "See how the Duneglass on the board went into your hand. You have now **activated **a combo. But a combo of less than 6 gems isn’t enough to bank automatically. Let’s see where you can place this Umbrite gem.",
+      "Perfect! There’s a pair of Umbrite close to your Quad of Chromite. Place your Umbrite gem onto the highlighted spot.",
+      "You have connected two combos. Notice how the gem you replaced did not go into your hand this time. When a combo banks, it is used as **a multiplier **for your combo. Your score was multiplied by 6! Time to test your skills.",
+      "Let’s talk about Combos. You banked a Quad and a Trips with a Nuracite multiplier earlier. To bank these, you needed to activate them first. Look at the board and try to make a Pentad with your Umbrite gem.",
+      "The five Umbrite are now **activated**. They lit up, which means you’ve claimed them. When you make a combo of 6 gems or more, they are banked. **You can’t bank combos you haven’t claimed yet**. Place your gem to bank this combo.",
+      "There’s more than one type of combo in this game. The combos you just made were all gems of the same kind. Sets. You can also make combos of** gems in a sequence, called a Drift**.",
+      "Let’s replace the Verdite gem used in this Drift with the Verdite gem in your hand. That way, you **activate this combo**. Place your gem onto the highlighted spot.",
+      "A** Drift is** sequence of gems that form **a straight**. Look at the numbers above these tiles. You can easily work out a gem's value by counting its points. Now, place your Duneglass onto the highlighted tile.",
+      "Now, you created an Accord. An Accord consists of a Drift and a set-combo, in your case a Trips of Duneglass. Because this is exactly 6 gems, it’s banked automatically.",
+      "Your next gem is a Nuracite. Notice there’s a **Full Drift **on the board already. Let’s claim it by replacing the Nuracite gem in the Full Drift with yours. Place your gem in the highlighted spot.",
+      "A Full Drift is already 6 gems, so it banks immediately. Remember that this will happen automatically for **every combo or chain of 6 highlighted tiles and more**.",
       "One more thing about Drifts. Sometimes the gem you place could finish more than one combo, but the game can’t read your mind. Your Nuracite fits two different Drifts here. Place it on the highlighted spot.",
-      "The BLUE tiles are the combo the game picked, and the AMBER dashed tiles are your other option. In a real game, blue locks itself in after a moment unless you act. Tap an amber dashed tile to switch the pick, then tap the combo again to lock it in.",
-      "Now, let's learn about sweeping. If you remove all tiles surrounding a tile, you've swept it. When you isolate a gem like that, you will earn its points at face value. Place your gem in the gap to complete the combo.",
-      "Dross tiles are shiny gold tiles, but gold is worthless in the Chrome Abyss. You can sweep them too by isolating them. This will earn you the gem that sits underneath. Place your Duneglass piece anywhere to complete the combo.",
+      "The **BLUE tiles** are the combo the game picked, and the **AMBER dashed tiles **are your other option. In a real game, blue locks itself in after a moment unless you act. Tap an amber dashed tile to switch the pick, then tap the combo again to lock it in.",
+      "First, let's learn about **sweeping**. If you empty all tiles surrounding a gem, you've swept it. When you isolate a gem like that, you will earn its points at face value. Place your gem in the gap to complete the combo.",
+      "Dross are shiny gold coins, but gold is worthless in the Chrome Abyss. You can sweep them too by isolating them. This will earn you the gem that sits underneath. Place your Duneglass anywhere to complete the combo.",
       "You can clear the board quicker by sweeping gems. You can also isolate two gems of the same kind. It works the same way. They can touch each other, but no other gems. Create a Chromite Trips to sweep a pair of Nuracite.",
-      "When you sweep a pair of gems, one will be banked and the other one goes into your hand. This can be useful to stay in the game longer. Next, let’s learn more about banking.",
-      "Now, let’s see if you can claim a combo of Vigilite tiles. Go ahead and place your gem on the board.",
-      "Well done. Now, let’s bank this combo immediately. Notice the BANK NOW banner that appears at the top with a countdown. You usually get 3 seconds to decide if you want to bank. Click it!",
-      "You have now banked a combo yourself, without waiting for the 6+ threshold. You get this free bank 3 times per game, so use it wisely. It’s best to wait till later in the game to spend it.",
-      "Your next tile seems to be incompatible. You can try to place it anywhere, but unfortunately, there’s no match or Drift to make this time, so you will Bust!",
-      "You can Bust 3 times in one game and then it’s game over. If game over is inevitable, you can cash out instead of clearing the board. Tap the Cash Out button and then confirm.",
-      "Well done. You’ve completed the tutorial. Do you think you are ready to try it out for yourself now? Perhaps you’ll be able to clear the board. Click the next button when you’re ready."
+      "When you sweep a pair of gems, one will be banked and **the other one goes into your hand**. This can be useful to stay in the game longer. Next, let’s learn more about banking.",
+      "Let’s see if you can claim a combo of Vigilite gems. Spot them on the board. Now, go ahead and place your gem on the board.",
+      "Well done. Now, let’s bank this combo immediately. Notice the **BANK NOW** banner that appears at the top with a countdown. You usually get 3 seconds to decide if you want to bank. Tap it!",
+      "You have now banked a combo yourself, without waiting for the 6+ threshold. However, with no multiplier. You get 3 free banks per game, so use them wisely. It’s best to wait till later in the game to spend it.",
+      "Your next gem seems to be incompatible. You can try to place it anywhere, but unfortunately, there’s no eligible combo to make this time, so you will Bust!",
+      "You can **Bust 3 times** in one game and then it’s game over. If game over is inevitable, you can cash out instead of clearing the board. Tap the CASH OUT button and then confirm.",
+      "Well done. You’ve completed the tutorial. Do you think you are ready to try another board? Perhaps you’ll be able to clear the board. Tap the next button when you’re ready."
     ],
     "segments": {
       "combos": "COMBOS",
       "drifts": "DRIFTS",
       "banking": "BANKING",
       "clearing": "SWEEPING"
+    },
+    "academyCompletion": {
+      "kicker": "GREAT JOB",
+      "title": "ACADEMY COMPLETE",
+      "lines": [
+        "You've learnt all there is to know to become a master at Glint.",
+        "Check out the rest of the game, if you haven't already and try to complete the next level. Have fun!",
+        "Here's your very first sticker to start the book. Check it out under **Collection**."
+      ],
+      "rewardLabel": "FIRST STICKER EARNED",
+      "button": "Continue"
+    },
+    "practiceYourTurn": {
+      "title": "YOUR TURN",
+      "body": "It's your turn to show what you've got. You might not know all the rules yet, but you know enough to practise on a small board.\n\nTry to make **as many combos of gems of the same type** on this board. Just give it a try.\n\nIf you want to learn a bit more about gem values and combos first, check the **Combos & Values **help section.",
+      "combosButton": "Combos & Values",
+      "continueButton": "Continue"
+    },
+    "practiceBackToYou": {
+      "title": "BACK TO YOU",
+      "body": "Now you know the ropes, let's try and play another board. This time, let's see if you can also find a few Drifts to bank, if you haven't banked one already.\n\nRemember you can **replace a gem in a combo **you have identified or you can replace a gem adjacent to complete a potential combo you identified. Good luck!",
+      "combosButton": "Combos & Values",
+      "continueButton": "Continue"
+    },
+    "academyIntro": {
+      "title": "The Academy",
+      "body": "You've learnt the basics in the tutorial, but that isn't all you need to know to master Glint.\n\nIn this level, we'll dig a little deeper and go through the **more specific rules** of the game to help you become a real star.\n\nThe goal is to help you get ready to clear your own first full board. Good luck!",
+      "button": "Continue"
+    },
+    "practiceComplete": {
+      "title": "BOARD COMPLETE",
+      "body": "That is your very first board done.\n\nDon’t worry if it didn’t go as well as you hoped. There is more to learn.\n\nLet’s continue when you're ready.",
+      "button": "Continue"
+    },
+    "academyCelebration": {
+      "title": "READY FOR THE ABYSS",
+      "body": "The Academy is behind you. Well done!\n\nYou now know everything you need to take on the Chrome Abyss. New levels, daily challenges, stickers and treasures await.\n\nGood luck out there!",
+      "button": "Let’s go!"
+    },
+    "optOut": {
+      "button": "OPT OUT",
+      "title": "OPT OUT",
+      "body": "Do you already know how to play the game?\n\nYou’re welcome to **OPT OUT** and skip these lessons if you think you already know the ropes. We’ll put your skills to the test on a game board instead.\n\nHow do you want to proceed?",
+      "confirmButton": "Opt Out",
+      "cancelButton": "Cancel"
+    },
+    "newHere": {
+      "title": "NEW HERE?",
+      "body": "Welcome to the Tutorial level where we'll walk you through how Glint is played.\n\nIf you already know how it works, tap **OPT OUT **to skip the lessons.\n\nHave fun!",
+      "continueButton": "Continue",
+      "optOutButton": "Opt Out"
     }
   },
   "logTexts": {
-    "opening": "Clear the board! Bank combos of 6+ tiles.",
+    "opening": "Clear the board! Bank combos of 6+ gems.",
     "rushArmed": "GLINT RUSH — infinite banks. Any combo banks immediately.",
-    "collapse": "THE ABYSS COLLAPSES — the board contracts to {cells} cells.",
-    "singularity": "SINGULARITY — {count} outer cells fall into the abyss.",
+    "collapse": "THE ABYSS COLLAPSES — the board contracts to {cells} tiles.",
+    "singularity": "SINGULARITY — {count} outer tiles fall into the abyss.",
     "banked": "Banked {combo}{multiplier}{chain} → +{points}",
-    "activated": "Activated {combo} — cluster at {size}/{threshold} tiles.",
+    "activated": "Activated {combo} — cluster at {size}/{threshold} gems.",
     "bankedEarly": "Banked early: {combo} → +{points} (base value).",
-    "lastTileBanked": "Last tile banked {combo} → +{points}.",
+    "lastTileBanked": "Last gem banked {combo} → +{points}.",
     "nebuliteBanked": "Nebulite banked! +{bonus}",
     "coveredNebulite": "Covered the Nebulite → +{bonus}",
     "nebuliteCompleted": "Nebulite completed the combo (+{bonus}).",
@@ -241,53 +338,62 @@
     "motherLode": "MOTHER LODE — {count} {mineral} overflow refined into {nebulites}{remainder}. +{bonus}",
     "overflow": "Overflow — {count} {mineral} added to your hand. +{bonus}",
     "pickedUpDross": "Picked up Dross — you can only bust with it.",
-    "drossCleared": "Dross cleared — tiles in your stack are reshuffled.",
+    "drossCleared": "Dross cleared — gems in your stack are reshuffled.",
     "drossIsolated": "Dross isolated and cleared — no points.",
-    "isolatedBanked": "Isolated {tileWord} banked for face value.",
+    "isolatedBanked": "Isolated {name} banked for face value - +{points}",
+    "isolatedBankedMany": "Isolated gems banked for face value - +{points}",
     "isolatedPair": "Isolated pair: one banked, one returned to your hand.",
-    "buriedRecovered": "Recovered {count} buried tile{plural} to your hand.",
-    "bust": "Bust!{lost} Tile discarded.",
-    "bustDross": "Bust — placed Dross.{lost}",
-    "bustLost": " Lost {count} unbanked tile(s).",
-    "bustLostDross": " Lost {count} activated tile(s).",
-    "bustIsolatedDiscarded": "{count} isolated tile{plural} fell away in the bust's wake — no points.",
-    "forcedInert": "BUSTED - Your next tile was forced onto the board",
-    "reshuffled": "Tiles in your stack are reshuffled.",
+    "buriedRecovered": "Recovered {count} buried gem{plural} to your hand.",
+    "bust": "BUST! {lost} gem discarded.",
+    "bustDross": "BUST! — placed Dross.{lost}",
+    "bustLost": " Lost {count} unbanked gem(s).",
+    "bustLostDross": " Lost {count} activated gem(s).",
+    "bustIsolatedDiscarded": "{count} isolated gem{plural} fell away in the bust's wake — no points.",
+    "forcedInert": "BUST! - Your next gem was forced onto the board",
+    "reshuffled": "Gems in your stack are reshuffled.",
     "cashedOut": "CASHED OUT: +{total} (lives +{lives}, free banks +{banks}, hand gems +{gems}).",
     "unbankedPenalty": "Unbanked combos left on the board: −{penalty}",
-    "clearedLeftover": "Board cleared! Leftover hand tiles: +{bonus}",
     "clearedBonus": "Board cleared bonus: +{bonus}!",
     "clearedFinal": "★ BOARD CLEARED — final score {score}",
-    "nebuliteLeftPenalty": "Nebulite left on the board: −{bonus}",
-    "outOfTiles": "Out of tiles — final score {score}",
-    "handChoice": "You have {count} tiles left. Choose which one you want to place.",
-    "cannotReplace": "You cannot replace this tile. Choose another spot.",
-    "rushWheel": "Your whole hand is revealed below — slide through the tiles to choose what to place.",
-    "handRevealed": "Your hand is revealed below — slide through the tiles and choose what to place.",
+    "outOfTiles": "Out of gems — final score {score}",
+    "handChoice": "You have {count} gems left. Choose which one you want to place.",
+    "cannotReplace": "You cannot replace this gem. Choose another spot.",
+    "rushWheel": "Your whole hand is revealed — slide through the gems to choose what to place.",
+    "handRevealed": "Your whole hand is revealed — slide through the gems to choose what to place.",
     "clearedConverted": "Unspent riches convert — busts +{lives}, banks +{banks}, hand gems +{gems} ({total} total).",
     "resurrectRevealed": "RESURRECT revealed — {effect}!",
-    "quadriantRevealed": "QUADRIANT revealed — ×4 the covered tile (+{bonus} before the multiplier)!",
+    "quadriantRevealed": "QUADRIANT revealed — ×4 the covered gem (+{bonus} before the multiplier)!",
     "zenithDealt": "ZENITH dealt — a 'joker' gem worth +3000 to complete any combo. Unused +6000.",
     "zenithBanked": "ZENITH banked — +{bonus}!",
-    "gemsLeftPenalty": "Tiles left on the board: −{points} ({count})"
+    "gemsLeftPenalty": "Gems left on the board: −{points} ({count})",
+    "versusClaimed": "{name} claimed the combo — bank it by the end of your next turn.",
+    "versusClaimLapsed": "The claim lapsed — the combo is up for grabs.",
+    "versusBustTransfer": "BUST! The activated gems bank to {name} — +{points}.",
+    "versusClearSplit": "Board cleared! The bonus splits — {name} takes the extra +1,000.",
+    "versusClearTaken": "Board cleared! {name} takes the full +{bonus} bonus.",
+    "versusWinner": "{name} wins the duel!",
+    "versusTie": "A dead heat — the duel is a tie.",
+    "cashoutOffered": "{name} wants to cash out",
+    "cashoutBlocked": "{name} blocked the cash-out",
+    "cashoutDeferred": "{blocker} takes one last move — then {offerer} cashes out"
   },
   "challenges": {
     "dailyLabel": "DAILY",
     "resetPrefix": "RESETS IN",
     "doneLabel": "DONE",
-    "quickPlay": "Quick play",
+    "quickPlay": "QUICK PLAY",
     "milestonesLabel": "MILESTONES",
     "milestonesSub": "LIFETIME",
     "ascentLabel": "NEXT ON THE ASCENT",
     "nextUp": "NEXT UP",
-    "play": "Play",
+    "play": "PLAY",
     "emptyBank": "No daily challenges are set up yet.",
     "dailyBank": [
       {
         "id": "dross5",
         "type": "dross",
-        "target": 2,
-        "text": "Sweep 2 Dross in one run",
+        "target": 4,
+        "text": "Sweep 4 Dross in one run",
         "rewardKind": "theme",
         "rewardId": "verdant",
         "icon": "dross",
@@ -296,8 +402,8 @@
       {
         "id": "dross8",
         "type": "dross",
-        "target": 4,
-        "text": "Sweep 4 Dross in one run",
+        "target": 2,
+        "text": "Sweep 2 Dross in one run",
         "rewardKind": "nebulite",
         "rewardId": "",
         "icon": "dross",
@@ -306,8 +412,8 @@
       {
         "id": "score6k",
         "type": "score",
-        "target": 15000,
-        "text": "Reach 15,000 in one game",
+        "target": 20000,
+        "text": "Reach 20,000 in one game",
         "rewardKind": "nebulite",
         "rewardId": "",
         "icon": "score",
@@ -316,8 +422,8 @@
       {
         "id": "score10k",
         "type": "score",
-        "target": 20000,
-        "text": "Reach 20,000 in one game",
+        "target": 40000,
+        "text": "Reach 40,000 in one game",
         "rewardKind": "sticker",
         "rewardId": "spacedog",
         "icon": "score",
@@ -325,12 +431,12 @@
       },
       {
         "id": "fulldrift",
-        "type": "fulldrift",
-        "target": 1,
-        "text": "Bank a Full Drift",
+        "type": "nebulite",
+        "target": 2,
+        "text": "Refine two Nebulite from overflow",
         "rewardKind": "sticker",
         "rewardId": "miner",
-        "icon": "fulldrift",
+        "icon": "nebulite",
         "scope": "run"
       },
       {
@@ -371,7 +477,7 @@
         "text": "Reach GLINT RUSH 5 times",
         "rewardKind": "music",
         "rewardId": "blacklitany",
-        "icon": "",
+        "icon": "rush",
         "scope": "day"
       },
       {
@@ -381,17 +487,17 @@
         "text": "Cash out during GLINT RUSH 3 times",
         "rewardKind": "nebulite",
         "rewardId": "",
-        "icon": "",
+        "icon": "cashout",
         "scope": "day"
       },
       {
         "id": "cmr7pkn8i",
         "type": "score",
-        "target": 10000,
-        "text": "Reach 10,000 in one game",
+        "target": 30000,
+        "text": "Reach 30,000 in one game",
         "rewardKind": "sticker",
         "rewardId": "spacedive",
-        "icon": "",
+        "icon": "score",
         "scope": "run"
       },
       {
@@ -407,8 +513,8 @@
       {
         "id": "cmr7pkp1r",
         "type": "nebulite",
-        "target": 2,
-        "text": "Refine two Nebulite from overflow",
+        "target": 3,
+        "text": "Refine three Nebulite from overflow",
         "rewardKind": "nebulite",
         "rewardId": "",
         "icon": "nebulite",
@@ -417,8 +523,8 @@
       {
         "id": "cmr7pkppu",
         "type": "fulldrift",
-        "target": 3,
-        "text": "Bank 3 Full Drifts",
+        "target": 6,
+        "text": "Bank 6 Full Drifts",
         "rewardKind": "nebulite",
         "rewardId": "",
         "icon": "fulldrift",
@@ -447,8 +553,8 @@
       {
         "id": "cmr7pku6h",
         "type": "rush",
-        "target": 3,
-        "text": "Reach GLINT RUSH 3 times",
+        "target": 5,
+        "text": "Reach GLINT RUSH 5 times",
         "rewardKind": "theme",
         "rewardId": "isla",
         "icon": "rush",
@@ -463,6 +569,36 @@
         "rewardId": "",
         "icon": "",
         "scope": "day"
+      },
+      {
+        "id": "cms5c0h49",
+        "type": "nobust",
+        "target": 10,
+        "text": "Don't bust 10 games in a row",
+        "rewardKind": "sticker",
+        "rewardId": "rocket",
+        "icon": "nobust",
+        "scope": "run"
+      },
+      {
+        "id": "cms5c0iez",
+        "type": "nobust",
+        "target": 5,
+        "text": "Don't bust 5 games in a row",
+        "rewardKind": "nebulite",
+        "rewardId": "",
+        "icon": "nobust",
+        "scope": "run"
+      },
+      {
+        "id": "cmt2eosf3",
+        "type": "versus",
+        "target": 3,
+        "scope": "day",
+        "text": "Win 3 Versus matches today",
+        "rewardKind": "nebulite",
+        "rewardId": "",
+        "icon": "spark"
       }
     ],
     "milestones": [
@@ -471,19 +607,19 @@
         "name": "Boards Cleared",
         "tiers": [
           {
-            "threshold": 5,
+            "threshold": 10,
             "rewardKind": "sticker",
             "rewardId": "icecomet",
             "amount": 10
           },
           {
-            "threshold": 10,
+            "threshold": 20,
             "rewardKind": "nebulite",
             "rewardId": "",
             "amount": 20
           },
           {
-            "threshold": 25,
+            "threshold": 30,
             "rewardKind": "music",
             "rewardId": "perihelion",
             "amount": 30
@@ -496,9 +632,27 @@
           },
           {
             "threshold": 100,
+            "rewardKind": "theme",
+            "rewardId": "skyward",
+            "amount": 50
+          },
+          {
+            "threshold": 200,
             "rewardKind": "sticker",
             "rewardId": "syndicate",
-            "amount": 50
+            "amount": 200
+          },
+          {
+            "threshold": 500,
+            "rewardKind": "nebulite",
+            "rewardId": "",
+            "amount": 500
+          },
+          {
+            "threshold": 1000,
+            "rewardKind": "nebulite",
+            "rewardId": "",
+            "amount": 1000
           }
         ]
       },
@@ -541,6 +695,18 @@
             "rewardKind": "sticker",
             "rewardId": "solarcollector02",
             "amount": 60
+          },
+          {
+            "threshold": 250,
+            "rewardKind": "nebulite",
+            "rewardId": "",
+            "amount": 250
+          },
+          {
+            "threshold": 500,
+            "rewardKind": "nebulite",
+            "rewardId": "",
+            "amount": 500
           }
         ]
       },
@@ -549,40 +715,52 @@
         "name": "Dross Swept",
         "tiers": [
           {
-            "threshold": 10,
+            "threshold": 20,
             "rewardKind": "sticker",
             "rewardId": "blackhole",
             "amount": 10
           },
           {
-            "threshold": 20,
+            "threshold": 40,
             "rewardKind": "nebulite",
             "rewardId": "",
             "amount": 20
           },
           {
-            "threshold": 30,
+            "threshold": 60,
             "rewardKind": "music",
             "rewardId": "insertcoin",
             "amount": 30
           },
           {
-            "threshold": 50,
+            "threshold": 100,
             "rewardKind": "nebulite",
             "rewardId": "",
             "amount": 50
           },
           {
-            "threshold": 80,
+            "threshold": 200,
             "rewardKind": "theme",
             "rewardId": "arcade",
             "amount": 50
           },
           {
-            "threshold": 100,
+            "threshold": 400,
+            "rewardKind": "music",
+            "rewardId": "abovetheclouds",
+            "amount": 200
+          },
+          {
+            "threshold": 500,
             "rewardKind": "nebulite",
             "rewardId": "",
-            "amount": 100
+            "amount": 500
+          },
+          {
+            "threshold": 1000,
+            "rewardKind": "nebulite",
+            "rewardId": "",
+            "amount": 1000
           }
         ]
       }
@@ -592,13 +770,71 @@
     "dailyNewTitle": "NEW CHALLENGES",
     "dailyNewIntro": "A fresh set of daily challenges is live — here's today's three.",
     "dailyDoneTitle": "CHALLENGE COMPLETED",
-    "dailyDoneIntro": "You've cleared all of today's challenges. Come back after the reset for a new set."
+    "dailyDoneIntro": "You've cleared all of today's challenges. Come back after the reset for a new set.",
+    "setBonus": "SET BONUS",
+    "gotIt": "Got it",
+    "todaySuffix": "TODAY",
+    "maxChip": "MAX",
+    "tierChip": "TIER {n}",
+    "maxedLine": "All rewards earned — maxed out.",
+    "nextPrefix": "Next:",
+    "nebuliteReward": "✦ {amount} Nebulite",
+    "nextAt": "at {target}",
+    "specialGemsLabel": "UNLOCK SPECIAL GEMS",
+    "seeAchievements": "See Achievements",
+    "specialDone": "Done",
+    "dailyClearedTitle": "DAILY CLEARED",
+    "clearedCountLabel": "{done} OF {total} CLEARED TODAY",
+    "characterNames": {
+      "sentinel": "THE SENTINEL",
+      "outlaw": "THE OUTLAW",
+      "enforcer": "THE ENFORCER",
+      "broker": "THE BROKER",
+      "ghost": "THE GHOST",
+      "hacker": "THE HACKER",
+      "siren": "THE SIREN"
+    },
+    "voiceLines": {
+      "dross": "Dross contained. Aurum remembers who held the line.",
+      "score": "That's a score worth bragging about in the Fringe.",
+      "clear": "Board swept clean. A tidy battlefield is a held battlefield.",
+      "nebulite": "Refined and delivered. The Forge expects the same tomorrow.",
+      "bankscore": "One bank, that heavy? Even Magna took notice.",
+      "banks": "Deposit after deposit — we'll split the loot later.",
+      "cashout": "Cashed out at the wire. The house honours its debts — this once.",
+      "rush": "You rode the rush like it wasn't even burning.",
+      "nobust": "Not a single bust. Echelon never even saw you. I did.",
+      "fulldrift": "Code cracked. Full drift threaded end to end. ",
+      "turn": "That was surgical. K-18 logged it — flawless.",
+      "convergence": "A beautiful Convergence. Jahdai heard it ring from here.",
+      "harmony": "Harmony, truly. The tides of Jahdai kept time with you.",
+      "accord": "An Accord struck true. Even the deep listened.",
+      "versus": "You beat the table. The house pays. But only this once."
+    },
+    "dailyDetailTitle": "DAILY CHALLENGE",
+    "introLines": {
+      "dross": "Dross is loose on the board. Contain it — Aurum is counting.",
+      "score": "Think you can post a score the Fringe will talk about?",
+      "clear": "Sweep the board clean. Aurum expects order.",
+      "nebulite": "The Forge wants Nebulite refined. Quotas don't fill themselves.",
+      "bankscore": "Brute force! Make a bank heavy enough that Magna feels it.",
+      "banks": "Keep banking the goods. The Fringe pays for volume.",
+      "cashout": "You can always strike a nice deal with the house if you need to.",
+      "rush": "Ride the rush. Don't flinch. You get in and get out.",
+      "nobust": "No busts. Move like Echelon taught you — unseen.",
+      "fulldrift": "Can you crack the code? I need one of each, please.",
+      "turn": "I need a certain sequence to complete this code. ",
+      "convergence": "Sing a Convergence for me. Jahdai is listening.",
+      "harmony": "Find the Harmony in the stones. Let it ring.",
+      "accord": "Strike an Accord. Even the deep will hear it.",
+      "versus": "A duel, then. The house always finds time to collect."
+    }
   },
   "achievements": {
     "lifetimeLabel": "LIFETIME",
     "highScoresLabel": "HIGH SCORES",
-    "showAll": "SHOW ALL",
-    "showLess": "SHOW LESS",
+    "showAll": "Show more",
+    "showLess": "Show less",
     "rewardsLabel": "REWARDS",
     "noScores": "No scores yet — play a game to set one.",
     "stats": [
@@ -625,6 +861,18 @@
       {
         "key": "deepestLevel",
         "label": "DEEPEST LEVEL"
+      },
+      {
+        "key": "duelWins",
+        "label": "BROKER DUELS WON"
+      },
+      {
+        "key": "onlineVersusWins",
+        "label": "VERSUS GAMES WON"
+      },
+      {
+        "key": "coopClears",
+        "label": "CO-OPS CLEARED"
       }
     ],
     "rewards": [
@@ -718,14 +966,26 @@
         {
           "key": "crimsonEndurance",
           "gemName": "Quadriant",
-          "blurb": "You've achieved Crimson Endurance!\n\nYou've unlocked a bonus gem. From now on, a Quadriant is buried on your board. Reveal it to quadruple the covered tile's value."
+          "blurb": "You've achieved Crimson Endurance!\n\nYou've unlocked a bonus gem. From now on, a Quadriant is buried on your board. Reveal it to quadruple the covered gem's value."
         },
         {
           "key": "superluminal",
           "gemName": "Zenith",
-          "blurb": "You've achieved Superluminal!\n\nYou've unlocked a bonus gem. From now on, a Zenith will be dealt to your hand at GLINT RUSH. Fill any combo with it and bank +6,000."
+          "blurb": "You've achieved Superluminal!\n\nYou've unlocked a bonus gem. From now on, a Zenith will be dealt to your hand at GLINT RUSH. Fill any combo with it and bank +3,000 — or finish without spending it and gain twice as much: **+6,000**."
         }
       ]
+    },
+    "extraGem": {
+      "label": "EXTRA GEM",
+      "name": "An extra gem added to your hand",
+      "desc": "Reach these depths and every run deals you another gem — always a different one.",
+      "tiers": [
+        60,
+        75,
+        90
+      ],
+      "maxedLine": "All extra gems earned",
+      "nextLine": "Next at Level {target}"
     }
   },
   "collection": {
@@ -758,7 +1018,7 @@
         "region": "Machina Forge",
         "unlocked": false,
         "trigger": "level",
-        "target": 5,
+        "target": 6,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -767,12 +1027,26 @@
         "desc": "An iron mine adrift — molten light below, gantry haze and rising embers."
       },
       {
+        "key": "nexus",
+        "name": "Digital Nexus",
+        "region": "Digital Nexus",
+        "unlocked": false,
+        "trigger": "level",
+        "target": 8,
+        "scope": "total",
+        "source": "collection",
+        "price": 0,
+        "standard": false,
+        "image": "/collection-thumbs/theme-nexus.webp",
+        "desc": "Terminal green — code rain, scanlines and a glowing grid floor."
+      },
+      {
         "key": "shadow",
         "name": "Shadow Sector",
         "region": "Shadow Sector",
         "unlocked": false,
         "trigger": "level",
-        "target": 8,
+        "target": 9,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -786,7 +1060,7 @@
         "region": "Fringe Market",
         "unlocked": false,
         "trigger": "level",
-        "target": 4,
+        "target": 5,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -800,7 +1074,7 @@
         "region": "Divinity Enclave",
         "unlocked": false,
         "trigger": "level",
-        "target": 10,
+        "target": 11,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -814,7 +1088,7 @@
         "region": "Corporate Spire",
         "unlocked": false,
         "trigger": "level",
-        "target": 6,
+        "target": 7,
         "scope": "run",
         "source": "collection",
         "price": 220,
@@ -828,7 +1102,7 @@
         "region": "Military Bastion",
         "unlocked": false,
         "trigger": "level",
-        "target": 3,
+        "target": 4,
         "scope": "run",
         "source": "collection",
         "price": 220,
@@ -1045,6 +1319,111 @@
         "standard": false,
         "image": "/collection-thumbs/theme-obsidian.webp",
         "desc": "Liquid chrome over the abyss — silver sheen and mercury ripples. The namesake."
+      },
+      {
+        "key": "faction-outlaw",
+        "name": "Outlaw Colours",
+        "region": "Faction: Outlaw",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "outlaw",
+        "image": "/faction-thumbs/outlaw.webp",
+        "desc": "Umber leathers and olive drab under a red streak — the board wears the frontier."
+      },
+      {
+        "key": "faction-enforcer",
+        "name": "Enforcer Colours",
+        "region": "Faction: Enforcer",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "enforcer",
+        "image": "/faction-thumbs/enforcer.webp",
+        "desc": "Dark iron and bronze plate, molten amber burning in the seams."
+      },
+      {
+        "key": "faction-hacker",
+        "name": "Hacker Colours",
+        "region": "Faction: Hacker",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "hacker",
+        "image": "/faction-thumbs/hacker.webp",
+        "desc": "Terminal black lit by matrix green — every tile a live session."
+      },
+      {
+        "key": "faction-sentinel",
+        "name": "Sentinel Colours",
+        "region": "Faction: Sentinel",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "sentinel",
+        "image": "/faction-thumbs/sentinel.webp",
+        "desc": "Mantis-plate grey-green squared away to parade order, amber eyes watching."
+      },
+      {
+        "key": "faction-siren",
+        "name": "Siren Colours",
+        "region": "Faction: Siren",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "siren",
+        "image": "/faction-thumbs/siren.webp",
+        "desc": "Ice-pearl light adrift in deep water — the quietest, most luminous table."
+      },
+      {
+        "key": "faction-ghost",
+        "name": "Ghost Colours",
+        "region": "Faction: Ghost",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "ghost",
+        "image": "/faction-thumbs/ghost.webp",
+        "desc": "Charcoal shadow cut by a spectral cyan glow — a board that holds its breath."
+      },
+      {
+        "key": "faction-broker",
+        "name": "Broker Colours",
+        "region": "Faction: Broker",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "broker",
+        "image": "/faction-thumbs/broker.webp",
+        "desc": "Boardroom black with a lilac sheen and a teal glint — immaculate, expensive."
       }
     ],
     "music": [
@@ -1068,13 +1447,13 @@
         "name": "Interstellar",
         "sub": "deep space ambient",
         "theme": "Interstellar",
-        "unlocked": true,
-        "trigger": "",
+        "unlocked": false,
+        "trigger": "level",
         "target": 1,
-        "scope": "total",
+        "scope": "run",
         "source": "collection",
         "price": 0,
-        "standard": true,
+        "standard": false,
         "image": "/collection-thumbs/music-interstellar.webp",
         "desc": "An adventurous deep-space voyage — lifting chords and a soaring lead."
       },
@@ -1085,7 +1464,7 @@
         "theme": "Machina Forge",
         "unlocked": false,
         "trigger": "level",
-        "target": 5,
+        "target": 6,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -1100,7 +1479,7 @@
         "theme": "Digital Nexus",
         "unlocked": false,
         "trigger": "level",
-        "target": 7,
+        "target": 8,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -1115,7 +1494,7 @@
         "theme": "Shadow Sector",
         "unlocked": false,
         "trigger": "level",
-        "target": 8,
+        "target": 9,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -1130,7 +1509,7 @@
         "theme": "Fringe Market",
         "unlocked": false,
         "trigger": "level",
-        "target": 4,
+        "target": 5,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -1145,7 +1524,7 @@
         "theme": "Divinity Enclave",
         "unlocked": false,
         "trigger": "level",
-        "target": 10,
+        "target": 11,
         "scope": "run",
         "source": "collection",
         "price": 0,
@@ -1160,7 +1539,7 @@
         "theme": "Corporate Spire",
         "unlocked": false,
         "trigger": "level",
-        "target": 6,
+        "target": 7,
         "scope": "run",
         "source": "collection",
         "price": 150,
@@ -1175,7 +1554,7 @@
         "theme": "Military Bastion",
         "unlocked": false,
         "trigger": "level",
-        "target": 3,
+        "target": 4,
         "scope": "run",
         "source": "collection",
         "price": 150,
@@ -1407,6 +1786,118 @@
         "standard": false,
         "image": "/collection-thumbs/music-chromeheart.webp",
         "desc": "Sleek minimal chrome-house with a cool, glassy pluck riff."
+      },
+      {
+        "key": "faction-outlaw-anthem",
+        "name": "Outlaw Anthem",
+        "sub": "street swagger",
+        "theme": "Faction: Outlaw",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "outlaw",
+        "image": "/faction-thumbs/outlaw.webp",
+        "desc": "A swung street strut: dusty keys, a fat backbeat and a bent red-hot lick."
+      },
+      {
+        "key": "faction-enforcer-anthem",
+        "name": "Enforcer Anthem",
+        "sub": "heavy industry",
+        "theme": "Faction: Enforcer",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "enforcer",
+        "image": "/faction-thumbs/enforcer.webp",
+        "desc": "The factory floor at full output — anvils, pistons and a saw riff with shoulders."
+      },
+      {
+        "key": "faction-hacker-anthem",
+        "name": "Hacker Anthem",
+        "sub": "terminal techno",
+        "theme": "Faction: Hacker",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "hacker",
+        "image": "/faction-thumbs/hacker.webp",
+        "desc": "A cold 16th acid line threading packet blips over a locked four-on-floor."
+      },
+      {
+        "key": "faction-sentinel-anthem",
+        "name": "Sentinel Anthem",
+        "sub": "drill-yard march",
+        "theme": "Faction: Sentinel",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "sentinel",
+        "image": "/faction-thumbs/sentinel.webp",
+        "desc": "March snare, low brass stabs and a bugle call — discipline you can hear."
+      },
+      {
+        "key": "faction-siren-anthem",
+        "name": "Siren Anthem",
+        "sub": "abyssal hymn",
+        "theme": "Faction: Siren",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "siren",
+        "image": "/faction-thumbs/siren.webp",
+        "desc": "A slow tide of wordless choir and glass chimes in vast, calm water."
+      },
+      {
+        "key": "faction-ghost-anthem",
+        "name": "Ghost Anthem",
+        "sub": "spectral suspense",
+        "theme": "Faction: Ghost",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "ghost",
+        "image": "/faction-thumbs/ghost.webp",
+        "desc": "Noir bass, a tense spectral pluck, and things you almost hear behind you."
+      },
+      {
+        "key": "faction-broker-anthem",
+        "name": "Broker Anthem",
+        "sub": "corporate minimal",
+        "theme": "Faction: Broker",
+        "unlocked": false,
+        "trigger": "",
+        "target": 1,
+        "scope": "total",
+        "source": "shop",
+        "standard": false,
+        "price": 0,
+        "pack": "broker",
+        "image": "/faction-thumbs/broker.webp",
+        "desc": "Poised minimal glasswork over a soft pulse — money that never raises its voice."
       }
     ],
     "sectors": [
@@ -1448,10 +1939,10 @@
         "name": "Blue Giant",
         "image": "/stickers/bluegiant-image.webp",
         "outline": "/stickers/bluegiant-outline.webp",
-        "requirement": "Refine a Nebulite from overflow",
+        "requirement": "Complete The Academy",
         "unlocked": false,
-        "trigger": "nebulite",
-        "target": 1,
+        "trigger": "level",
+        "target": 2,
         "scope": "run",
         "unlockLevel": -1
       },
@@ -1461,10 +1952,10 @@
         "name": "Voyager",
         "image": "/stickers/voyager-image.webp",
         "outline": "/stickers/voyager-outline.webp",
-        "requirement": "Clear your first board",
+        "requirement": "Clear a board 5 times.",
         "unlocked": false,
         "trigger": "clear",
-        "target": 1,
+        "target": 5,
         "scope": "total",
         "unlockLevel": -1
       },
@@ -1474,11 +1965,11 @@
         "name": "Relay Satellite",
         "image": "/stickers/relay-image.webp",
         "outline": "/stickers/relay-outline.webp",
-        "requirement": "Bank 5 combos in one game",
+        "requirement": "Bank a Harmony 3 times across runs",
         "unlocked": false,
-        "trigger": "banks",
-        "target": 5,
-        "scope": "run",
+        "trigger": "harmony",
+        "target": 3,
+        "scope": "total",
         "unlockLevel": -1
       },
       {
@@ -1513,12 +2004,12 @@
         "name": "Floating Gemstone",
         "image": "/puzzles/lvl11.webp",
         "outline": "/stickers/gems-outline.webp",
-        "requirement": "Clear Level 5 · Syndicate of Spires",
+        "requirement": "Clear Level 6 · Syndicate of Spires",
         "unlocked": false,
         "trigger": "level",
-        "target": 6,
+        "target": 7,
         "scope": "run",
-        "unlockLevel": 5,
+        "unlockLevel": 6,
         "puzzleId": "pz-syndicate-of-spires"
       },
       {
@@ -1527,10 +2018,10 @@
         "name": "Asteroid",
         "image": "/stickers/asteroid-image.webp",
         "outline": "/stickers/asteroid-outline.webp",
-        "requirement": "Complete a challenge",
+        "requirement": "Bank 10 Full Drifts to unlock.",
         "unlocked": false,
         "trigger": "fulldrift",
-        "target": 1,
+        "target": 10,
         "scope": "total",
         "unlockLevel": -1
       },
@@ -1672,10 +2163,10 @@
         "name": "Lost Cargo",
         "image": "/stickers/cargo-image.webp",
         "outline": "/stickers/cargo-outline.webp",
-        "requirement": "Sweep 4 Dross gems in one game",
+        "requirement": "Sweep 5 Dross gems in one game",
         "unlocked": false,
         "trigger": "dross",
-        "target": 4,
+        "target": 5,
         "scope": "run",
         "unlockLevel": -1
       },
@@ -1698,10 +2189,10 @@
         "name": "Gravitational Swirl",
         "image": "/stickers/spaceswirl-image.webp",
         "outline": "/stickers/spaceswirl-outline.webp",
-        "requirement": "Sweep 12 Dross gems across runs",
+        "requirement": "Sweep 20 Dross gems across runs",
         "unlocked": false,
         "trigger": "dross",
-        "target": 12,
+        "target": 20,
         "scope": "total",
         "unlockLevel": -1
       },
@@ -1801,13 +2292,13 @@
       {
         "id": "rocket",
         "sector": "s6",
-        "name": "Rocker ship",
+        "name": "Rocket ship",
         "image": "/stickers/rocket-image.webp",
         "outline": "/stickers/rocket-outline.webp",
-        "requirement": "Bank a Full Drift 10 times",
+        "requirement": "Complete a challenge",
         "unlocked": false,
         "trigger": "fulldrift",
-        "target": 10,
+        "target": 20,
         "scope": "total",
         "unlockLevel": -1
       },
@@ -1841,518 +2332,44 @@
         "id": "syndicate",
         "sector": "s6",
         "name": "The Floating City",
-        "image": "/stickers/syndicate-image.webp",
+        "image": "/puzzles/lvl100.webp",
         "outline": "/stickers/syndicate-outline.webp",
-        "requirement": "Complete a challenge",
+        "requirement": "Clear Level 100 · The Master Core",
         "unlocked": false,
-        "trigger": "",
+        "trigger": "boss",
         "target": 1,
         "scope": "run",
-        "unlockLevel": -1
+        "unlockLevel": 100,
+        "puzzleId": "pz-the-master-core"
       }
     ],
-    "decor": [
-      {
-        "key": "Planet",
-        "name": "Planet",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 120,
-        "image": "/decor-thumbs/Planet.webp",
-        "unlocked": true,
-        "color": "#c6c1d7",
-        "option": "big",
-        "model": "/decor/horizonplanet.glb",
-        "anim": "spin",
-        "x": 94,
-        "y": 48,
-        "depth": "mid",
-        "desc": "A softly lit world floating in the deep background."
-      },
-      {
-        "key": "Spaceship",
-        "name": "Spaceship",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 120,
-        "image": "/decor-thumbs/Spaceship.webp",
-        "unlocked": true,
-        "color": "#a79bca",
-        "option": "medium",
-        "model": "/decor/spaceship.glb",
-        "anim": "fly-around",
-        "x": 22,
-        "y": 18,
-        "depth": "near",
-        "front": "-x",
-        "desc": "A sleek cruiser gliding across the abyss."
-      },
-      {
-        "key": "spaceman",
-        "name": "Spaceman",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 280,
-        "image": "/decor-thumbs/spaceman.webp",
-        "unlocked": false,
-        "color": "#6843d6",
-        "option": "small",
-        "model": "/decor/spaceman.glb",
-        "anim": "bob",
-        "x": 28,
-        "y": 40,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A lone drifting astronaut, tethered to nothing."
-      },
-      {
-        "key": "stardust",
-        "name": "Stardust",
-        "effect": "stardust",
-        "kind": "prop",
-        "price": 180,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'82.6'%20cy%3D'77.0'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'56.7'%20cy%3D'55.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'79.8'%20cy%3D'57.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'28.0'%20cy%3D'112.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'34.8'%20cy%3D'25.2'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'50.0'%20cy%3D'116.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'35.3'%20cy%3D'73.0'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'86.7'%20cy%3D'41.2'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'108.6'%20cy%3D'25.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'6.5'%20cy%3D'57.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'3.8'%20cy%3D'119.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'18.9'%20cy%3D'102.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'114.5'%20cy%3D'61.7'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'107.5'%20cy%3D'96.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'49.3'%20cy%3D'68.0'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'71.0'%20cy%3D'91.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'19.9'%20cy%3D'30.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'77.2'%20cy%3D'98.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'0.9'%20cy%3D'57.0'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'87.7'%20cy%3D'80.7'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'70.5'%20cy%3D'59.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'1.0'%2F%3E%3Ccircle%20cx%3D'52.4'%20cy%3D'17.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#7fe9f5",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A fine field of glinting stardust that drifts upward."
-      },
-      {
-        "key": "embers",
-        "name": "Ember Rise",
-        "effect": "embers",
-        "kind": "prop",
-        "price": 180,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'93.8'%20cy%3D'44.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'106.2'%20cy%3D'69.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'15.8'%20cy%3D'67.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'1.0'%2F%3E%3Ccircle%20cx%3D'107.3'%20cy%3D'78.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'27.5'%20cy%3D'93.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'105.3'%20cy%3D'84.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'5.1'%20cy%3D'84.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'67.0'%20cy%3D'21.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'18.2'%20cy%3D'54.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'16.6'%20cy%3D'78.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'91.0'%20cy%3D'61.2'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'50.6'%20cy%3D'87.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'57.7'%20cy%3D'70.5'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'70.4'%20cy%3D'89.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'34.0'%20cy%3D'106.7'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'112.9'%20cy%3D'91.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'21.5'%20cy%3D'100.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'1.0'%2F%3E%3Ccircle%20cx%3D'117.8'%20cy%3D'48.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'29.7'%20cy%3D'33.2'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'37.0'%20cy%3D'49.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'32.5'%20cy%3D'1.0'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'91.4'%20cy%3D'62.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#ff8a3c",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "Warm embers rising slowly from below."
-      },
-      {
-        "key": "comets",
-        "name": "Comet Shower",
-        "effect": "comets",
-        "kind": "particle",
-        "price": 120,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'49.3'%20cy%3D'72.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'92.1'%20cy%3D'27.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'57.4'%20cy%3D'87.7'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'7.3'%20cy%3D'34.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'42.0'%20cy%3D'52.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'1.0'%2F%3E%3Ccircle%20cx%3D'1.2'%20cy%3D'11.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'70.4'%20cy%3D'109.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'10.6'%20cy%3D'89.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'87.5'%20cy%3D'118.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'84.0'%20cy%3D'20.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'45.3'%20cy%3D'28.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'65.1'%20cy%3D'9.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'3.2'%20cy%3D'12.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'16.0'%20cy%3D'60.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'73.7'%20cy%3D'3.6'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'56.7'%20cy%3D'77.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'16.6'%20cy%3D'93.3'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'107.4'%20cy%3D'29.1'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'90.6'%20cy%3D'43.9'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'111.5'%20cy%3D'23.4'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'1.0'%2F%3E%3Ccircle%20cx%3D'86.4'%20cy%3D'54.8'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'46.5'%20cy%3D'86.7'%20r%3D'1.4'%20fill%3D'%23fff'%20opacity%3D'0.7'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#9d7bff",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A shower of comets streaking across the dark."
-      },
-      {
-        "key": "aurora",
-        "name": "Aurora Veil",
-        "effect": "aurora",
-        "kind": "light",
-        "price": 150,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Cdefs%3E%3CradialGradient%20id%3D'g'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%239d7bff'%20stop-opacity%3D'.8'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%239d7bff'%20stop-opacity%3D'0'%2F%3E%3C%2FradialGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'60'%20cy%3D'60'%20r%3D'55'%20fill%3D'url(%23g)'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#34d98b",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A shifting veil of aurora light across the top of the screen."
-      },
-      {
-        "key": "nebulaPulse",
-        "name": "Nebula Pulse",
-        "effect": "nebulaPulse",
-        "kind": "light",
-        "price": 150,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Cdefs%3E%3CradialGradient%20id%3D'g'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%239d7bff'%20stop-opacity%3D'.8'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%239d7bff'%20stop-opacity%3D'0'%2F%3E%3C%2FradialGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'60'%20cy%3D'60'%20r%3D'55'%20fill%3D'url(%23g)'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#b36bf5",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A slow-breathing nebula bloom of violet light."
-      },
-      {
-        "key": "grid",
-        "name": "Constellation Grid",
-        "effect": "grid",
-        "kind": "pattern",
-        "price": 90,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'38.8'%20cy%3D'68.9'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'38.1'%20cy%3D'95.4'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'20.2'%20cy%3D'15.4'%20r%3D'0.9'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'97.4'%20cy%3D'76.0'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'35.7'%20cy%3D'48.6'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'66.2'%20cy%3D'26.1'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'24.6'%20cy%3D'101.7'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'79.2'%20cy%3D'90.8'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'76.1'%20cy%3D'58.4'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'97.6'%20cy%3D'58.6'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'80.4'%20cy%3D'73.3'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'81.0'%20cy%3D'47.5'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'32.8'%20cy%3D'117.7'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'96.6'%20cy%3D'4.3'%20r%3D'1.4'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'77.0'%20cy%3D'46.6'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'36.5'%20cy%3D'11.8'%20r%3D'1.4'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'22.5'%20cy%3D'5.9'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'56.7'%20cy%3D'1.1'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'25.9'%20cy%3D'19.6'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'109.1'%20cy%3D'4.0'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'100.5'%20cy%3D'93.3'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'117.3'%20cy%3D'57.1'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'36.0'%20cy%3D'59.6'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'7.3'%20cy%3D'76.4'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'94.0'%20cy%3D'8.5'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'11.3'%20cy%3D'102.4'%20r%3D'1.6'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'57.8'%20cy%3D'58.0'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'118.0'%20cy%3D'90.1'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'27.0'%20cy%3D'62.5'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'37.9'%20cy%3D'76.2'%20r%3D'0.9'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'79.8'%20cy%3D'87.3'%20r%3D'1.5'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'111.4'%20cy%3D'66.7'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'115.4'%20cy%3D'76.1'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'108.7'%20cy%3D'40.8'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'18.1'%20cy%3D'41.2'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'44.1'%20cy%3D'50.4'%20r%3D'1.6'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'68.9'%20cy%3D'112.3'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'35.8'%20cy%3D'3.8'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'49.8'%20cy%3D'107.0'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'46.5'%20cy%3D'81.2'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#40c8e0",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A faint constellation grid mapping the void."
-      },
-      {
-        "key": "orbitalRing",
-        "name": "Orbital Ring",
-        "effect": "orbitalRing",
-        "kind": "pattern",
-        "price": 90,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'120'%20height%3D'120'%20viewBox%3D'0%200%20120%20120'%3E%3Crect%20width%3D'120'%20height%3D'120'%20fill%3D'%230a0812'%2F%3E%3Ccircle%20cx%3D'111.5'%20cy%3D'15.6'%20r%3D'0.9'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'91.9'%20cy%3D'103.5'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'118.3'%20cy%3D'87.3'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'117.2'%20cy%3D'57.8'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'69.2'%20cy%3D'50.2'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'118.9'%20cy%3D'117.8'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'73.2'%20cy%3D'66.4'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'66.1'%20cy%3D'119.8'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'17.6'%20cy%3D'84.7'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'28.9'%20cy%3D'115.6'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'54.0'%20cy%3D'52.2'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'116.1'%20cy%3D'78.2'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'17.9'%20cy%3D'76.7'%20r%3D'0.9'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'48.5'%20cy%3D'38.3'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'4.0'%20cy%3D'68.6'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'63.7'%20cy%3D'41.0'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3Ccircle%20cx%3D'92.3'%20cy%3D'54.9'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'67.1'%20cy%3D'28.2'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'88.8'%20cy%3D'8.3'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'85.8'%20cy%3D'6.0'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'98.4'%20cy%3D'100.5'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'39.2'%20cy%3D'34.4'%20r%3D'1.5'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'21.8'%20cy%3D'118.9'%20r%3D'1.6'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'99.9'%20cy%3D'52.8'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'51.1'%20cy%3D'108.3'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'102.1'%20cy%3D'97.6'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'82.7'%20cy%3D'81.4'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'100.6'%20cy%3D'23.6'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'86.3'%20cy%3D'8.0'%20r%3D'1.4'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'87.9'%20cy%3D'64.7'%20r%3D'1.4'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'38.4'%20cy%3D'66.6'%20r%3D'0.8'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'22.1'%20cy%3D'98.2'%20r%3D'1.6'%20fill%3D'%239d7bff'%20opacity%3D'0.4'%2F%3E%3Ccircle%20cx%3D'23.0'%20cy%3D'96.4'%20r%3D'1.1'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'25.4'%20cy%3D'39.7'%20r%3D'0.7'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'64.9'%20cy%3D'60.9'%20r%3D'0.6'%20fill%3D'%239d7bff'%20opacity%3D'0.5'%2F%3E%3Ccircle%20cx%3D'54.4'%20cy%3D'93.2'%20r%3D'1.5'%20fill%3D'%239d7bff'%20opacity%3D'0.8'%2F%3E%3Ccircle%20cx%3D'118.6'%20cy%3D'53.3'%20r%3D'1.3'%20fill%3D'%239d7bff'%20opacity%3D'0.3'%2F%3E%3Ccircle%20cx%3D'112.1'%20cy%3D'59.8'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.6'%2F%3E%3Ccircle%20cx%3D'70.8'%20cy%3D'74.9'%20r%3D'1.2'%20fill%3D'%239d7bff'%20opacity%3D'0.7'%2F%3E%3Ccircle%20cx%3D'18.2'%20cy%3D'32.2'%20r%3D'1.0'%20fill%3D'%239d7bff'%20opacity%3D'0.9'%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#e8b53f",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A thin orbital ring encircling the play space."
-      },
-      {
-        "key": "Rocket",
-        "name": "Rocket",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 240,
-        "image": "/decor-thumbs/Rocket.webp",
-        "unlocked": false,
-        "color": "#9d7bff",
-        "option": "medium",
-        "model": "/decor/rocket.glb",
-        "anim": "fly-y",
-        "x": 14,
-        "y": 72,
-        "depth": "mid",
-        "front": "+y",
-        "desc": "A classic rocket standing ready in the background."
-      },
-      {
-        "key": "gen-planet",
-        "name": "Violet Planet",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 200,
-        "image": "/decor-thumbs/gen-planet.webp",
-        "unlocked": false,
-        "color": "#9d7bff",
-        "option": "big",
-        "model": "/decor/gen-planet.glb",
-        "anim": "spin",
-        "x": 83,
-        "y": 16,
-        "depth": "far",
-        "front": "+z",
-        "desc": "A moody violet world hanging in the distance."
-      },
-      {
-        "key": "gen-ringed",
-        "name": "Ringed Giant",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 200,
-        "image": "/decor-thumbs/gen-ringed.webp",
-        "unlocked": false,
-        "color": "#e8b53f",
-        "option": "big",
-        "model": "/decor/gen-ringed.glb",
-        "anim": "spin",
-        "x": 17,
-        "y": 14,
-        "depth": "far",
-        "front": "+z",
-        "desc": "A ringed gas giant dominating the horizon."
-      },
-      {
-        "key": "gen-moon",
-        "name": "Pale Moon",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 160,
-        "image": "/decor-thumbs/gen-moon.webp",
-        "unlocked": true,
-        "color": "#ccd0ae",
-        "option": "medium",
-        "model": "/decor/gen-moon.glb",
-        "anim": "spin-bob",
-        "x": 61,
-        "y": 24,
-        "depth": "mid",
-        "front": "+z",
-        "desc": "A pale, cratered moon drifting quietly."
-      },
-      {
-        "key": "gen-asteroid",
-        "name": "Drifting Rock",
-        "effect": "asteroids",
-        "kind": "prop",
-        "price": 160,
-        "image": "/decor-thumbs/gen-asteroid.webp",
-        "unlocked": false,
-        "color": "#8a7a6a",
-        "option": "small",
-        "model": "/decor/gen-asteroid.glb",
-        "anim": "fly-x",
-        "x": 12,
-        "y": 24,
-        "depth": "near",
-        "front": "+x",
-        "desc": "A lone rock tumbling through space."
-      },
-      {
-        "key": "gen-ship",
-        "name": "Scout Runabout",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 200,
-        "image": "/decor-thumbs/gen-ship.webp",
-        "unlocked": false,
-        "color": "#7fb4f5",
-        "option": "medium",
-        "model": "/decor/gen-ship.glb",
-        "anim": "fly-around",
-        "x": 58,
-        "y": 82,
-        "depth": "near",
-        "front": "+x",
-        "desc": "A little scout runabout darting past."
-      },
-      {
-        "key": "horizonPlanet",
-        "name": "Horizon Planet",
-        "effect": "horizonPlanet",
-        "kind": "prop",
-        "price": 120,
-        "image": "/decor-thumbs/horizonPlanet.webp",
-        "unlocked": false,
-        "color": "#9d7bff",
-        "option": "big",
-        "model": "/decor/horizonplanet.glb",
-        "anim": "spin",
-        "x": 50,
-        "y": 86,
-        "depth": "far",
-        "front": "+z",
-        "desc": "A great planet cresting the lower horizon."
-      },
-      {
-        "key": "horizon",
-        "name": "Rising Horizon",
-        "effect": "horizonPlanet",
-        "kind": "prop",
-        "price": 250,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27120%27%20height%3D%27120%27%20viewBox%3D%270%200%20120%20120%27%3E%3Crect%20width%3D%27120%27%20height%3D%27120%27%20fill%3D%27%230a0812%27%2F%3E%3Ccircle%20cx%3D%2760%27%20cy%3D%2764%27%20r%3D%2734%27%20fill%3D%27%236a5cff%27%2F%3E%3Cellipse%20cx%3D%2760%27%20cy%3D%2757.9%27%20rx%3D%2714.3%27%20ry%3D%278.2%27%20fill%3D%27%23fff%27%20opacity%3D%27.35%27%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#6a5cff",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "front": "+z",
-        "x": 50,
-        "y": 86,
-        "depth": "far",
-        "desc": "A world rising slowly along the horizon line."
-      },
-      {
-        "key": "asteroidField",
-        "name": "Asteroid Field",
-        "effect": "asteroids",
-        "kind": "particle",
-        "price": 120,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27120%27%20height%3D%27120%27%20viewBox%3D%270%200%20120%20120%27%3E%3Crect%20width%3D%27120%27%20height%3D%27120%27%20fill%3D%27%230a0812%27%2F%3E%3Ccircle%20cx%3D%2738.9%27%20cy%3D%2718.1%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.79%27%2F%3E%3Ccircle%20cx%3D%278.7%27%20cy%3D%2764.3%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.62%27%2F%3E%3Ccircle%20cx%3D%277.0%27%20cy%3D%2760.9%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.42%27%2F%3E%3Ccircle%20cx%3D%2752.0%27%20cy%3D%278.4%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.45%27%2F%3E%3Ccircle%20cx%3D%2750.9%27%20cy%3D%2799.2%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.47%27%2F%3E%3Ccircle%20cx%3D%2726.8%27%20cy%3D%2775.3%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.97%27%2F%3E%3Ccircle%20cx%3D%2769.3%27%20cy%3D%2747.6%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.99%27%2F%3E%3Ccircle%20cx%3D%275.6%27%20cy%3D%27103.0%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.57%27%2F%3E%3Ccircle%20cx%3D%2717.3%27%20cy%3D%2714.1%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.59%27%2F%3E%3Ccircle%20cx%3D%2797.9%27%20cy%3D%2721.7%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.75%27%2F%3E%3Ccircle%20cx%3D%2776.7%27%20cy%3D%2744.7%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.73%27%2F%3E%3Ccircle%20cx%3D%277.5%27%20cy%3D%277.2%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.52%27%2F%3E%3Ccircle%20cx%3D%2781.6%27%20cy%3D%2751.3%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.59%27%2F%3E%3Ccircle%20cx%3D%2770.3%27%20cy%3D%2754.4%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.58%27%2F%3E%3Ccircle%20cx%3D%2795.3%27%20cy%3D%2783.9%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.55%27%2F%3E%3Ccircle%20cx%3D%2768.9%27%20cy%3D%2763.0%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.93%27%2F%3E%3Ccircle%20cx%3D%2787.5%27%20cy%3D%2734.6%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.99%27%2F%3E%3Ccircle%20cx%3D%2714.2%27%20cy%3D%2750.2%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.85%27%2F%3E%3Ccircle%20cx%3D%2718.2%27%20cy%3D%2758.7%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.42%27%2F%3E%3Ccircle%20cx%3D%2780.2%27%20cy%3D%2791.7%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.74%27%2F%3E%3Ccircle%20cx%3D%27105.1%27%20cy%3D%2737.6%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.82%27%2F%3E%3Ccircle%20cx%3D%2771.3%27%20cy%3D%2769.6%27%20r%3D%271.4%27%20fill%3D%27%238a7a6a%27%20opacity%3D%270.67%27%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#8a7a6a",
-        "option": "medium",
-        "model": "",
-        "anim": "spin",
-        "front": "+z",
-        "x": 50,
-        "y": 25,
-        "depth": "mid",
-        "desc": "A scattered field of drifting asteroids."
-      },
-      {
-        "key": "probe",
-        "name": "Wandering Probe",
-        "effect": "probe",
-        "kind": "prop",
-        "price": 90,
-        "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27120%27%20height%3D%27120%27%20viewBox%3D%270%200%20120%20120%27%3E%3Crect%20width%3D%27120%27%20height%3D%27120%27%20fill%3D%27%230a0812%27%2F%3E%3Ccircle%20cx%3D%2760%27%20cy%3D%2764%27%20r%3D%2724%27%20fill%3D%27%237fe9f5%27%2F%3E%3Cellipse%20cx%3D%2760%27%20cy%3D%2759.7%27%20rx%3D%2710.1%27%20ry%3D%275.8%27%20fill%3D%27%23fff%27%20opacity%3D%27.35%27%2F%3E%3C%2Fsvg%3E",
-        "unlocked": false,
-        "color": "#7fe9f5",
-        "option": "small",
-        "model": "",
-        "anim": "spin",
-        "front": "+z",
-        "x": 50,
-        "y": 22,
-        "depth": "mid",
-        "desc": "A curious probe wandering the edges of the screen."
-      },
-      {
-        "key": "gen-satellite",
-        "name": "Relay Satellite",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 180,
-        "image": "/decor-thumbs/gen-satellite.webp",
-        "unlocked": false,
-        "color": "#9d7bff",
-        "option": "medium",
-        "model": "/decor/gen-satellite.glb",
-        "anim": "fly-around",
-        "front": "+x",
-        "x": 76,
-        "y": 26,
-        "depth": "mid",
-        "desc": "A relay satellite blinking on station."
-      },
-      {
-        "key": "redplanet",
-        "name": "Red Planet",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 176,
-        "image": "/decor-thumbs/redplanet.webp",
-        "unlocked": false,
-        "color": "#ad0000",
-        "option": "big",
-        "model": "/decor/redplanet.glb",
-        "anim": "spin",
-        "front": "+z",
-        "x": 72,
-        "y": 66,
-        "depth": "mid",
-        "desc": "A rust-red world glowing in the deep."
-      },
-      {
-        "key": "blueplanet",
-        "name": "Oceon Planet",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 240,
-        "image": "/decor-thumbs/blueplanet.webp",
-        "unlocked": false,
-        "color": "#4b7fd2",
-        "option": "big",
-        "model": "/decor/blueplanet.glb",
-        "anim": "spin",
-        "front": "+z",
-        "x": 6,
-        "y": 28,
-        "depth": "far",
-        "desc": "A serene ocean planet, blue and cloud-wrapped."
-      },
-      {
-        "key": "voyager",
-        "name": "Voyager",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 280,
-        "image": "/decor-thumbs/voyager.webp",
-        "unlocked": false,
-        "color": "#404a5e",
-        "option": "medium",
-        "model": "/decor/voyager.glb",
-        "anim": "fly-x",
-        "front": "+x",
-        "x": 90,
-        "y": 82,
-        "depth": "near",
-        "desc": "A far-travelling voyager craft on a long journey."
-      },
-      {
-        "key": "desertmoon",
-        "name": "Desert Moon",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 220,
-        "image": "/decor-thumbs/desertmoon.webp",
-        "unlocked": false,
-        "color": "#949494",
-        "option": "medium",
-        "model": "/decor/desertmoon.glb",
-        "anim": "spin-bob",
-        "front": "+z",
-        "x": 39,
-        "y": 60,
-        "depth": "far",
-        "desc": "A dusty desert moon, pale gold and still."
-      },
-      {
-        "key": "darkasteroid",
-        "name": "Dark Asteroid",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 220,
-        "image": "/decor-thumbs/darkasteroid.webp",
-        "unlocked": false,
-        "color": "#44404f",
-        "option": "medium",
-        "model": "/decor/darkasteroid.glb",
-        "anim": "fly-x",
-        "front": "+z",
-        "x": 50,
-        "y": 44,
-        "depth": "near",
-        "desc": "A brooding dark asteroid, barely catching the light."
-      },
-      {
-        "key": "satellite",
-        "name": "Satellite",
-        "effect": "customProp",
-        "kind": "prop",
-        "price": 155,
-        "image": "/decor-thumbs/satellite.webp",
-        "unlocked": true,
-        "color": "#94acc2",
-        "option": "medium",
-        "model": "/decor/satellite.glb",
-        "anim": "fly-x",
-        "front": "+z",
-        "x": 88,
-        "y": 64,
-        "depth": "near",
-        "desc": "A slow-orbiting satellite keeping watch."
-      }
-    ],
+    "decor": [],
     "ownedTag": "OWNED",
     "decorLabel": "DECOR · THE ASCENT",
     "decorLead": "Dress up your Ascent. Buy here, then switch pieces on in Settings › Decor.",
     "emptyShop": "Nothing in the Shop yet.",
+    "musicSlotHint": "Slot your collected tracks into the game and the Sticker Book from Settings › Audio.",
+    "gameChip": "GAME",
+    "bookChip": "BOOK",
+    "moreDecorShop": "More Decor available in the Shop",
+    "cancel": "Cancel",
+    "unequip": "Unequip",
+    "manageInSettings": "Manage in Settings",
+    "notCollected": "— not yet collected",
+    "equippedBoth": "GAME · BOOK",
+    "equippedGame": "Equipped · GAME",
+    "equippedBook": "Equipped · BOOK",
+    "showLess": "Show less",
+    "showMore": "Show {n} more",
+    "sectorOne": "SECTOR",
+    "sectorMany": "SECTORS",
+    "openSettingsDecor": "Open Settings › Decor",
+    "lockedNeedPrefix": "Locked — need",
+    "lockedNeedSuffix": "more",
+    "buyPrefix": "Buy ·",
     "cantAfford": "Not enough Nebulite",
-    "decorSettingsLabel": "Ascent Decor",
-    "decorSettingsDesc": "Switch on the decor you own to dress up your Ascent map.",
     "standardTag": "STANDARD",
-    "muteLabel": "Ambient audio",
-    "earnHintPrefix": "",
-    "shopLabel": "SHOP",
-    "shopSub": "SPEND NEBULITE",
     "buyTag": "BUY",
-    "shopThemesLead": "Shop-exclusive board themes — different from the ones you win.",
-    "shopMusicLead": "Shop-exclusive music — different from the collectible tracks.",
     "sectorUnlockLabel": "UNLOCK LEVEL {n} · {title}",
     "buyConfirm": {
       "slide": "Slide to buy",
@@ -2369,10 +2386,13 @@
         "element": "Master Core",
         "name": "Master Core",
         "desc": "A radiant crystal heart in a cage of glass blades — the power source of the Ascent.",
-        "price": 300,
+        "price": 1000,
         "unlocked": false,
         "image": "/ascent-thumbs/master-core.webp",
-        "standard": false
+        "standard": false,
+        "trigger": "level",
+        "target": 100,
+        "scope": "run"
       },
       {
         "key": "homeworld",
@@ -2585,6 +2605,16 @@
         "standard": false
       },
       {
+        "key": "bolides",
+        "element": "Bolides",
+        "name": "Bolides",
+        "desc": "Exploding fireballs forming red glowing streaks in the sky.",
+        "price": 180,
+        "unlocked": false,
+        "image": "/ascent-thumbs/bolides.webp",
+        "standard": false
+      },
+      {
         "key": "galaxy-glow",
         "element": "Galaxy glow",
         "name": "Galaxy glow",
@@ -2655,10 +2685,107 @@
         "image": "/ascent-thumbs/emerald-abyss.webp"
       }
     ],
-    "ascentLabel": "THE ASCENT · SCENE",
-    "ascentLead": "The living 3D backdrop behind the level map. Buy elements here, then switch them on or off in Settings › Decor.",
-    "ascentSettingsLabel": "The Ascent · 3D scene",
-    "ascentSettingsDesc": "The living 3D journey behind the level map. Hide or show the elements you own. Reduce Motion (Visual settings) switches to the classic backdrop instead."
+    "ascentLabel": "THE ASCENT · DECOR",
+    "ascentLead": "The living 3D backdrop behind the level map. Buy Decor items here, then switch them on or off in Settings › Decor.",
+    "ascentSettingsLabel": "The Ascent · Decor",
+    "ascentSettingsDesc": "The living 3D backdrop behind the Ascent level map. Hide or show the Decor items you own. Reduce Motion (Visual settings) switches the 3D backdrop off.",
+    "shopOffline": "Please make sure you are connected to the internet when browsing the Shop. Purchases sync to your account, so buying is paused until you reconnect.",
+    "shopOfflineRetry": "Try again",
+    "factions": [
+      {
+        "key": "outlaw",
+        "name": "Outlaw",
+        "themeKey": "faction-outlaw",
+        "musicKey": "faction-outlaw-anthem",
+        "region": "Fringe Market",
+        "price": 550,
+        "image": "/faction-thumbs/outlaw.webp",
+        "avatar": "/avatars/outlaw.webp",
+        "desc": "Umber leathers and olive drab under a red streak — the board wears the frontier.",
+        "musicDesc": "A swung street strut: dusty keys, a fat backbeat and a bent red-hot lick."
+      },
+      {
+        "key": "enforcer",
+        "name": "Enforcer",
+        "themeKey": "faction-enforcer",
+        "musicKey": "faction-enforcer-anthem",
+        "region": "Machina Forge",
+        "price": 550,
+        "image": "/faction-thumbs/enforcer.webp",
+        "avatar": "/avatars/enforcer.webp",
+        "desc": "Dark iron and bronze plate, molten amber burning in the seams.",
+        "musicDesc": "The factory floor at full output — anvils, pistons and a saw riff with shoulders."
+      },
+      {
+        "key": "hacker",
+        "name": "Hacker",
+        "themeKey": "faction-hacker",
+        "musicKey": "faction-hacker-anthem",
+        "region": "Digital Nexus",
+        "price": 580,
+        "image": "/faction-thumbs/hacker.webp",
+        "avatar": "/avatars/hacker.webp",
+        "desc": "Terminal black lit by matrix green — every tile a live session.",
+        "musicDesc": "A cold 16th acid line threading packet blips over a locked four-on-floor."
+      },
+      {
+        "key": "sentinel",
+        "name": "Sentinel",
+        "themeKey": "faction-sentinel",
+        "musicKey": "faction-sentinel-anthem",
+        "region": "Military Bastion",
+        "price": 580,
+        "image": "/faction-thumbs/sentinel.webp",
+        "avatar": "/avatars/sentinel.webp",
+        "desc": "Mantis-plate grey-green squared away to parade order, amber eyes watching.",
+        "musicDesc": "March snare, low brass stabs and a bugle call — discipline you can hear."
+      },
+      {
+        "key": "siren",
+        "name": "Siren",
+        "themeKey": "faction-siren",
+        "musicKey": "faction-siren-anthem",
+        "region": "Divinity Enclave",
+        "price": 620,
+        "image": "/faction-thumbs/siren.webp",
+        "avatar": "/avatars/siren.webp",
+        "desc": "Ice-pearl light adrift in deep water — the quietest, most luminous table.",
+        "musicDesc": "A slow tide of wordless choir and glass chimes in vast, calm water."
+      },
+      {
+        "key": "ghost",
+        "name": "Ghost",
+        "themeKey": "faction-ghost",
+        "musicKey": "faction-ghost-anthem",
+        "region": "Shadow Sector",
+        "price": 620,
+        "image": "/faction-thumbs/ghost.webp",
+        "avatar": "/avatars/ghost.webp",
+        "desc": "Charcoal shadow cut by a spectral cyan glow — a board that holds its breath.",
+        "musicDesc": "Noir bass, a tense spectral pluck, and things you almost hear behind you."
+      },
+      {
+        "key": "broker",
+        "name": "Broker",
+        "themeKey": "faction-broker",
+        "musicKey": "faction-broker-anthem",
+        "region": "Corporate Spire",
+        "price": 650,
+        "image": "/faction-thumbs/broker.webp",
+        "avatar": "/avatars/broker.webp",
+        "desc": "Boardroom black with a lilac sheen and a teal glint — immaculate, expensive.",
+        "musicDesc": "Poised minimal glasswork over a soft pulse — money that never raises its voice."
+      }
+    ],
+    "factionLabel": "FACTION PACKS",
+    "decorSettingsLabel": "Ascent Decor",
+    "decorSettingsDesc": "Switch on the decor you own to dress up your Ascent map.",
+    "muteLabel": "Ambient audio",
+    "earnHintPrefix": "",
+    "shopLabel": "SHOP",
+    "shopSub": "SPEND NEBULITE",
+    "shopThemesLead": "Shop-exclusive board themes — different from the ones you win.",
+    "shopMusicLead": "Shop-exclusive music — different from the collectible tracks."
   },
   "academyTips": {
     "tipLabel": "TIPS",
@@ -2666,12 +2793,12 @@
     "pages": [
       {
         "key": "nebulite",
-        "kicker": "LEVEL 1 · THE ACADEMY",
+        "kicker": "LEVEL 2 · SECTOR 01 OUTPOST",
         "title": "Meet the Nebulite",
         "lines": [
-          "It mirrors any gem placed next to it — a wild card that joins whatever combo you are building.",
-          "Clear it or bank it and it earns you 500 points.",
-          "Overflow a combo with 6 tiles of the same kind and you refine a Nebulite of your own."
+          "It mirrors any gem placed next to it — **a 'joker' gem** that joins whatever combo you are building.",
+          "Clear it or bank it and it earns you **500 points**.",
+          "Overflow a combo with 6 gems of the same kind and you refine a Nebulite of your own."
         ]
       },
       {
@@ -2679,9 +2806,9 @@
         "kicker": "THE GOAL",
         "title": "Clearing the Board",
         "lines": [
-          "Don’t be greedy. Sometimes you need to set yourself up for success rather than take points early and run out of tiles.",
-          "Be mindful of which tiles you take and which you leave — you may need to take a tile just to stay in the game longer.",
-          "A sacrificial Bust can be a tool: it clears your claimed tiles and can leave a gem cut off — sometimes that’s exactly how you clear the board."
+          "Don’t be greedy. Sometimes you need to set yourself up for success rather than take points early and run out of gems.",
+          "Be mindful of which gems you take and which you leave — you may need to take a gem just to stay in the game longer.",
+          "A **sacrificial Bust** can be a tool: it forces your next gem to the board and sometimes that’s exactly how you clear the board."
         ]
       },
       {
@@ -2689,22 +2816,12 @@
         "kicker": "FINAL ROUND",
         "title": "GLINT RUSH",
         "lines": [
-          "The rules shift: ANY combo you make now banks immediately — no 6-tile threshold, and free banks are unlimited.",
-          "Your whole hand is revealed. Tap a tile in the stack to swap it with the one you’re about to play.",
-          "If game over looks inevitable, Cash Out converts your remaining lives, banks and hand into points — take the exit."
+          "ANY combo you make now banks immediately — still a multiplier, but no 6-tile threshold, and **free banks are unlimited**.",
+          "Your whole hand is revealed. Cycle through the stack to swap your selected gem with any gem in your hand.",
+          "If game over looks inevitable, **CASH OUT** converts your remaining lives, banks and hand into points — take the exit."
         ]
       }
     ]
-  },
-  "academyIntro": {
-    "kicker": "LEVEL 1 · THE ACADEMY",
-    "title": "Meet the Nebulite",
-    "lines": [
-      "It mirrors any gem placed next to it — a wild card that joins whatever combo you are building.",
-      "Clear it or bank it and it earns you 500 points.",
-      "Overflow a combo with 6 tiles of the same kind and you refine a Nebulite of your own."
-    ],
-    "button": "Got it — let’s play"
   },
   "puzzleText": {
     "tipLabel": "PUZZLE",
@@ -2712,8 +2829,8 @@
       "kicker": "NEW CHALLENGE · PUZZLE BOARD",
       "title": "Uncover the Picture",
       "lines": [
-        "The Abyss buries its secrets deep, hidden beneath the surface.",
-        "But whatever lies buried under these tiles, can't remain hidden forever.",
+        "The Abyss buries its secrets deep, hidden beneath the surface. ",
+        "But whatever lies buried under these tiles, can't remain hidden forever.  ",
         "Peel away the layers, fragment by fragment, and claim the souvenir to mark your descent."
       ],
       "button": "Got it — let’s play"
@@ -2724,14 +2841,28 @@
       "button": "Continue"
     }
   },
-  "logStickyKeys": [],
+  "logStickyKeys": [
+    "rushArmed",
+    "cashedOut",
+    "outOfTiles",
+    "clearedFinal",
+    "versusClearSplit",
+    "versusClearTaken",
+    "versusBustTransfer",
+    "versusWinner",
+    "cashoutOffered",
+    "cashoutBlocked",
+    "cashoutDeferred"
+  ],
   "settingsScreen": {
     "sections": {
       "visual": "Visual",
       "audio": "Audio",
       "game": "Game",
+      "themes": "Themes",
       "decor": "Decor",
       "data": "Data",
+      "account": "Account",
       "about": "About"
     },
     "appearanceTitle": "Appearance",
@@ -2740,16 +2871,6 @@
     "lightLabel": "Light",
     "reduceTitle": "Reduce motion",
     "reduceDesc": "Calms everything that moves on its own — the board's zoom, sway and shudder, plus drifting fog and particle effects. Your device's system setting is always respected.",
-    "advancedTitle": "Advanced",
-    "advancedDesc": "Fine-tune individual effects. Reduce motion already switches all of these off — turn it off to adjust them one at a time.",
-    "advancedShow": "Advanced settings",
-    "advancedCoveredNote": "Off — covered by Reduce motion.",
-    "zoomTitle": "Board zoom",
-    "zoomDesc": "The board leans in on the action while a placement, bank or combo plays out, then settles back. Off: the board holds perfectly still.",
-    "tiltTitle": "Board tilt & sway",
-    "tiltDesc": "The board surface sits at a slight 3D angle and drifts gently as you play.",
-    "ambientTitle": "Ambient effects",
-    "ambientDesc": "Background life — drifting fog and dust, parallax, glimmers and the slow light sweep across the board.",
     "sfxTitle": "Sound effects",
     "sfxDesc": "Every sound is synthesised live — sci-fi blips, bank chimes, the collapse rumble. Slide to zero to mute.",
     "musicTitle": "Music",
@@ -2758,6 +2879,14 @@
     "tracksDesc": "Slot the music you've collected into Quick Play games and generic levels. Your Sticker Book track plays while you browse the Collection.",
     "gameMusicLabel": "Game music",
     "bookMusicLabel": "Sticker Book music",
+    "themesBoardTitle": "Board & music",
+    "themesBoardDesc": "The look and track for Quick Play games and levels without a region of their own. You can also equip these from your Collection.",
+    "themeBoardLabel": "Board theme",
+    "themeMusicLabel": "Music",
+    "themeStandardOption": "Standard",
+    "themesRegionDesc": "Swap {region}'s campaign board and track for {name}'s faction pack — or keep the standard treatment.",
+    "themesRegionsHint": "Own a Faction Pack and its campaign region appears here — you'll be able to swap that region's board and music for the character's own.",
+    "themesResetBtn": "Reset all to standard",
     "difficultyTitle": "Difficulty",
     "difficultyDesc": "Tweak the game mechanics to make gameplay easier or more challenging.",
     "easyLabel": "Easy",
@@ -2774,10 +2903,48 @@
     "shakeTitle": "Screen shake",
     "shakeDesc": "The board shudders on busts, collapses and reshuffles. Turn it off for a calmer game.",
     "resetTitle": "Reset progress",
-    "resetDesc": "Erases your campaign frontier, per-level bests and the leaderboard on this device. Your settings are kept. This cannot be undone.",
-    "resetConfirm": "Reset all campaign progress, scores, stats and achievements on this device? This can't be undone.",
+    "resetDesc": "Erases your Ascent level progress, per-level bests, stats and achievements, your Nebulite and everything in your Collection — on this device AND your account's cloud save. This cannot be undone.",
+    "resetConfirm": "Reset everything? Your progress, scores, stats, Nebulite and Collection are erased on this device and in your account. Friends and settings are kept. This can't be undone.",
     "resetButton": "Reset progress",
     "resetDoneLabel": "Progress reset ✓",
+    "resetStandard": "Reset to standard",
+    "combosBtn": "Combos & values",
+    "howToBtn": "How to play",
+    "siteBtn": "chromeabyss.com",
+    "pickerOffSub": "Game selects the best option",
+    "timerTitle": "Combo picker timer",
+    "timerDesc": "When on, the pre-selected best option auto-confirms after a short countdown. When off, confirm it manually (tap again).",
+    "decorReduceMotion": "The 3D Ascent is off while Reduce Motion is on — the classic backdrop is shown instead. Turn Reduce Motion off to customise the scene.",
+    "advancedDesc": "Fine-tune individual effects. Reduce motion already switches all of these off — turn it off to adjust them one at a time.",
+    "advancedShow": "Advanced settings",
+    "advancedCoveredNote": "Off — covered by Reduce motion.",
+    "header": "SETTINGS",
+    "tweakIntensity": "Intensity",
+    "tweakTone": "Tone",
+    "tweakWarm": "Warm",
+    "tweakNatural": "Natural",
+    "tweakCool": "Cool",
+    "tweakDensity": "Density",
+    "tweakSpeed": "Speed",
+    "tweakPosition": "Position ↔",
+    "tweakHeight": "Height ↕",
+    "tweakDistance": "Distance",
+    "tweakNear": "Near",
+    "tweakFar": "Far",
+    "tweakMid": "Mid",
+    "groupAtmosphere": "Atmosphere",
+    "groupLandmarks": "Landmarks",
+    "importFailed": "Import failed.",
+    "zoomTitle": "Board zoom",
+    "zoomDesc": "The board leans in on the action while a placement, bank or combo plays out, then settles back. Off: the board holds perfectly still.",
+    "tiltTitle": "Board tilt & sway",
+    "tiltDesc": "The board surface sits at a slight 3D angle and drifts gently as you play.",
+    "ambientTitle": "Ambient effects",
+    "ambientDesc": "Background life — drifting fog and dust, parallax, glimmers and the slow light sweep across the board.",
+    "diagCopy": "Copy crash report",
+    "diagCopied": "Copied — paste it to the devs",
+    "promoBtn": "Promo video",
+    "advancedTitle": "Advanced",
     "exportTitle": "Play on the web — take your progress",
     "exportDesc": "Glint also lives at glint.chromeabyss.com. Get a one-time code to carry your levels, gems, Nebulite and stats over. Open the link on the web (or paste the code in Settings › Account there). The code lasts 24 hours.",
     "exportButton": "Get web code",
@@ -2786,21 +2953,264 @@
     "exportCopied": "Copied ✓",
     "exportError": "Couldn't get a code — try again in a moment.",
     "noDecor": "You don't own any decor yet — pick some up in the Shop.",
-    "resetStandard": "Reset to standard",
-    "combosBtn": "Combos & values",
-    "howToBtn": "How to play",
-    "siteBtn": "chromeabyss.com",
-    "pickerOffSub": "Game selects the best option",
-    "timerTitle": "Combo picker timer",
-    "timerDesc": "When on, the pre-selected best option auto-confirms after a short countdown. When off, confirm it manually (tap again).",
-    "resetDecorSettings": "Reset decor to CMS defaults",
-    "decorReduceMotion": "The 3D Ascent is off while Reduce Motion is on — the classic backdrop is shown instead. Turn Reduce Motion off (Visual settings) to customise the scene."
+    "resetDecorSettings": "Reset decor to CMS defaults"
   },
   "exitDialog": {
     "title": "Exit Level?",
     "body": "You are about to end an active game. Are you sure you want to leave? Your progress for this particular run will not be saved.",
+    "duelBody": "You are about to walk away from the table. Are you sure? Your {bet} Nebulite stake stays with the Broker.",
     "cancel": "Cancel",
     "confirm": "Continue"
+  },
+  "restartDialog": {
+    "title": "Restart Level?",
+    "body": "You are about to restart an active game. Are you sure? Your progress for this particular run will be reset and not be saved.",
+    "duelBody": "The Broker deals a fresh duel — and takes another {bet} Nebulite stake from your wallet. This run's stake stays on the table.",
+    "cancel": "Cancel",
+    "confirm": "Restart"
+  },
+  "cashOut": {
+    "button": "CASH OUT +{value}",
+    "title": "CASH OUT",
+    "bustsLeft": "BUSTS LEFT",
+    "banksLeft": "BANKS LEFT",
+    "gemsLeft": "GEMS LEFT",
+    "valueLabel": "CASH OUT VALUE",
+    "confirm": "CONFIRM",
+    "cancel": "Cancel"
+  },
+  "rushOverlay": {
+    "kicker": "FINAL ROUND",
+    "title": "GLINT RUSH",
+    "subtitle": "∞ infinite banks · any combo banks"
+  },
+  "rewardReveal": {
+    "titleOne": "REWARD UNLOCKED",
+    "titleMany": "REWARDS UNLOCKED",
+    "subtitle": "ADDED TO YOUR COLLECTION",
+    "kindSticker": "STICKER",
+    "kindMusic": "MUSIC TRACK",
+    "kindTheme": "BOARD THEME",
+    "kindDecor": "DECOR",
+    "continueBtn": "Continue",
+    "viewBtn": "View in Collection"
+  },
+  "itemTypes": {
+    "boardTheme": "Board Theme",
+    "musicTrack": "Music Track",
+    "landmark": "Landmark",
+    "particle": "Particle",
+    "light": "Light",
+    "sky": "Sky",
+    "decorFallback": "Ascent Decor",
+    "inAction": "In action",
+    "playingPreview": "Playing preview…",
+    "previewTrack": "Preview track",
+    "factionPack": "FACTION PACK"
+  },
+  "mineralDetails": {
+    "typeLabel": "TYPE:",
+    "backButton": "GO BACK",
+    "learnMoreButton": "LEARN MORE",
+    "lockedTag": "LOCKED",
+    "unlockedTag": "UNLOCKED",
+    "items": [
+      {
+        "key": "duneglass",
+        "title": "Duneglass",
+        "type": "Mineraloid",
+        "image": "/minerals/duneglass.webp",
+        "body": "Not a pearl or crystal at all, but a natural glass. When storm winds whip the deserts of Gliese into a furnace, whirling sand fuses mid-air and cools into smooth, pearl-white spheres. The Outlaws of the Neon Bazaar gather them after every storm — the desert's only harvest, polished by the wind itself. They are worn as symbols of perseverance.",
+        "artPrompt": "a single large lustrous pearl-white glass orb (a smooth polished sphere with a soft silver-grey #aeb6c2 sheen), resting on a faint drift of pale glowing sand with a few tiny glass shards, the sand fading into the darkness"
+      },
+      {
+        "key": "vigilite",
+        "title": "Vigilite",
+        "type": "Gemstone",
+        "image": "/minerals/vigilite.webp",
+        "body": "A dark golden crystal found in the caves beneath Aurum's dark side, home of the Sentinels. Its twin-pointed marquise cut honours the Vigil of the Two Lights — the two celestial watchers that hang in Aurum's endless night. Worn as jewellery it marks devotion; cut to spearheads, arrows and blades, it marks restraint and resistance.",
+        "artPrompt": "a single large ochre-gold #c8922f marquise-cut gemstone (almond / cat's-eye shape, pointed at both ends) with a glossy surface, floating in the dark between exactly TWO large glowing moons — one moon clearly visible in the top-left, the other moon clearly visible in the bottom-right, only these two moons"
+      },
+      {
+        "key": "chromite",
+        "title": "Chromite",
+        "type": "Oxide mineral",
+        "image": "/minerals/chromite.webp",
+        "body": "A mirror-sheened shard of chromium-like metal, hauled from the deep mines of Magna, where the Gangshi have laboured for centuries. Chromite raised the Syndicate of Spires — the Corps' floating city stands on it — and it remains the backbone of manufacturing, essential in chip production and augments alike.",
+        "artPrompt": "a single large EQUILATERAL TRIANGLE chrome shard — a flat three-sided triangle with three straight edges and three sharp corners — with a mirror-polished silver #c2cad6 chrome surface, rising from a small bed of smaller triangular chromium shards that fades into the dark"
+      },
+      {
+        "key": "verdite",
+        "title": "Verdite",
+        "type": "Organic gem",
+        "image": "/minerals/verdite.webp",
+        "body": "Not mined, but grown. In the forests of K-18, tree sap hardens over generations inside the living wood; refined under pressure, it takes its diamond form. The Hackers of the Green Node prize Verdite as a symbol of their pact with nature, though its conductive heart also finds its way into ransistors, diodes, and microchips.",
+        "artPrompt": "a single large emerald-green #2fd27c LOZENGE gem — a rotated square, a four-pointed geometric diamond shape with four equal straight sides, NOT a round brilliant-cut jewel — embedded in a piece of living wood as if grown from the tree, the wood fading softly into the dark"
+      },
+      {
+        "key": "umbrite",
+        "title": "Umbrite",
+        "type": "Mineral",
+        "image": "/minerals/umbrite.webp",
+        "body": "A violet gem-like mineral that arrives from the sky, wrapped in asteroids. First discovered on Echelon where its frequent meteor showers seed the surface with Umbrite-bearing stone. It has become essential to chip-making, which means every processor and data chip in the abyss owes something to a falling star.",
+        "artPrompt": "a single large vivid violet-purple #a24df0 pentagon-cut gemstone glowing from within a crack in a pitch-black asteroid, the asteroid fading into the darkness"
+      },
+      {
+        "key": "nuracite",
+        "title": "Nuracite",
+        "type": "Energy mineral",
+        "image": "/minerals/nuracite.webp",
+        "body": "A pale turquoise hexagon-shaped mineral from the deepest trenches of Jahdai's seas. A single stone holds enough energy to power a village, and the Naiad build their world around that fact. Nuracite lights the Divinity Enclave and feeds the Tower of Truth itself, built on a mine deep inside the heart of Jahdai.",
+        "artPrompt": "a single large aqua-turquoise #3fd3e6 REGULAR HEXAGON gem with six equal straight sides, resting half-sunk in the pale sand of the ocean floor, emitting soft light, faint water shimmer and a few small bubbles above it, the sand and water fading into deep darkness"
+      },
+      {
+        "key": "dross",
+        "title": "Dross",
+        "type": "Native element mineral",
+        "image": "/minerals/dross.webp",
+        "body": "An octagonal penny is called a Dross. Made of solid gold, but gold is worthless in the abyss. Aurum's surface is blanketed in gold ore minerals, an abundance so complete it stripped the native metal of all value. Gold survives as plating on trinkets, décor and jewellery, and it is able to conduct both electricity and heat rather easily.",
+        "artPrompt": "a single large octagonal gold #e2b440 coin (clearly a coin, not a gem — flat with a shiny gold face) atop a small pile of gold coins that fades into shadow below"
+      },
+      {
+        "key": "nebulite",
+        "title": "Nebulite",
+        "type": "Synthetic",
+        "image": "/minerals/nebulite.webp",
+        "body": "Nebulite is a synthetic mineral forged by men. Refined from a fusion of gems and minerals, it is the strongest and most durable material known, and the foundation of augment production. A white diamond heart sealed in glass-clad metal: proof that the rarest treasures in the abyss are the ones its people make themselves.",
+        "artPrompt": "a single large violet #b36bf5 rounded-square gem of glass-covered metal with a white diamond set inside it and a tiny pearl at the diamond's heart, emitting light, surrounded by small stars and a few small gems of various shapes and colours"
+      },
+      {
+        "key": "resurrect",
+        "title": "Resurrect",
+        "type": "Gemstone",
+        "image": "/minerals/resurrect.webp",
+        "body": "A deep-red mineral said to cure illness and restore health, which is believed by many, but proven by no one. Belief gave it its shape: cut into hearts, set into jewellery and keepsakes. Its most important use is in a requiem, where the gemstone is laid to rest beside the departed to help them into their next life. \n**· Recover a bust or gain a life ·**",
+        "artPrompt": "a single large dark-red faceted heart-shaped gem emitting a deep red glow, surrounded by smaller rubies and red gems dissolving into the dark"
+      },
+      {
+        "key": "quadriant",
+        "title": "Quadriant",
+        "type": "Gemstone",
+        "image": "/minerals/quadriant.webp",
+        "body": "A ruby-like gem found only inside certain asteroids adrift in the abyss, mined just for its value. Rarity made it precious; preciousness made it currency. A quadirant can buy you just about anything in the abyss. Across factions that agree on nothing else, a radiant-cut Quadriant is currency no one refuses.\n**· Quadruple the covered gem's value ·**",
+        "artPrompt": "a single large bright ruby radiant-cut gem (a tall eight-sided emerald-cut octagon) set in a simple elegant ring, emitting a strong red glow, surrounded by several smaller radiant-cut rubies floating and dissolving into the dark"
+      },
+      {
+        "key": "zenith",
+        "title": "Zenith",
+        "type": "Stellar mineral",
+        "image": "/minerals/zenith.webp",
+        "body": "Zenith is light made solid. It is a stellar mineral found only in rare stars not composed of ordinary stellar matter. Mining zenith means harvesting a sun, literally. Cooling the mineral hardens a gem-like shell around a core of stored starlight: an inexhaustible light source, and the brightest thing a hand can hold.\n**· A 'joker' gem awarded at Glint Rush, +3,000, x2 if never needed ·**",
+        "artPrompt": "a single large fluorescent lime #DBFF66 elongated hexagon-cut gem, tall and narrow with pointed ends, emitting an intensely bright light, surrounded by sparkling white diamonds and stars"
+      }
+    ]
+  },
+  "endCard": {
+    "clearedTitle": "BOARD CLEARED",
+    "clearedPill": "+{n} board-clear bonus",
+    "cashedTitle": "CASHED OUT",
+    "cashedSub": "RUN BANKED",
+    "cashedPill": "+{n} banked from the abyss",
+    "overTitle": "GAME OVER",
+    "overSub": "OUT OF LIVES",
+    "overPill": "Three busts — abyss claims the board",
+    "tilesTitle": "OUT OF GEMS",
+    "tilesSub": "STACK EMPTY",
+    "tilesPill": "No gems left to place",
+    "tallyBoardTiles": "Board gems banked",
+    "tallyBusts": "Busts remaining",
+    "tallyBanks": "Free banks remaining",
+    "tallyHand": "Gems in hand",
+    "tallyZenith": "Zenith bonus",
+    "tallyClear": "Board cleared",
+    "tallyUnbanked": "Unbanked combos",
+    "tallyTiles": "Gems on board",
+    "rowTimesBanked": "Times banked",
+    "rowTimesBusted": "Times busted",
+    "rowNebuliteBanked": "Nebulite banked",
+    "rowTilesOnBoard": "Gems on board ({count})",
+    "continueBtn": "Continue",
+    "playAgain": "Play again",
+    "freshBoard": "Fresh board"
+  },
+  "overlays": {
+    "collapseTitle": "THE ABYSS COLLAPSES",
+    "singularityTitle": "SINGULARITY",
+    "singularitySub": "THE OUTER RIM FALLS INTO THE ABYSS",
+    "motherLodeTitle": "MOTHER LODE",
+    "motherLodeOne": "refined into a Nebulite",
+    "motherLodeMany": "refined into {n} Nebulites",
+    "reconnecting": "RECONNECTING — RESENDING YOUR MOVE…",
+    "loading": "LOADING"
+  },
+  "hud": {
+    "score": "SCORE",
+    "banks": "BANKS",
+    "busts": "BUSTS",
+    "chat": "Chat",
+    "restart": "Restart",
+    "upNext": "Up next",
+    "noneLeft": "None left",
+    "combos": "Combos",
+    "log": "Log",
+    "logPanel": "LOG",
+    "nowPlacing": "NOW PLACING",
+    "slideHint": "‹ SLIDE ›",
+    "resolving": "resolving…",
+    "bankNow": "BANK NOW",
+    "bankNowSub": "tap to lock points"
+  },
+  "tabsBar": {
+    "ascent": "Ascent",
+    "challenges": "Challenges",
+    "collection": "Collection",
+    "achievements": "Achievements",
+    "shop": "Shop",
+    "comingSoon": "COMING SOON",
+    "lockedDefault": "COMPLETE TUTORIAL TO UNLOCK",
+    "soonChallengesTitle": "Challenges",
+    "soonChallengesBlurb": "Daily challenges, upcoming level goals, and lifetime milestones — clear boards, bank Nebulites, sweep Dross, and watch the numbers climb.",
+    "soonCollectionTitle": "Collection",
+    "soonCollectionBlurb": "A sticker book of everything you earn — badges, unlockable music tracks and board themes to make the Abyss your own.",
+    "soonFriendsTitle": "Friends",
+    "soonFriendsBlurb": "Play with them, play against them, or challenge them to beat your board.",
+    "soonAchievementsTitle": "Achievements",
+    "soonAchievementsBlurb": "Every feat you've earned on the climb — lifetime stats, best scores and the milestones you've conquered, all in one place.",
+    "soonShopTitle": "Shop",
+    "soonShopBlurb": "Spend the Nebulite you earn on shop-exclusive board themes, music and Ascent decor."
+  },
+  "levelSelect": {
+    "moreLevels": "{n} MORE LEVELS",
+    "moreLevel": "{n} MORE LEVEL",
+    "quickStart": "Quick start",
+    "continueRun": "Continue",
+    "levelNum": "LEVEL {n}",
+    "finalLevel": "FINAL LEVEL",
+    "cleared": "CLEARED",
+    "completed": "COMPLETED",
+    "bestPrefix": "BEST",
+    "continueBtn": "CONTINUE",
+    "locked": "LOCKED",
+    "runQuick": "Quick Start",
+    "runLevel": "Lv{n}: {title}",
+    "runDaily": "You vs the World",
+    "lbCommunity": "COMMUNITY",
+    "lbFriends": "FRIENDS",
+    "lbPersonal": "PERSONAL",
+    "lbTitleCommunity": "All-time Leaderboard",
+    "lbTitleScores": "High scores",
+    "lbEmpty": "No scores yet — play a game to set one.",
+    "lbPersonalBests": "YOUR PERSONAL BESTS",
+    "lbLoading": "Loading…",
+    "lbFriendsEmpty": "No friend scores yet — challenge them!",
+    "lbBeFirst": "No scores yet — be the first.",
+    "lbYouSuffix": " (you)",
+    "lbReddit": "REDDIT",
+    "lbYou": "You",
+    "lbFooterFriends": "YOU + YOUR FRIENDS · ALL-TIME BEST",
+    "lbFooterEveryone": "EVERYONE · ALL-TIME BEST",
+    "seePrevious": "SEE PREVIOUS LEVELS",
+    "downToLevel": "DOWN TO LEVEL {n}"
   },
   "ascentScene": {
     "version": 1,
@@ -2830,6 +3240,7 @@
       "keyLightColor": "#dfe6ff",
       "keyLightIntensity": 1.3,
       "ambient": 0.16,
+      "bolides": 0.5,
       "embers": 0.55,
       "rain": 0.55,
       "aurora": 0.6,
@@ -3391,6 +3802,7 @@
       "comets": 0.4,
       "galaxy": 0,
       "flicker": 0.3,
+      "bolides": 0,
       "embers": 0,
       "rain": 0,
       "aurora": 0,
@@ -3575,5 +3987,173 @@
         }
       }
     ]
+  },
+  "quickPlayTips": {
+    "tipLabel": "TIPS",
+    "button": "Continue",
+    "combosButton": "Combos & Values",
+    "howToButton": "How to Play",
+    "pages": [
+      {
+        "key": "ropes",
+        "kicker": "QUICK PLAY",
+        "title": "Learn the ropes",
+        "lines": [
+          "Look for combos on the board and replace the gem in your hand to complete a combo.",
+          "Any combo of more than 6 gems will bank automatically. Tap **BANK NOW **to bank early.",
+          "Connect combos to make a chain, and it will bank automatically when it's 6 gems or over. That's it!"
+        ]
+      },
+      {
+        "key": "clearing",
+        "kicker": "THE GOAL",
+        "title": "Clearing the Board",
+        "lines": [
+          "Don’t be greedy. Sometimes you need to set yourself up for success rather than take points early and run out of gems.",
+          "Be mindful of which gems you take and which you leave — you may need to take a gem just to stay in the game longer.",
+          "A **sacrificial Bust** can be a tool: it forces your next gem to the board and sometimes that’s exactly how you clear the board."
+        ]
+      },
+      {
+        "key": "rush",
+        "kicker": "FINAL ROUND",
+        "title": "GLINT RUSH",
+        "lines": [
+          "ANY combo you make now **banks immediately** — still a multiplier, but no 6-tile threshold, and **free banks are unlimited**.",
+          "Your whole hand is revealed. Cycle through the stack to swap your selected gem with any gem in your hand.",
+          "If game over looks inevitable, **CASH OUT** converts your remaining lives, banks and hand into points — take the exit."
+        ]
+      }
+    ]
+  },
+  "practiceTips": {
+    "tipLabel": "TIPS",
+    "button": "Continue",
+    "pages": [
+      {
+        "key": "rush",
+        "kicker": "GLINT RUSH",
+        "title": "CASH OUT",
+        "lines": [
+          "The final round of the game is **Glint Rush** where any combo banks immediately.",
+          "Your whole hand is revealed. Cycle through the stack to swap your selected gem with any gem in your hand.",
+          "If you run out of options, tap **CASH OUT**and confirm. You’ll learn more about this later."
+        ]
+      }
+    ]
+  },
+  "characters": {
+    "tutorLine": "Welcome to my table. Learn the rules — then learn when to break even.",
+    "tutorLabel": "YOUR TUTOR",
+    "championLabel": "YOUR CHAMPION",
+    "pickerTitle": "PICK YOUR CHAMPION",
+    "pickerKickerVersus": "GLINT VERSUS",
+    "pickerKickerCoop": "GLINT CO-OP",
+    "pickerCosmetic": "YOUR CHAMPION CHEERS AND TAUNTS. NO GAMEPLAY EFFECT.",
+    "pickerHouse": "THE BROKER RUNS THE TABLE — SHE DOESN'T PLAY AT IT.",
+    "pickerConfirm": "CONFIRM",
+    "pickerTaken": "TAKEN",
+    "victoryTitle": "VICTORY",
+    "pickerQuotes": {
+      "sentinel": "Hold the line with me.",
+      "outlaw": "Let's rob this board blind.",
+      "enforcer": "Quotas. Crushed.",
+      "ghost": "They won't even see us.",
+      "hacker": "I already know how this ends.",
+      "siren": "Sing with me and the board will follow."
+    },
+    "catchphrases": {
+      "sentinel": {
+        "idle": "Aurum wasn't held by hesitation. Move.",
+        "chain": "Impactful. That's how a line holds.",
+        "bust2": "Twice down. Get up! The wall rebuilds or it falls.",
+        "coopBank": "Good instinct. I'd have waited.",
+        "rivalBust": "They cracked first. Hold your line and finish it.",
+        "victory": "The line held. It always holds."
+      },
+      "outlaw": {
+        "idle": "You planning the heist or admiring the vault?",
+        "chain": "Jackpot! Now THAT'S daylight robbery.",
+        "bust2": "Second bust. Even I don't push my luck this hard.",
+        "coopBank": "You grabbed the loot early... Respect!",
+        "rivalBust": "Fools! Rob 'em while they're down.",
+        "victory": "Cleaned them out. Let’s spend it somewhere loud."
+      },
+      "enforcer": {
+        "idle": "The quota does not fill itself. MOVE.",
+        "chain": "Crushing it! Magna will hear of this. Approvingly.",
+        "bust2": "Careful little one. On Magna that's a demotion.",
+        "coopBank": "You secured the deposit. Efficient!",
+        "rivalBust": "One bust already? They'd never survive Magna.",
+        "victory": "Victory logged. Magna expected nothing less."
+      },
+      "ghost": {
+        "idle": "Echelon teaches patience. Not paralysis. Move!",
+        "chain": "Big wins and no trace. Beautiful work!",
+        "bust2": "Too vulnerable! That's twice too many.",
+        "coopBank": "You moved early. Quietly. Smart play!",
+        "rivalBust": "They flinched first. They always do.",
+        "victory": "Over before they saw it coming."
+      },
+      "hacker": {
+        "idle": "Your route's timing out. Recalculating won't help.",
+        "chain": "Cracked it! Clean execution, no exceptions thrown.",
+        "bust2": "Vulnerabilities found. Recalibrating... Patching...",
+        "coopBank": "You committed early. Bold move!",
+        "rivalBust": "They crashed! Security is down. Let's get them!",
+        "victory": "Told you I knew how this ends. K-18 logged it. "
+      },
+      "siren": {
+        "idle": "We are all waiting for your song. Sing it!",
+        "chain": "Music to my ears. Jahdai heard it.",
+        "bust2": "Twice the deep has taken from you. Tread carefully.",
+        "coopBank": "On Jahdai we respect people who strike their own note.",
+        "rivalBust": "One bust already? The deep heard it from here.",
+        "victory": "The final note is always mine. Always."
+      },
+      "broker": {
+        "idle": "The house has all night. Do you?",
+        "chain": "I love that sound. The house approves! Keep it up!",
+        "bust2": "The house misplayed. It won't happen twice.",
+        "coopBank": "Banked early. Sensible. Well played!",
+        "rivalBust": "Careless! You dissapoint me. The house remembers.",
+        "victory": "The house always wins. You knew that coming in."
+      }
+    },
+    "duel": {
+      "title": "YOU VS THE HOUSE",
+      "sub": "Beat the Broker in a versus duel. Win and she pays double your stake. Lose, and the house keeps it.",
+      "betLabel": "YOUR STAKE",
+      "play": "DEAL ME IN",
+      "locked": "Complete the Academy to sit at her table.",
+      "broke": "You need at least {min} Nebulite to play.",
+      "tierNote": "Higher stake, sharper play",
+      "opponentName": "Broker"
+    },
+    "duelLines": {
+      "shocked": "Quite impressive! Who taught you that?",
+      "angry": "That combo was MINE. The house remembers.",
+      "laugh": "Watch closely! THIS is how the house plays.",
+      "defeated": "Impossible! How did you...Get out of here!",
+      "victory": "And that, dear guest, is why the house always wins."
+    },
+    "duelPromo": {
+      "video": "/broker_cutscene.mp4",
+      "title": "BEAT THE HOUSE",
+      "quote": "You've cleared my little errands. Ready for a real game?",
+      "playButton": "DEAL ME IN",
+      "closeButton": "Maybe later",
+      "skipLabel": "SKIP ›"
+    }
+  },
+  "academyIntro": {
+    "kicker": "LEVEL 1 · THE ACADEMY",
+    "title": "Meet the Nebulite",
+    "lines": [
+      "It mirrors any gem placed next to it — a wild card that joins whatever combo you are building.",
+      "Clear it or bank it and it earns you 500 points.",
+      "Overflow a combo with 6 tiles of the same kind and you refine a Nebulite of your own."
+    ],
+    "button": "Got it — let’s play"
   }
 }

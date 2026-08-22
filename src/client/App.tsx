@@ -41,7 +41,7 @@ import { DailyChallengePopup } from "./ui/DailyChallengePopup";
 import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
-import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE } from "./game/challenges";
+import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE, extraGemsFor, extraGemsForLevel } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
@@ -399,7 +399,9 @@ export default function App() {
     dailyRun.day = null;
     dailyGameRef.current = null;
     const seedParam = new URLSearchParams(window.location.search).get("seed");
-    start(seedParam ? { seed: Number(seedParam) } : {});
+    // Quick Play sits at no depth, so it pays what the player has EARNED
+    const extraGems = extraGemsFor();
+    start({ handSize: 9 + extraGems, extraGems, ...(seedParam ? { seed: Number(seedParam) } : {}) });
     setScreen("game");
   }, [start]);
   // The REDDIT DAILY CHALLENGE — a quick game on today's shared seed; the score
@@ -435,7 +437,7 @@ export default function App() {
     dailyGameRef.current = null;
     setCelebrate(null);
     setCurrentLevel(level);
-    const { side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, boardShape, singularityAt, extraTiles } = level.params;
+    const { side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, boardShape, singularityAt } = level.params;
     const next = LEVELS[level.num + 1];
     const openingLog = next && next.num > storedFrontier() ? `${next.unlock} Level ${next.num}` : undefined;
     // RIG the board when clearing THIS level must let the player refine Nebulite(s)
@@ -445,7 +447,18 @@ export default function App() {
     // THE ACADEMY (level 1) opens with the Nebulite tip, not the 3-2-1-GO count-in —
     // the briefing IS the intro there, so the count-in would just talk over it.
     const countdown = level.num === 1 ? false : level.countdown;
-    start({ side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, shape: boardShape, singularityAt, handSize: 9 + (extraTiles ?? 0), openingLog, countdown, nebuliteRig, ...extra });
+    // EXTRA GEMS: the depth reward (content achievements.extraGem tiers). The
+    // LEVEL decides the reward, not the frontier — replaying an old board plays
+    // it as it was. (The per-level `extraTiles` param is retired, matching web.)
+    const extraGems = extraGemsForLevel(level.num);
+    start({
+      side, nebulites, dross, collapseAt1, collapseAt2, gaps, obstacles, shape: boardShape, singularityAt,
+      handSize: 9 + extraGems, extraGems, openingLog, countdown, nebuliteRig,
+      // the GUIDED boards (Level 0's practice runs, Level 1 The Academy's
+      // closing board) deal kindly — see engine tutorialRig/rigRevealHand
+      tutorialRig: level.num === 0 || level.num === 1,
+      ...extra,
+    });
     setScreen("game");
     // THE ACADEMY (Level 1) introduces the Nebulite — its explainer pops over the
     // fresh board before play begins (only on a fresh launch, not on Restart).

@@ -1731,9 +1731,14 @@ function resolveIsolatedTiles(s: GameState): {
   }
 
   // logs
-  const scoring = banked.filter((b) => b.points > 0).length;
-  if (scoring > 0) {
-    pushLog(s, { text: logText("isolatedBanked", { tileWord: scoring === 1 ? "tile" : "tiles" }), kind: "bank", sticky: logIsSticky("isolatedBanked") });
+  const scoringTiles = banked.filter((b) => b.points > 0);
+  if (scoringTiles.length > 0) {
+    const points = scoringTiles.reduce((n, b) => n + b.points, 0).toLocaleString();
+    const text =
+      scoringTiles.length === 1
+        ? logText("isolatedBanked", { name: scoringTiles[0].value === CORE ? "Nebulite" : MINERAL_NAME[scoringTiles[0].value] ?? "gem", points })
+        : logText("isolatedBankedMany", { points });
+    pushLog(s, { text, kind: "bank", sticky: logIsSticky("isolatedBanked") });
   }
   if (toHand.length > 0) {
     pushLog(s, { text: logText("isolatedPair"), kind: "info", sticky: logIsSticky("isolatedPair") });
