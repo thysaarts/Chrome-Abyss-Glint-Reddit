@@ -12,8 +12,13 @@
  */
 import { CONTENT } from "../content/content";
 import { readVersioned, writeVersioned } from "./storage";
-import { LifetimeStats } from "./stats";
+import { LifetimeStats, loadStats } from "./stats";
 import type { FinishedRun } from "./stats";
+import { storedFrontier } from "../levels/progress";
+
+/** Closing out ALL of today's dailies pays this one-off Nebulite cherry —
+ *  the wallet credit (App), the pop-up count-up and the tab chip all read it. */
+export const SET_BONUS_NEBULITE = 10;
 
 export type ObjectiveType =
   | "dross"
@@ -28,7 +33,9 @@ export type ObjectiveType =
   | "convergence" // chains banked
   | "harmony"
   | "accord"
-  | "turn"; // internal chain name "Sweep"
+  | "turn" // internal chain name "Sweep"
+  | "nobust" // the lifetime no-bust streak (games in a row without busting — target N; 1 = this game clean)
+  | "versus"; // versus VICTORIES (vs the house or another player) — folded by recordVersusWin, never by solo runs
 
 export interface DailyEntry {
   id: string;
@@ -36,10 +43,7 @@ export interface DailyEntry {
   target: number;
   // "run" (default) = the target must be hit within one game; "day" = progress
   // ACCUMULATES across today's runs, from 0 at the daily rollover ("Clear a
-  // board 3 times"). Ported from the web build 2026-08-04 — this is the fix
-  // for the bank's binary-type entries with targets > 1, which could never
-  // complete (progress folded as best-single-run, and clear/rush/cashout/
-  // fulldrift measured 0-or-1 per run).
+  // board 3 times"). nobust ignores scope — it always reads the live streak.
   scope?: "run" | "day";
   text: string;
   // the reward on completion: "nebulite" pays +5 Nebulite; the other kinds grant a
@@ -68,17 +72,90 @@ function mulberry32(a: number) {
   };
 }
 
-/** The three daily challenges for a given local date, drawn from the CMS bank. */
-export function pickDailyChallenges(dateKey: string): DailyEntry[] {
-  const bank = (CONTENT.challenges?.dailyBank ?? []) as DailyEntry[];
-  if (bank.length <= 3) return bank.slice();
-  const rng = mulberry32(hashStr(dateKey));
-  const idx = bank.map((_, i) => i);
-  for (let i = idx.length - 1; i > 0; i--) {
+/** A "YYYY-MM-DD" local-date key as a plain day count (UTC arithmetic on the
+ *  parsed parts — the key is already the player's local calendar date). */
+function dayNumber(dateKey: string): number {
+  const [y, m, d] = dateKey.split("-").map((n) => parseInt(n, 10));
+  return Math.floor(Date.UTC(y || 1970, (m || 1) - 1, d || 1) / 86400000);
+}
+
+/** A cycle's freshly shuffled type wheel (before boundary smoothing). */
+function rawWheel(cycle: number, types: string[]): string[] {
+  const wheel = types.slice();
+  const rng = mulberry32(hashStr(`cycle:${cycle}`));
+  for (let i = wheel.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [idx[i], idx[j]] = [idx[j], idx[i]];
+    [wheel[i], wheel[j]] = [wheel[j], wheel[i]];
   }
-  return idx.slice(0, 3).map((i) => bank[i]);
+  return wheel;
+}
+
+/** The three objective types dealt on a given day: the day's window of the
+ *  cycle wheel (reshuffled once per cycle, dealt three types per day, so days
+ *  within a cycle never share a type — the windows partition one shuffle).
+ *
+ *  Boundary smoothing: the cycle's FIRST window must not repeat the previous
+ *  cycle's LAST window, so repeats are swapped out to later slots. The whole
+ *  cycle uses the one smoothed wheel (day windows stay disjoint), and swap
+ *  targets exclude the cycle's own last window — a last window is therefore
+ *  invariant under smoothing, which is what lets the previous cycle's be read
+ *  straight off its raw shuffle. Net: consecutive days NEVER share a type
+ *  (guaranteed with 9+ types in the bank; best-effort below that). */
+function dealTypes(day: number, types: string[], cycleDays: number): string[] {
+  const cycle = Math.floor(day / cycleDays);
+  const wheel = rawWheel(cycle, types);
+  if (cycleDays > 1) {
+    const lastStart = (cycleDays - 1) * 3;
+    const prev = new Set(rawWheel(cycle - 1, types).slice(lastStart, lastStart + 3));
+    const okTarget = (q: number) => (q < lastStart || q >= lastStart + 3) && !prev.has(wheel[q]);
+    let swap = 3;
+    for (let p = 0; p < 3; p++) {
+      if (!prev.has(wheel[p])) continue;
+      while (swap < wheel.length && !okTarget(swap)) swap++;
+      if (swap >= wheel.length) break;
+      [wheel[p], wheel[swap]] = [wheel[swap], wheel[p]];
+    }
+  }
+  const start = (day % cycleDays) * 3;
+  return wheel.slice(start, start + 3);
+}
+
+/** The three daily challenges for a given local date, drawn from the CMS bank.
+ *
+ *  Guarantee: the three are all DIFFERENT objective types — never two "refine
+ *  Nebulite" challenges on one day. The distinct types form a wheel that is
+ *  reshuffled once per cycle (a cycle is floor(types/3) days) and dealt three
+ *  types per day, so consecutive days share no type (cycle boundaries are
+ *  smoothed — see dealTypes) and every type gets its turn before the wheel
+ *  respins. WITHIN a type, the entry is chosen per-date, so a type's
+ *  different bank variants still alternate. */
+export function pickDailyChallenges(dateKey: string, bankOverride?: DailyEntry[]): DailyEntry[] {
+  const bank = (bankOverride ?? CONTENT.challenges?.dailyBank ?? []) as DailyEntry[];
+  if (bank.length <= 3) return bank.slice();
+
+  // the bank grouped by objective type, in bank order
+  const byType = new Map<string, DailyEntry[]>();
+  for (const e of bank) byType.set(e.type, [...(byType.get(e.type) ?? []), e]);
+  const types = [...byType.keys()];
+
+  const day = dayNumber(dateKey);
+  const cycleDays = Math.max(1, Math.floor(types.length / 3));
+  const todayTypes = dealTypes(day, types, cycleDays);
+
+  // one entry per dealt type, chosen per-date
+  const rng = mulberry32(hashStr(dateKey));
+  const picks = todayTypes.map((t) => {
+    const pool = byType.get(t)!;
+    return pool[Math.floor(rng() * pool.length)];
+  });
+
+  // a bank with fewer than 3 distinct types cannot fill the set type-uniquely —
+  // top up with unpicked entries so the day still gets its three
+  const rest = bank.filter((e) => !picks.includes(e));
+  while (picks.length < 3 && rest.length) {
+    picks.push(rest.splice(Math.floor(rng() * rest.length), 1)[0]);
+  }
+  return picks;
 }
 
 /** How far a finished run got toward an objective type (a raw value vs. target). */
@@ -97,18 +174,24 @@ export function measureRun(type: ObjectiveType, run: FinishedRun): number {
     case "harmony": return run.chains?.harmony ?? 0;
     case "accord": return run.chains?.accord ?? 0;
     case "turn": return run.chains?.turn ?? 0;
+    // the SAME streak the Resurrect gem tracks: recordRun folds this run into
+    // the stats (extend on clean, reset on any bust) BEFORE evaluating dailies,
+    // so this reads the streak including the run that just finished
+    case "nobust": return run.busts === 0 ? (loadStats().noBustStreak ?? 0) : 0;
+    case "versus": return 0; // versus wins fold via recordVersusWin, not solo runs
   }
 }
 
 /** For recordRun: today's three challenges + what this run scored toward each.
  *  "day"-scope entries fold as a SUM across today's runs; everything else keeps
- *  the best single-run value. */
+ *  the best single-run value. nobust always folds as max — measureRun already
+ *  returns the whole streak, so summing would double-count it. */
 export function evalDailyForRun(dateKey: string, run: FinishedRun): { id: string; value: number; target: number; mode: "max" | "sum" }[] {
   return pickDailyChallenges(dateKey).map((c) => ({
     id: c.id,
     value: measureRun(c.type, run),
     target: c.target,
-    mode: c.scope === "day" ? "sum" : "max",
+    mode: c.scope === "day" && c.type !== "nobust" ? "sum" : "max",
   }));
 }
 
@@ -156,7 +239,13 @@ function milestoneValue(key: string, s: LifetimeStats): number {
     case "drossSwept": return s.drossSwept;
     case "banksTotal": return s.banksTotal;
     case "gamesPlayed": return s.gamesPlayed;
-    case "deepestLevel": return s.deepestLevel;
+    // "deepest level" IS the current frontier (highest unlocked level in this
+    // account's progress) — a reset resets it; never a lifetime max
+    case "deepestLevel": return storedFrontier();
+    // the LIFETIME bottom row: together-game tallies
+    case "duelWins": return s.duelWins ?? 0;
+    case "onlineVersusWins": return s.onlineVersusWins ?? 0;
+    case "coopClears": return s.coopClears ?? 0;
     default: return 0;
   }
 }
@@ -191,6 +280,43 @@ export function crossedMilestoneTiers(prev: LifetimeStats, next: LifetimeStats):
   return crossed;
 }
 
+// ---- EXTRA GEMS (depth reward) ----
+/** The CMS tier thresholds (campaign levels) at which a run deals another gem. */
+export function extraGemTiers(): number[] {
+  const t = (CONTENT.achievements as unknown as { extraGem?: { tiers?: number[] } }).extraGem?.tiers;
+  return Array.isArray(t) ? t.filter((n) => typeof n === "number" && n > 0).slice().sort((a, b) => a - b) : [];
+}
+
+/** How many EXTRA GEMS this player's depth has earned (tiers passed). Frontier-
+ *  based and permanent — it never un-earns, and it is declared in the RunSpec so
+ *  the server replay builds the identical hand (it cannot see local progress). */
+export function extraGemsFor(frontier: number = storedFrontier()): number {
+  return extraGemTiers().filter((t) => frontier >= t).length;
+}
+
+/** How many EXTRA GEMS a given CAMPAIGN LEVEL deals. The tiers say where the
+ *  reward applies, not just when it was earned: replaying a level BELOW a tier
+ *  plays it as it was — a level-59 board never carries the level-60 reward.
+ *  Bounded by what the player has actually earned (a level above the frontier
+ *  is unplayable today, but the cap keeps that true if that ever changes). */
+export function extraGemsForLevel(levelNum: number, frontier: number = storedFrontier()): number {
+  return extraGemsFor(Math.min(levelNum, frontier));
+}
+
+/** Progress toward the NEXT extra gem: the bar + counter the Achievements page
+ *  draws. `target` is the next tier (the last one once maxed). */
+export function extraGemProgress(frontier: number = storedFrontier()): {
+  tier: number; tiers: number[]; value: number; base: number; target: number; progress: number; maxed: boolean;
+} {
+  const tiers = extraGemTiers();
+  const tier = tiers.filter((t) => frontier >= t).length;
+  const maxed = tier >= tiers.length;
+  const base = tier === 0 ? 0 : tiers[tier - 1];
+  const target = maxed ? (tiers[tiers.length - 1] ?? 0) : tiers[tier];
+  const progress = maxed ? 1 : Math.max(0, Math.min(1, (frontier - base) / Math.max(1, target - base)));
+  return { tier, tiers, value: frontier, base, target, progress, maxed };
+}
+
 // ---- rewards / achievements ----
 export interface Achievement {
   key: string;
@@ -210,6 +336,8 @@ export interface Achievement {
 const REWARD_GEM: Record<string, { shape: string; color: string }> = {
   firstClear: { shape: "heptagon", color: "#7fe9f5" },
   rushHour: { shape: "invtri", color: "#ff9a5a" },
+  // REDDIT ADAPTATION: no friends system here — the web build's `community`
+  // achievement stays `cashedOut` on Reddit (same gem slot in the case).
   cashedOut: { shape: "octagon", color: "#ffd166" },
   fullDrift: { shape: "kite", color: "#9d7bff" },
   motherLode: { shape: "marquise", color: "#ff6fa5" },
@@ -230,13 +358,21 @@ const REWARD_TILE: Record<string, number> = {
   superluminal: 10, // SUPERLUMINAL (elongated hex)
 };
 
+/** Level-based achievements read the CURRENT FRONTIER (the highest unlocked
+ *  level in this account's progress), NOT a lifetime stat — a reset resets
+ *  them, and a level-1 player can never show "deepest 100" (decided
+ *  2026-07-24). `frontier` is injectable so run-end diffing can compare the
+ *  pre-run value against the post-run one. */
 /** EARNED IS FOREVER (except "community", by design): several conditions read
  *  LIVE stats that can go back down — noBustStreak resets on a bust, and the
  *  Resurrect it unlocked used to vanish with it. Every earned achievement is
- *  LATCHED to storage the moment any evaluation sees it true. */
+ *  LATCHED to storage the moment any evaluation sees it true; the latch syncs
+ *  across devices (SYNC_KEYS, union merge). */
 const LATCH_KEY = "glint.achievements.v1";
 const LATCH_V = 1;
-const NEVER_LATCH = new Set(["community"]);
+// (web's `community` achievement — the one allowed to un-earn itself — has no
+// Reddit equivalent; every achievement here latches)
+const NEVER_LATCH = new Set<string>();
 let latchCache: Set<string> | null = null;
 function latchedSet(): Set<string> {
   if (!latchCache) {
@@ -252,61 +388,39 @@ function latch(key: string): void {
   writeVersioned(LATCH_KEY, [...s], LATCH_V);
 }
 
-/** GENUINELY earned (never a dev override) — the unlock CELEBRATION must only
- *  fire for the real thing. */
-export function abilityAchieved(key: string, s: LifetimeStats): boolean {
-  return achievementEarned(key, s);
-}
-
-/** UNLOCK CELEBRATIONS ARE PERSISTENT-UNTIL-SEEN: the popup used to exist only
- *  in the one run-end that crossed the threshold — Play again / exit / reload
- *  discarded it forever. Earned-but-uncelebrated gems re-offer their popup at
- *  every run end until a Continue actually shows it. */
-const CELEB_KEY = "glint.abilitycelebrated.v1";
-const CELEB_V = 1;
-export function celebratedAbilities(): Set<string> {
-  const raw = readVersioned<string[]>(CELEB_KEY, [], CELEB_V);
-  return new Set(Array.isArray(raw) ? raw.filter((k): k is string => typeof k === "string") : []);
-}
-export function markAbilitiesCelebrated(keys: string[]): void {
-  const s = celebratedAbilities();
-  for (const k of keys) s.add(k);
-  writeVersioned(CELEB_KEY, [...s], CELEB_V);
-}
-
-function achievementEarned(key: string, s: LifetimeStats): boolean {
-  const live = achievementLive(key, s);
+function achievementEarned(key: string, s: LifetimeStats, frontier: number = storedFrontier()): boolean {
+  const live = achievementLive(key, s, frontier);
   if (NEVER_LATCH.has(key)) return live;
   if (live) { latch(key); return true; }
   return latchedSet().has(key);
 }
 
-function achievementLive(key: string, s: LifetimeStats): boolean {
+function achievementLive(key: string, s: LifetimeStats, frontier: number): boolean {
   switch (key) {
     case "firstClear": return s.boardsCleared >= 1;
     case "rushHour": return s.reachedRush;
     case "cashedOut": return s.cashedOut;
     case "fullDrift": return s.fullDrift;
     case "motherLode": return s.nebulitesAcquired >= 1;
-    case "trailblazer": return s.deepestLevel >= 10;
+    case "trailblazer": return frontier >= 10;
     case "shapeShifter": return s.clearedShaped;
     case "harmonizer": return s.bankedHarmony;
     case "fourCorners": return s.clearedSquare;
-    case "milestoner": return s.deepestLevel >= 50;
+    case "milestoner": return frontier >= 50;
     case "centurion": return s.gamesPlayed >= 100;
     case "masterCore": return s.beatMasterCore;
     // the three ability bonus-gems — earning the achievement unlocks the gem
     case "invincible": return (s.noBustStreak ?? 0) >= 30;
-    case "crimsonEndurance": return s.deepestLevel >= 40;
+    case "crimsonEndurance": return frontier >= 40;
     case "superluminal": return (s.rushCount ?? 0) >= 100;
     default: return false;
   }
 }
 
 // the ability bonus-gems show live progress toward their goal (e.g. "12 / 30")
-const REWARD_PROGRESS: Record<string, { of: (s: LifetimeStats) => number; target: number }> = {
+const REWARD_PROGRESS: Record<string, { of: (s: LifetimeStats, frontier: number) => number; target: number }> = {
   invincible: { of: (s) => s.noBustStreak ?? 0, target: 30 },
-  crimsonEndurance: { of: (s) => s.deepestLevel, target: 40 },
+  crimsonEndurance: { of: (_s, frontier) => frontier, target: 40 },
   superluminal: { of: (s) => s.rushCount ?? 0, target: 100 },
 };
 
@@ -324,24 +438,56 @@ function devAbilitiesOn(): boolean {
 /** True once the achievement that grants this bonus gem is earned — the gem then
  *  seeds in games. Keyed by achievement key ("invincible"/"crimsonEndurance"/
  *  "superluminal"). abilityUnlocked is only ever called for those three keys. */
-export function abilityUnlocked(key: string, s: LifetimeStats): boolean {
-  return devAbilitiesOn() || achievementEarned(key, s);
+export function abilityUnlocked(key: string, s: LifetimeStats, frontier: number = storedFrontier()): boolean {
+  return devAbilitiesOn() || achievementEarned(key, s, frontier);
 }
 
-export function computeAchievements(s: LifetimeStats): Achievement[] {
+/** GENUINELY earned (never the dev ?abilities override) — the unlock CELEBRATION
+ *  must only fire for the real thing. */
+export function abilityAchieved(key: string, s: LifetimeStats, frontier: number = storedFrontier()): boolean {
+  return achievementEarned(key, s, frontier);
+}
+
+/** UNLOCK CELEBRATIONS ARE PERSISTENT-UNTIL-SEEN: the popup used to exist only
+ *  in the one run-end that crossed the threshold — Play again / exit / reload
+ *  discarded it forever. Earned-but-uncelebrated gems now re-offer their popup
+ *  at every run end until a Continue actually shows it. Device-local: each
+ *  device celebrates once (a synced unlock still gets its moment). */
+const CELEB_KEY = "glint.abilitycelebrated.v1";
+const CELEB_V = 1;
+export function celebratedAbilities(): Set<string> {
+  const raw = readVersioned<string[]>(CELEB_KEY, [], CELEB_V);
+  return new Set(Array.isArray(raw) ? raw.filter((k): k is string => typeof k === "string") : []);
+}
+export function markAbilitiesCelebrated(keys: string[]): void {
+  const s = celebratedAbilities();
+  for (const k of keys) s.add(k);
+  writeVersioned(CELEB_KEY, [...s], CELEB_V);
+}
+
+export function computeAchievements(s: LifetimeStats, frontier: number = storedFrontier()): Achievement[] {
   const defs = (CONTENT.achievements?.rewards ?? []) as { key: string; name: string; desc: string }[];
-  return defs.map((d) => ({
-    key: d.key,
-    name: d.name,
-    desc: d.desc,
-    earned: achievementEarned(d.key, s),
-    shape: REWARD_GEM[d.key]?.shape ?? "hexagon",
-    color: REWARD_GEM[d.key]?.color ?? "#9d7bff",
-    tileValue: REWARD_TILE[d.key],
-    progress: REWARD_PROGRESS[d.key]
-      ? { current: Math.min(REWARD_PROGRESS[d.key].of(s), REWARD_PROGRESS[d.key].target), target: REWARD_PROGRESS[d.key].target }
-      : undefined,
-  }));
+  return defs.map((d) => {
+    const earned = achievementEarned(d.key, s, frontier);
+    return {
+      key: d.key,
+      name: d.name,
+      desc: d.desc,
+      earned,
+      shape: REWARD_GEM[d.key]?.shape ?? "hexagon",
+      color: REWARD_GEM[d.key]?.color ?? "#9d7bff",
+      tileValue: REWARD_TILE[d.key],
+      // once AWARDED the bar is a trophy, not a live meter: it stays full at
+      // target/target even when the underlying stat later dips (e.g. a streak
+      // resetting after the Resurrect was already earned)
+      progress: REWARD_PROGRESS[d.key]
+        ? {
+            current: earned ? REWARD_PROGRESS[d.key].target : Math.min(REWARD_PROGRESS[d.key].of(s, frontier), REWARD_PROGRESS[d.key].target),
+            target: REWARD_PROGRESS[d.key].target,
+          }
+        : undefined,
+    };
+  });
 }
 
 /** A lifetime stat-tile value by key (bestScore comes from the leaderboard). */

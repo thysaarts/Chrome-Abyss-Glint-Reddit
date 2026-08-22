@@ -35,10 +35,15 @@ export interface LifetimeStats {
   // ACHIEVEMENT BONUS-GEM tracking
   noBustStreak: number; // completed games in a row with ZERO busts (Invincible → 30)
   rushCount: number; // lifetime count of runs that reached GLINT RUSH (Superluminal → 100)
-  // lifetime COUNTS behind "total"-scope collectible triggers (the boolean flags
-  // above can't express a target > 1 — this is why rocket/satellite/escapepod
-  // etc. could never grant). Absent in pre-existing saves — readers guard with
-  // ?? 0; both start from 0 (no history to credit).
+  versusWins?: number; // YOU vs THE HOUSE + online versus victories (combined)
+  // the Achievements LIFETIME bottom row (Thys 2026-08-21) — together games
+  // never reach recordRun, so these are credited at their own settle points
+  duelWins?: number; // Broker duels won (subset of versusWins)
+  onlineVersusWins?: number; // online versus games won (subset of versusWins)
+  coopClears?: number; // co-op boards cleared (either participant's device credits itself)
+  // lifetime COUNTS behind "lifetime total"-scope collectible triggers (the old
+  // boolean flags above can't express a target > 1). Absent in pre-existing
+  // saves — readers guard with ?? 0; both start from 0 (no history to credit).
   fullDriftTotal: number; // Full Drifts banked, lifetime
   cashoutCount: number; // runs ended by a cash-out, lifetime
 }
@@ -64,6 +69,10 @@ export const ZERO_STATS: LifetimeStats = {
   turnTotal: 0,
   noBustStreak: 0,
   rushCount: 0,
+  versusWins: 0,
+  duelWins: 0,
+  onlineVersusWins: 0,
+  coopClears: 0,
   fullDriftTotal: 0,
   cashoutCount: 0,
 };
@@ -160,7 +169,9 @@ export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { i
   s.nebulitesAcquired += Math.max(0, run.nebulitesAcquired);
   s.drossSwept += Math.max(0, run.drossCleared);
   s.banksTotal += Math.max(0, run.banks);
-  if (run.levelNum >= 0) s.deepestLevel = Math.max(s.deepestLevel, run.levelNum);
+  // deepestLevel is no longer tallied here — "deepest level" now means the
+  // CURRENT FRONTIER (levels/progress) everywhere, so a reset truly resets it.
+  // The field stays in the shape for save compatibility; readers ignore it.
   // no-bust streak: a clean completed run extends it; ANY bust resets it to 0.
   // (recordRun only fires on a genuinely finished game — a Replay mid-run never
   // reaches here, so abandoning doesn't touch the streak.)
@@ -188,6 +199,39 @@ export function recordRun(run: FinishedRun, evalDaily: (run: FinishedRun) => { i
     if (daily.progress[id] >= target && !daily.done.includes(id)) {
       daily.done.push(id);
       newly.push(id);
+    }
+  }
+  saveDaily(daily);
+  return newly;
+}
+
+/** A CO-OP BOARD CLEARED — together games never reach recordRun, so the clear
+ *  is credited here (each participant's device credits its own lifetime). */
+export function recordCoopClear(): void {
+  const s = loadStats();
+  s.coopClears = (s.coopClears ?? 0) + 1;
+  writeVersioned(STATS_KEY, s, SAVE_V);
+}
+
+/** A VERSUS WIN — vs the house (Broker duel) or another player online. Together
+ *  games never reach recordRun (they don't touch solo records), so this is
+ *  their one hook into the daily system: +1 into today's "versus"-type dailies
+ *  (wins accumulate across games regardless of scope) and a lifetime counter.
+ *  Returns the ids of dailies newly completed by this win. */
+export function recordVersusWin(entries: { id: string; type: string; target: number }[], kind: "duel" | "online" = "online"): string[] {
+  const s = loadStats();
+  s.versusWins = (s.versusWins ?? 0) + 1;
+  if (kind === "duel") s.duelWins = (s.duelWins ?? 0) + 1;
+  else s.onlineVersusWins = (s.onlineVersusWins ?? 0) + 1;
+  writeVersioned(STATS_KEY, s, SAVE_V);
+  const daily = loadDaily();
+  const newly: string[] = [];
+  for (const e of entries) {
+    if (e.type !== "versus") continue;
+    daily.progress[e.id] = (daily.progress[e.id] ?? 0) + 1;
+    if (daily.progress[e.id] >= e.target && !daily.done.includes(e.id)) {
+      daily.done.push(e.id);
+      newly.push(e.id);
     }
   }
   saveDaily(daily);

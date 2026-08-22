@@ -41,7 +41,7 @@ import { DailyChallengePopup } from "./ui/DailyChallengePopup";
 import { AchievementsPage } from "./ui/AchievementsPage";
 import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
-import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements } from "./game/challenges";
+import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
@@ -691,11 +691,11 @@ export default function App() {
             else neb += per; // the item was already owned — the daily still pays
           }
         }
-        // SET BONUS: closing out ALL THREE of today's dailies pays a one-off +10
+        // SET BONUS: closing out ALL THREE of today's dailies pays a one-off cherry
         // (the CHALLENGE COMPLETED pop-up celebrates it). Fires on the run that
         // completes the last one — a fully-done set completes 0 new dailies.
         const doneNow = loadDaily().done;
-        if (todays.length > 0 && todays.every((c) => doneNow.includes(c.id))) neb += 10;
+        if (todays.length > 0 && todays.every((c) => doneNow.includes(c.id))) neb += SET_BONUS_NEBULITE;
       }
       // MILESTONE tiers this run crossed pay out for real: Nebulite adds to the
       // wallet, a Collection item is granted (skipped silently if already owned)
