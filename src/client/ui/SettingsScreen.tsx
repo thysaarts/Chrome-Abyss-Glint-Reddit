@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { theme } from "../theme/theme";
-import { CONTENT } from "../content/content";
+import { CONTENT, fmt } from "../content/content";
 import { sfx } from "../audio/sfx";
 import { resetAllProgress } from "../levels/progress";
 import { resetStats } from "../game/stats";
 import { resetWallet } from "../game/wallet";
-import { ownedMusic, musicTracks, resetCollection } from "../game/collection";
+import { ownedMusic, musicTracks, resetCollection, themes, themeOwned, factionPacks, factionOwned, factionTheme, factionMusic, factionRegion } from "../game/collection";
+import { REGIONS } from "../theme/regions";
 import type { AscentItem } from "../game/collection";
 import { NebuliteGem } from "./GameHeader";
 import { resetAcademyTips } from "../game/academy";
@@ -24,7 +25,7 @@ import type { Settings, SceneOverride } from "./settings";
  * dark hero theme and the light / high-visibility mode.
  */
 
-type Section = "visual" | "audio" | "game" | "decor" | "data" | "about";
+type Section = "visual" | "audio" | "game" | "themes" | "decor" | "data" | "about";
 
 const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   {
@@ -56,6 +57,18 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
         <path d="M7.5 10v3M6 11.5h3" />
         <circle cx="16" cy="10.4" r="0.9" fill="currentColor" stroke="none" />
         <circle cx="18.4" cy="12.4" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    id: "themes",
+    label: "Themes",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 21.5a9.5 9.5 0 1 1 9.5-9.5c0 2.6-2.1 3.2-3.7 3.2h-2.1a2.1 2.1 0 0 0-1.6 3.5c.4.5.5 1.3 0 1.8-.6.6-1.3 1-2.1 1Z" />
+        <circle cx="7.6" cy="10.6" r="1" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="7.4" r="1" fill="currentColor" stroke="none" />
+        <circle cx="16.4" cy="10.6" r="1" fill="currentColor" stroke="none" />
       </svg>
     ),
   },
@@ -301,6 +314,7 @@ export function SettingsScreen({
             )}
 
 
+            {section === "themes" && <ThemesSection settings={settings} onChange={onChange} />}
             {section === "data" && (
               <>
               {/* TAKE YOUR PROGRESS TO THE WEB — a one-time code + deep link */}
@@ -509,6 +523,109 @@ const advancedBtn: React.CSSProperties = {
   fontSize: 12.5,
   cursor: "pointer",
 };
+
+
+/** SETTINGS › THEMES — the generic board + track pickers up top, then one row
+ *  per OWNED faction pack: swap its aligned campaign region's board and music
+ *  for the pack's, or keep the standard treatment. Factory reset at the bottom.
+ *  (The Collection equips the generic pair too — this tab is the dropdown way.) */
+function ThemesSection({ settings, onChange }: { settings: Settings; onChange: (patch: Partial<Settings>) => void }) {
+  const S = CONTENT.settingsScreen;
+  // the generic board select offers every owned theme that carries a region bundle
+  const genericOptions = [
+    { value: "", label: S.themeStandardOption },
+    ...themes()
+      .filter((t) => t.region && REGIONS[t.region] && themeOwned(t))
+      .map((t) => ({ value: t.region as string, label: t.name })),
+  ];
+  // a swap row per owned pack whose aligned region + member items all resolve
+  const packRows = factionPacks().flatMap((p) => {
+    const region = factionRegion(p);
+    const t = factionTheme(p), m = factionMusic(p);
+    if (!region || !REGIONS[region] || !t?.region || !m?.theme || !factionOwned(p)) return [];
+    return [{ pack: p, region, packTheme: t, packMusic: m }];
+  });
+  const setSwap = (key: "regionThemes" | "regionMusic", region: string, v: string) => {
+    sfx.click();
+    const next = { ...settings[key] } as Record<string, string>;
+    if (v) next[region] = v; else delete next[region];
+    onChange({ [key]: next } as Partial<Settings>);
+  };
+
+  return (
+    <>
+      <SettingRow title={S.themesBoardTitle} desc={S.themesBoardDesc}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 340 }}>
+          <LabeledSelect label={S.themeBoardLabel} value={settings.boardTheme} options={genericOptions} onChange={(v) => { sfx.click(); onChange({ boardTheme: v }); }} />
+          <MusicSelect label={S.themeMusicLabel} value={settings.musicGeneric} onChange={(v) => { sfx.click(); onChange({ musicGeneric: v }); }} />
+        </div>
+      </SettingRow>
+
+      {packRows.length === 0 ? (
+        <div style={{ fontFamily: theme.fonts.sans, fontSize: 12.5, lineHeight: 1.5, color: theme.color.dim, maxWidth: 420, paddingBottom: 22, marginBottom: 22, borderBottom: `1px solid ${theme.color.border}` }}>
+          {S.themesRegionsHint}
+        </div>
+      ) : (
+        packRows.map(({ pack, region, packTheme, packMusic }) => {
+          const stdTheme = themes().find((t) => t.region === region);
+          const stdMusic = musicTracks().find((m) => m.theme === region);
+          return (
+            <SettingRow key={pack.key} title={region} desc={fmt(S.themesRegionDesc, { region, name: pack.name })}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 340 }}>
+                <LabeledSelect
+                  label={S.themeBoardLabel}
+                  value={settings.regionThemes[region] ?? ""}
+                  options={[
+                    { value: "", label: stdTheme?.name ?? S.themeStandardOption },
+                    { value: packTheme.region as string, label: packTheme.name },
+                  ]}
+                  onChange={(v) => setSwap("regionThemes", region, v)}
+                />
+                <LabeledSelect
+                  label={S.themeMusicLabel}
+                  value={settings.regionMusic[region] ?? ""}
+                  options={[
+                    { value: "", label: stdMusic?.name ?? S.themeStandardOption },
+                    { value: packMusic.theme as string, label: packMusic.name },
+                  ]}
+                  onChange={(v) => setSwap("regionMusic", region, v)}
+                />
+              </div>
+            </SettingRow>
+          );
+        })
+      )}
+
+      <ResetToStandard label={S.themesResetBtn} onClick={() => { sfx.click(); onChange({ boardTheme: DEFAULT_SETTINGS.boardTheme, musicGeneric: DEFAULT_SETTINGS.musicGeneric, regionThemes: {}, regionMusic: {} }); }} />
+    </>
+  );
+}
+
+const selectBox: React.CSSProperties = {
+  fontFamily: theme.fonts.sans,
+  fontSize: 12.5,
+  color: theme.color.text,
+  background: "rgba(0,0,0,0.28)",
+  border: `1px solid ${theme.color.border}`,
+  borderRadius: 9,
+  padding: "8px 10px",
+  minWidth: 150,
+  cursor: "pointer",
+};
+
+function LabeledSelect({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <span style={{ fontFamily: theme.fonts.sans, fontWeight: 600, fontSize: 13, color: theme.color.text }}>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={selectBox}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 
 function SettingRow({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (

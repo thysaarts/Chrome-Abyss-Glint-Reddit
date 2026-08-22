@@ -48,7 +48,7 @@ import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnl
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
-import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget, factionPacks } from "./game/collection";
+import { reconcileGrants, earnItem, grant, ownedMusic, stickers, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
 import type { EarnedReward } from "./game/collection";
 import { TutorialComplete } from "./ui/TutorialComplete";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -1155,10 +1155,19 @@ export default function App() {
   // REGION THEME: a campaign level with a region carries its in-game treatment —
   // the atmosphere backdrop plus CSS-variable overrides that re-tint the chrome.
   // Generic ("blank") levels and Quick Start keep the standard violet nebula.
-  const levelRegion =
-    currentLevel && currentLevel.params.theme === "regions" && currentLevel.region
-      ? REGIONS[currentLevel.region] ?? null
-      : null;
+  // Settings › Themes can SWAP a region's board + track for its aligned faction
+  // pack's — honoured only while that pack is actually owned, so a stale
+  // setting (collection reset) silently falls back to the standard treatment.
+  const levelRegionKey =
+    currentLevel && currentLevel.params.theme === "regions" && currentLevel.region ? currentLevel.region : null;
+  const swapPack = levelRegionKey ? factionForRegion(levelRegionKey) : undefined;
+  const swapPackOwned = !!swapPack && factionOwned(swapPack);
+  const themeSwap = levelRegionKey ? settings.regionThemes[levelRegionKey] : undefined;
+  const shownRegionKey =
+    levelRegionKey && themeSwap && swapPackOwned && factionTheme(swapPack)?.region === themeSwap
+      ? themeSwap
+      : levelRegionKey;
+  const levelRegion = shownRegionKey ? REGIONS[shownRegionKey] ?? null : null;
   // a board theme EQUIPPED in Collection tints quick / blank boards in-game;
   // levels that carry their own region always win. Only applies while playing.
   const equippedRegion = settings.boardTheme && REGIONS[settings.boardTheme] ? REGIONS[settings.boardTheme] : null;
@@ -1184,7 +1193,14 @@ export default function App() {
     screen === "game" && state.deathMatch && state.phase === "playing"
       ? "Glint Rush"
       : screen === "game" && regionTheme && currentLevel?.region
-        ? (currentLevel.region as MusicTheme)
+        ? (() => {
+            // the region's own track, unless Settings › Themes swapped in the
+            // aligned faction anthem (owned packs only — same guard as the board)
+            const want = settings.regionMusic[currentLevel.region];
+            return want && swapPackOwned && factionMusic(swapPack!)?.theme === want
+              ? want
+              : (currentLevel.region as MusicTheme);
+          })()
         : screen === "levels" && homeTab === "collection" && collectionSub === "book"
           ? settings.musicInterstellar
           : settings.musicGeneric;

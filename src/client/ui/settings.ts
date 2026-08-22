@@ -5,21 +5,12 @@
  * data-motion), which drive CSS variable overrides and animation freezes in
  * index.css. `sfxVolume` drives the Web Audio master gain (audio/sfx.ts).
  *
- * MOTION is a master + advanced arrangement. `reduceMotion` is the master; the
- * four booleans under it (boardZoom / screenShake / boardTilt / ambientFx) are
- * the per-element toggles behind Settings › Visual › Advanced. They only ever
- * make things CALMER, never louder: the effective value of each is
- *   !reducedMotion && toggle
- * so Reduce Motion (or the OS preference) wins over any of them. That keeps the
- * relationship monotone — there is no "reduce motion but louder" state to
- * explain, and the Advanced rows simply grey out while the master is on (the
- * same pattern the Game tab uses when HARD locks the combo picker).
- *
  * LIGHT MODE is deliberately NOT a full light theme — the Abyss stays dark. It
  * lifts the board wells, page background and secondary text a notch so the game
  * is readable in daylight / outdoors. See :root[data-theme="light"] in the CSS.
  */
 import { readVersioned, writeVersioned } from "../game/storage";
+import { DIFFICULTY_KNOBS } from "../game/runConfig";
 import { sfx } from "../audio/sfx";
 import { music, MUSIC_THEMES } from "../audio/music";
 import type { MusicTheme } from "../audio/music";
@@ -46,10 +37,10 @@ export interface SceneOverride {
 
 export interface Settings {
   theme: "dark" | "light";
-  reduceMotion: boolean; // MASTER — see the motion note at the top of this file
-  // ADVANCED motion toggles (Settings › Visual › Advanced). Each is only in
-  // effect while reduceMotion is off; read the effective values off
-  // `visualOptions`, never these fields directly.
+  reduceMotion: boolean; // MASTER — see the motion note below
+  // ADVANCED motion toggles (Settings › Visual › Advanced). Each is only in effect
+  // while reduceMotion is off; read the EFFECTIVE values off `visualOptions` /
+  // data-tilt / data-ambient, never these fields directly.
   boardZoom: boolean; // the camera lean-in on every placement / bank / activation
   boardTilt: boolean; // the 3D board surface sway + the board's idle "breathe"
   ambientFx: boolean; // drifting fog, dust, parallax, glimmers, light sweeps
@@ -58,6 +49,10 @@ export interface Settings {
   musicGeneric: MusicTheme; // the track for menus / quick games / blank levels (equipped from Collection)
   musicInterstellar: MusicTheme; // the track while browsing the Sticker Book
   boardTheme: string; // an equipped region key (from Collection), tints quick / blank boards; "" = standard
+  // Settings › Themes region swaps: campaign region -> the REGIONS key / track
+  // played in its place (an owned faction pack's). Absent key = standard.
+  regionThemes: Record<string, string>;
+  regionMusic: Record<string, MusicTheme>;
   // the 3D Ascent scene IS the standard background; Reduce Motion switches to the classic backdrop
   sceneOff: string[]; // names of Ascent scene elements switched OFF (owned elements default on)
   sceneConfig: Record<string, SceneOverride>; // per-element tweaks over the CMS scene (Settings › Decor)
@@ -70,9 +65,9 @@ export interface Settings {
   comboPicker: boolean; // show the combo picker when a placement has >1 combo option; off = auto-bank the best
   choiceTimer: boolean; // timed combo picker: blue auto-confirms after the window; off = the picker waits for a tap
   bankWindow: 3 | 5; // how many seconds the BANK NOW countdown runs
-  // board shudder on busts / collapses / reshuffles. Lives with the ADVANCED
-  // motion toggles in the UI (Visual › Advanced) — it's a comfort setting, not a
-  // gameplay one — but stays in this block for save-file compatibility.
+  // board shudder on busts / collapses / reshuffles. Lives with the ADVANCED motion
+  // toggles in the UI (Visual › Advanced) — a comfort setting, not a gameplay one —
+  // but stays in this block for save-file compatibility.
   screenShake: boolean;
 }
 
@@ -87,6 +82,8 @@ export const DEFAULT_SETTINGS: Settings = {
   musicGeneric: "generic",
   musicInterstellar: "Interstellar",
   boardTheme: "",
+  regionThemes: {},
+  regionMusic: {},
   sceneOff: [],
   sceneConfig: {},
   decor: [],
@@ -114,23 +111,20 @@ export const gameOptions = {
   collapseShift: 0, // added to collapse/singularity triggers (easy +2 / hard −1)
 };
 
-/** True when the DEVICE asks for reduced motion. The CSS honours this via a
- *  @media block; JS-driven motion (the board camera) has to ask directly, so
- *  this is the one place that check lives. */
+/** True when the DEVICE asks for reduced motion. CSS honours this via @media; the
+ *  JS-driven board camera has to ask directly, so this is the one place it lives. */
 export function osPrefersReducedMotion(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** True when motion should be calmed for ANY reason — the player's master
- *  toggle OR the device preference. */
+/** Motion should be calmed for ANY reason — the player's master toggle OR the device. */
 export function motionReduced(s: Pick<Settings, "reduceMotion">): boolean {
   return s.reduceMotion || osPrefersReducedMotion();
 }
 
-/** Live copy of the EFFECTIVE motion toggles (master + OS preference already
- *  folded in), for the render paths that can't thread props — the board camera
- *  in App.tsx and the tutorial's replica of it. Kept current by applySettings.
- *  Read these; never read the raw Settings booleans at a motion site. */
+/** Live copy of the EFFECTIVE motion toggles (master + OS preference folded in), for
+ *  render paths that can't thread props — the board camera in App.tsx + the tutorial's
+ *  replica. Kept current by applySettings. Read these; never the raw Settings booleans. */
 export const visualOptions = {
   boardZoom: true,
   screenShake: true,
@@ -138,6 +132,16 @@ export const visualOptions = {
 
 const asTheme = (v: unknown, fallback: MusicTheme): MusicTheme =>
   typeof v === "string" && (MUSIC_THEMES as string[]).includes(v) ? (v as MusicTheme) : fallback;
+
+/** A string→string record with junk entries dropped; `check` vets each value. */
+const asStrRecord = <T extends string>(v: unknown, check: (val: string) => boolean): Record<string, T> => {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const out: Record<string, T> = {};
+  for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+    if (typeof val === "string" && val && check(val)) out[k] = val as T;
+  }
+  return out;
+};
 
 const KEY = "glint.settings.v1";
 const SAVE_V = 1; // bump + pass a migrate() to readVersioned when Settings' shape changes
@@ -157,6 +161,8 @@ export function loadSettings(): Settings {
       musicGeneric: asTheme(parsed.musicGeneric, DEFAULT_SETTINGS.musicGeneric),
       musicInterstellar: asTheme(parsed.musicInterstellar, DEFAULT_SETTINGS.musicInterstellar),
       boardTheme: typeof parsed.boardTheme === "string" ? parsed.boardTheme : DEFAULT_SETTINGS.boardTheme,
+      regionThemes: asStrRecord(parsed.regionThemes, () => true),
+      regionMusic: asStrRecord<MusicTheme>(parsed.regionMusic, (val) => (MUSIC_THEMES as string[]).includes(val)),
       sceneOff: Array.isArray(parsed.sceneOff) ? parsed.sceneOff.filter((x) => typeof x === "string") : [],
       sceneConfig: parsed.sceneConfig && typeof parsed.sceneConfig === "object" ? (parsed.sceneConfig as Record<string, SceneOverride>) : {},
       decor: Array.isArray(parsed.decor) ? parsed.decor.filter((x) => typeof x === "string") : [],
@@ -197,6 +203,8 @@ export function applySettings(s: Settings): void {
   gameOptions.comboPicker = s.difficulty === "hard" ? true : s.comboPicker;
   gameOptions.choiceTimer = s.difficulty === "hard" ? true : s.choiceTimer;
   gameOptions.choiceWindowMs = s.difficulty === "easy" ? 3000 : 2000;
-  gameOptions.revealAt = s.difficulty === "easy" ? 5 : s.difficulty === "hard" ? 3 : 4;
-  gameOptions.collapseShift = s.difficulty === "easy" ? 2 : s.difficulty === "hard" ? -1 : 0;
+  // engine-affecting knobs come from the SHARED difficulty table (runConfig.ts) —
+  // the anti-cheat replay derives the same values server-side; they must never drift
+  gameOptions.revealAt = DIFFICULTY_KNOBS[s.difficulty].revealAt;
+  gameOptions.collapseShift = DIFFICULTY_KNOBS[s.difficulty].collapseShift;
 }
