@@ -51,7 +51,7 @@
   },
   "scripts": {
     "dev": "vite build --watch",
-    "build": "vite build"
+    "build": "vite build && node scripts/strip-maps.mjs"
   },
   "dev": {
     "subreddit": "chrome_abyss_glin_dev"

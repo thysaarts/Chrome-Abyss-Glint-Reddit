@@ -11,6 +11,19 @@ a serverless backend hands out the daily seed and keeps the community leaderboar
 
 ---
 
+## v0.1.1 — playtest fixes (2026-08)
+
+The teaching arc catches up with the web build's tutorial split, which landed
+thirteen days after this port's baseline copy and never arrived: the Nebulite
+briefing and its TIP pill move from The Academy to Sector 01 Outpost (both were
+firing on Level 1, and the stacked pill stretched into a 443px tower — bug052),
+with the teaching hints following to match. The community daily no longer counts
+as a "quick run", so the new-starter tip pop-ups stop forcing themselves over a
+competitive, replay-verified board. The onboarding screens render their CMS rich
+text instead of printing literal `**` asterisks — HOW TO PLAY was showing raw
+markup on 8 of its 10 slides. And the source-map strip is wired into the script
+`devvit upload` actually runs, so uploads stop shipping ~9 MB of maps.
+
 ## v0.1.0 — the live-parity update (2026-08)
 
 The competition freeze is over: this build is now IN LINE with the live web
