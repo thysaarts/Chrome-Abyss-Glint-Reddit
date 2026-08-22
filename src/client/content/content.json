@@ -268,7 +268,7 @@
     "clearedConverted": "Unspent riches convert — busts +{lives}, banks +{banks}, hand gems +{gems} ({total} total).",
     "resurrectRevealed": "RESURRECT revealed — {effect}!",
     "quadriantRevealed": "QUADRIANT revealed — ×4 the covered tile (+{bonus} before the multiplier)!",
-    "zenithDealt": "ZENITH dealt — a wildcard to fill any combo!",
+    "zenithDealt": "ZENITH dealt — a 'joker' gem worth +3000 to complete any combo. Unused +6000.",
     "zenithBanked": "ZENITH banked — +{bonus}!",
     "gemsLeftPenalty": "Tiles left on the board: −{points} ({count})"
   },

@@ -1298,7 +1298,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // tile completed two combos), each row named; they linger a beat so the
         // player reads WHAT they banked, then dive into the score together.
         // Keep the parked multiplier tile present alongside.
-        const rows = lineupRows(outcome.bankCombos, placedFrozen);
+        const rows = lineupRows(
+          outcome.bankCombos,
+          placedFrozen,
+          outcome.placedAs != null ? { cell: cellKey, value: outcome.placedAs } : undefined
+        );
         const nTiles = rows.reduce((n, r) => n + r.tiles.length, 0);
         // a QUADRIANT revealed by this bank gets its own overview line (gem · ×4 ·
         // the covered tile · its face value)
@@ -1747,20 +1751,23 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 // cell to the tile shown on the frozen board, order run rows by value (so a
 // Drift reads 1-2-3-4), and mark a cell's SECOND appearance as a ghost — a
 // visual aid showing the tile also completed that combo; it is not banked twice.
-function lineupRows(
+export function lineupRows(
   combos: { name: string; cells: string[]; run: boolean }[],
-  frozen: GameState
+  frozen: GameState,
+  // the value a just-placed WILDCARD counted as (outcome.placedAs) — the frozen
+  // board still shows the raw Zenith/Nebulite there, which would sort a Drift
+  // row as 10/7 and shove the gem to the end instead of its true slot
+  placedAs?: { cell: string; value: number }
 ): { name: string; tiles: { cell: string | null; value: TileVal; ghost: boolean; jokerValue?: number }[] }[] {
   const seen = new Set<string>();
+  const effVal = (k: string): number =>
+    placedAs && k === placedAs.cell ? placedAs.value : ((frozen.cells.get(k)?.tile ?? 0) as number);
   return combos.map((c) => {
-    const cells = c.run
-      ? [...c.cells].sort(
-          (a, b) => ((frozen.cells.get(a)?.tile ?? 0) as number) - ((frozen.cells.get(b)?.tile ?? 0) as number)
-        )
-      : c.cells;
+    const cells = c.run ? [...c.cells].sort((a, b) => effVal(a) - effVal(b)) : c.cells;
     // a joker Core in the combo lines up as the mineral it mirrored (still in
-    // its purple ring) — the mirror must never silently revert mid-ceremony
-    const mineral = c.cells.map((k) => frozen.cells.get(k)?.tile).find((t) => t != null && t !== GLINT && t !== CORE) as number | undefined;
+    // its purple ring) — the mirror must never silently revert mid-ceremony.
+    // Only true minerals qualify (a Zenith's 10 must never be "the mineral").
+    const mineral = c.cells.map(effVal).find((t) => t >= 1 && t <= 6);
     return {
       name: c.name,
       tiles: cells.map((k) => {

@@ -53,7 +53,12 @@ export const CHAIN_POINTS: Record<ChainName, number> = {
 };
 
 export const CORE_BONUS = 500;
-export const ZENITH_BONUS = 6000; // flat bonus a Zenith adds to the bank it completes (or banked unused)
+// THE ZENITH WAGER: spend it to fill a combo and it banks the PLAYED bonus;
+// finish the run without needing it and the unspent Zenith pays ×2. Using it
+// also earns whatever the combo it completes is worth — a real decision, not
+// a freebie (both values identical made playing strictly dominant).
+export const ZENITH_PLAYED_BONUS = 3000; // banked with the combo a Zenith fills
+export const ZENITH_BONUS = 6000; // carried UNSPENT to the end (cash-out / clear / hand)
 export const BANK_THRESHOLD = 6;
 export const BOARD_CLEAR_BONUS = 5000; // Rule 4: flat bonus for clearing the board
 export const BOARD_CLEAR_BONUS_BIG = 7500; // a bigger wedge board (>91 cells)

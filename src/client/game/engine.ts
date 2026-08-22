@@ -46,6 +46,7 @@ import {
   BANK_THRESHOLD,
   CORE_BONUS,
   ZENITH_BONUS,
+  ZENITH_PLAYED_BONUS,
   COMBO_POINTS,
   COMBO_SIZE,
   boardClearBonus,
@@ -961,20 +962,60 @@ function planWild(s: GameState, cellKey: string): MovePlan {
   return best ?? failPlan(s, cellKey);
 }
 /** ZENITH wildcard: like planWild, but tags the winning value so place() stores a
- *  concrete mineral (+ the zenithFill flag) rather than a re-mirroring joker. */
+ *  concrete mineral (+ the zenithFill flag) rather than a re-mirroring joker.
+ *
+ *  Banking candidates are ranked by their FULL simulated outcome, not just the
+ *  bank's combo score: combo points are flat per name (Echo of 2s == Echo of
+ *  6s), so a name-based rank ties and misses the isolation sweep — stranded
+ *  tiles banking at face value often outweigh the combo itself. Each banking
+ *  value is committed on a preview clone and scored by real points gained,
+ *  tie-broken by tiles cleared off the board. */
 function planZenithWild(s: GameState, cellKey: string): MovePlan {
-  let best: MovePlan | null = null;
-  let bestScore = -1;
-  let bestVal = 0;
+  // memo per state object: the legality scan, the outcome hints and the real
+  // placement all re-plan the same cell; the ranking dry-runs are pure in
+  // (state, cellKey), so repeats are free. States are never mutated in place
+  // (every mutation clones), so the WeakMap key stays valid.
+  let byCell = zenithPlanMemo.get(s);
+  if (!byCell) zenithPlanMemo.set(s, (byCell = new Map()));
+  const hit = byCell.get(cellKey);
+  if (hit) return hit;
+  const plan = planZenithWildUncached(s, cellKey);
+  byCell.set(cellKey, plan);
+  return plan;
+}
+const zenithPlanMemo = new WeakMap<GameState, Map<string, MovePlan>>();
+
+function planZenithWildUncached(s: GameState, cellKey: string): MovePlan {
+  const candidates: { v: number; p: MovePlan }[] = [];
   for (let v = 1; v <= 6; v++) {
     const p = planMoveAs(s, cellKey, v);
-    if (!p || !p.isLegalBuild) continue;
-    const sc = wildScore(p);
-    if (!best || sc > bestScore) { best = p; bestScore = sc; bestVal = v; }
+    if (p && p.isLegalBuild) candidates.push({ v, p });
   }
-  if (!best) return failPlan(s, cellKey);
-  best.wildValue = bestVal;
-  return best;
+  if (candidates.length === 0) return failPlan(s, cellKey);
+  const occBefore = occupiedCount(s);
+  let best = candidates[0];
+  let bestKey = -Infinity;
+  for (const c of candidates) {
+    let key: number;
+    if (c.p.banks) {
+      // full dry-run: bank score + isolation sweeps + overflow + collapse fallout
+      const after = place(s, cellKey, 0, { preview: true, zenithValue: c.v });
+      const cleared = occBefore - occupiedCount(after);
+      key = 1_000_000_000 + (after.score - s.score) * 1000 + cleared;
+    } else {
+      key = c.p.totalTiles; // non-banking: prefer lighting up the most tiles
+    }
+    if (key > bestKey) { best = c; bestKey = key; }
+  }
+  best.p.wildValue = best.v;
+  return best.p;
+}
+
+/** Occupied (visible-tile) cells — the picker's board-clearing yardstick. */
+function occupiedCount(s: GameState): number {
+  let n = 0;
+  for (const c of s.cells.values()) if (c.tile !== null) n++;
+  return n;
 }
 
 /** Ranking key for a candidate wild value: any bank (by scored points) beats any
@@ -1753,7 +1794,7 @@ function comboLabel(names: ComboName[]): string {
  * matching board tiles). The combo is added to the activated group, which
  * persists across turns until it banks (6+ tiles) or the player busts.
  */
-export function place(state: GameState, cellKey: string, choice = 0, opts?: { preview?: boolean }): GameState {
+export function place(state: GameState, cellKey: string, choice = 0, opts?: { preview?: boolean; zenithValue?: number }): GameState {
   if (state.phase !== "playing") return state;
   // PREVIEW: describePlace commits internally to read the outcome — it must not
   // apply a hidden Quadriant's ×4 (that would leak the gem's presence via the
@@ -1766,7 +1807,16 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
   // Core respawns at the END of resolving this move (one placement later).
   const respawnDue = state.coreRespawnPending > 0;
 
-  const plan = planMove(state, cellKey, choice);
+  // zenithValue: planZenithWild's dry-runs force one candidate value directly —
+  // planMove would recurse back into the picker (and re-pick its own value)
+  const plan =
+    opts?.zenithValue != null && tile === ZENITH
+      ? (() => {
+          const p = planMoveAs(state, cellKey, opts.zenithValue!);
+          if (p && p.isLegalBuild) p.wildValue = opts.zenithValue;
+          return p;
+        })()
+      : planMove(state, cellKey, choice);
   const s = clone(state);
   ageInertTiles(s); // last turn's forced tiles lose their red outline / become normal
   s.moves += 1;
@@ -2104,9 +2154,9 @@ function applyClusterZenith(s: GameState, cluster: Iterable<string>): number {
     const cc = s.cells.get(k)!;
     if (!cc.zenithFill) continue;
     cc.zenithFill = false;
-    bonus += ZENITH_BONUS;
-    s.lastResolved.bonusRevealed.push({ key: k, gem: ZENITH, effect: "zenith", bonus: ZENITH_BONUS });
-    pushLog(s, { text: logText("zenithBanked", { bonus: ZENITH_BONUS }), kind: "core", sticky: logIsSticky("zenithBanked") });
+    bonus += ZENITH_PLAYED_BONUS;
+    s.lastResolved.bonusRevealed.push({ key: k, gem: ZENITH, effect: "zenith", bonus: ZENITH_PLAYED_BONUS });
+    pushLog(s, { text: logText("zenithBanked", { bonus: ZENITH_PLAYED_BONUS }), kind: "core", sticky: logIsSticky("zenithBanked") });
   }
   return bonus;
 }
@@ -2795,6 +2845,11 @@ export interface PlaceOutcome {
   placedKey: string;
   placedVal: TileVal;
   coveredVal: TileVal | null;
+  // A wildcard's committed value: the mineral a ZENITH fills in as, or the one a
+  // hand Nebulite mirrors (planWild/planZenithWild's pick). Null for plain minerals.
+  // The lineup uses it to slot the gem where it actually counted — a Zenith that
+  // filled the 4 in a 3-4-5 Drift must stand in the middle, not sort as "10".
+  placedAs: number | null;
 
   // BANK: cells that clear, ordered breadth-first from the placed tile, so the
   // UI can light them up one-by-one outward, then fly them to the score.
@@ -2893,7 +2948,7 @@ export function describePlace(state: GameState, cellKey: string, choice = 0): Pl
   if (!plan || !plan.isLegalBuild || plan.newCombos.length === 0) {
     const committed = place(state, cellKey, choice, { preview: true });
     return {
-      kind: "bust", placedKey: cellKey, placedVal, coveredVal,
+      kind: "bust", placedKey: cellKey, placedVal, coveredVal, placedAs: null,
       bankOrder: [], bankScore: 0, multiplier: 1, coveredCore: false,
       coveredToHand: false, coveredCoreToScore: false,
       bustLostCells: [...state.activatedCells],
@@ -2912,7 +2967,7 @@ export function describePlace(state: GameState, cellKey: string, choice = 0): Pl
     const scored = scoreBank({ names, multiplier: plan.multiplier, coveredCore });
     const committed = place(state, cellKey, choice, { preview: true });
     return {
-      kind: "bank", placedKey: cellKey, placedVal, coveredVal,
+      kind: "bank", placedKey: cellKey, placedVal, coveredVal, placedAs: plan.wildValue ?? null,
       bankOrder: bfsOrderWithin(state, cluster, cellKey),
       bankScore: scored.total, multiplier: plan.multiplier, coveredCore,
       coveredToHand: false, coveredCoreToScore: false, bustLostCells: [],
@@ -2938,7 +2993,7 @@ export function describePlace(state: GameState, cellKey: string, choice = 0): Pl
       .filter((c) => !c.cells.some((k) => cluster.has(k)))
       .map((c) => ({ cells: [...c.cells], value: COMBO_POINTS[c.name], name: c.name }));
     return {
-      kind: "bank", placedKey: cellKey, placedVal, coveredVal,
+      kind: "bank", placedKey: cellKey, placedVal, coveredVal, placedAs: plan.wildValue ?? null,
       bankOrder: bfsOrderWithin(state, cluster, cellKey),
       bankScore: scored.total, multiplier: 1, coveredCore: false,
       coveredToHand: false, coveredCoreToScore: false, bustLostCells: [],
@@ -2953,7 +3008,7 @@ export function describePlace(state: GameState, cellKey: string, choice = 0): Pl
   const coveredToHand = coveredVal !== null && coveredVal !== CORE;
   const coveredCoreToScore = coveredVal === CORE;
   return {
-    kind: "activate", placedKey: cellKey, placedVal, coveredVal,
+    kind: "activate", placedKey: cellKey, placedVal, coveredVal, placedAs: plan.wildValue ?? null,
     bankOrder: [], bankScore: 0, multiplier: 1, coveredCore: false,
     coveredToHand, coveredCoreToScore, bustLostCells: [],
     isLastTileBank: false,
