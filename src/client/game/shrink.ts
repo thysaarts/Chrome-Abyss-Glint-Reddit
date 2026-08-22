@@ -42,6 +42,11 @@ export interface ShrinkInput {
    *  (those inside the new footprint, most central first), capped at ceil(60%)
    *  of the previous count, and never at the cost of connectivity or capacity */
   obstacles?: string[];
+  /** the Dross tile value + the biggest connected blob of it the collapse may
+   *  leave behind (engine passes GLINT / MAX_DROSS_CLUSTER). Omit to skip the
+   *  pass entirely — the remap is otherwise value-agnostic. */
+  drossValue?: number;
+  maxDrossCluster?: number;
 }
 
 export interface ShrinkResult {
@@ -194,6 +199,100 @@ function declusterIsolated(
       src.tile = null; src.inert = false; src.buried = null;
       repoint(k, best);
       moved = true;
+    }
+  }
+}
+
+/**
+ * THE DROSS CLUSTER CAP, applied to the collapse. Squeezing ring-5 inward can
+ * press Dross tiles together into a blob of three — a wall the player never
+ * built and can't easily unmake. Surplus Dross are nudged to the nearest free
+ * cell that keeps every blob within the cap.
+ *
+ * Deterministic (cells are walked in the board's stable ring/angle order, no
+ * RNG), so client and replay-server agree. Activated combo cells are never
+ * relocated — same reason as the de-island pass: a moved activated cell strands
+ * the combo lists. Mapping is repointed so the UI animates each tile to its
+ * final home.
+ */
+function capDrossClusters(
+  newCells: Map<string, Cell>,
+  target: Axial[],
+  targetSet: Set<string>,
+  mapping: Map<string, string>,
+  activatedSet: Set<string>,
+  drossValue: number,
+  cap: number
+): void {
+  const nbrs = new Map<string, string[]>();
+  for (const c of target) nbrs.set(keyOf(c), neighbours(c, targetSet).map(keyOf));
+  const isDross = (k: string) => newCells.get(k)?.tile === drossValue;
+  /** the connected Dross blob containing `k` (in stable target order) */
+  const blobOf = (k: string): string[] => {
+    const seen = new Set([k]);
+    const stack = [k];
+    const out: string[] = [];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      out.push(cur);
+      for (const nb of nbrs.get(cur) ?? []) if (!seen.has(nb) && isDross(nb)) { seen.add(nb); stack.push(nb); }
+    }
+    return out;
+  };
+  /** would a Dross at `to` (with `ignore` treated as vacated) stay within cap? */
+  const fits = (to: string, ignore: string): boolean => {
+    const seen = new Set([to]);
+    const stack = [to];
+    let size = 1;
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const nb of nbrs.get(cur) ?? []) {
+        if (seen.has(nb) || nb === ignore || !isDross(nb)) continue;
+        seen.add(nb);
+        if (++size > cap) return false;
+        stack.push(nb);
+      }
+    }
+    return true;
+  };
+  const repoint = (fromK: string, toK: string) => {
+    for (const [oldK, newK] of mapping) if (newK === fromK) { mapping.set(oldK, toK); break; }
+  };
+
+  let guard = 0;
+  let moved = true;
+  while (moved && guard++ < 30) {
+    moved = false;
+    for (const c of target) {
+      const k = keyOf(c);
+      if (!isDross(k)) continue;
+      const blob = blobOf(k);
+      if (blob.length <= cap) continue;
+      // keep the first `cap` members (stable order), move the surplus — but a
+      // Dross that is part of an activated combo stays put regardless
+      const surplus = blob.filter((b) => !activatedSet.has(b)).slice(cap);
+      for (const from of surplus) {
+        let best: string | null = null;
+        let bestD = Infinity;
+        for (const c2 of target) {
+          const fk = keyOf(c2);
+          if (fk === from || activatedSet.has(fk)) continue;
+          if ((newCells.get(fk)?.tile ?? null) !== null) continue; // occupied
+          if (!fits(fk, from)) continue;
+          const d = hexDistance(parseKey(from), c2);
+          if (d < bestD) { bestD = d; best = fk; }
+        }
+        if (!best) continue; // nowhere legal to go — leave it rather than break the board
+        const src = newCells.get(from)!;
+        const dst = newCells.get(best)!;
+        dst.tile = src.tile; dst.inert = src.inert; dst.buried = src.buried;
+        if (src.bonusGem) { dst.bonusGem = src.bonusGem; src.bonusGem = null; }
+        if (src.zenithFill) { dst.zenithFill = true; src.zenithFill = false; }
+        src.tile = null; src.inert = false; src.buried = null;
+        repoint(from, best);
+        moved = true;
+      }
+      if (moved) break; // blobs shifted — rescan from the top
     }
   }
 }
@@ -363,6 +462,16 @@ export function shrinkBoard(input: ShrinkInput): ShrinkResult {
   if (toSide === 4) {
     const activatedSet = new Set(newActivated.flatMap((c) => c.cells));
     declusterIsolated(newCells, target, targetSet, mapping, activatedSet);
+  }
+
+  // ---- the DROSS CLUSTER CAP: the inward squeeze must not build a wall of
+  // three. Runs after de-islanding so it sees the final tile positions. ----
+  if (input.drossValue !== undefined && (input.maxDrossCluster ?? 0) > 0) {
+    capDrossClusters(
+      newCells, target, targetSet, mapping,
+      new Set(newActivated.flatMap((c) => c.cells)),
+      input.drossValue, input.maxDrossCluster!
+    );
   }
 
   // ---- validate the remapped combos: every activated cell must hold a tile ----

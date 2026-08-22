@@ -118,6 +118,41 @@ function emptyResolved(): GameState["lastResolved"] {
  */
 export const MINERAL_QTY: Record<MineralValue, number> = { 1: 25, 2: 20, 3: 15, 4: 15, 5: 15, 6: 10 };
 
+/**
+ * THE DROSS CLUSTER CAP — the game never SEEDS or DRIFTS three Dross into one
+ * connected blob. A pair is a hazard the player plays around; a trio is a wall
+ * that can strand a whole pocket of the board through no fault of theirs, and
+ * levels run up to 9 Dross, so the odds of one are not small.
+ *
+ * The cap applies to placements the GAME makes (initial seeding + the reshuffle's
+ * board nudge). A player who picks up a Dross and chooses to place it beside two
+ * others is making their own decision — that stays legal. Nebulites are
+ * deliberately NOT capped: they're a prize, not a hazard.
+ */
+export const MAX_DROSS_CLUSTER = 2;
+
+/**
+ * Would a Dross at `k` sit in a blob bigger than the cap? Walks the connected
+ * Dross component through `k`, stopping the moment it exceeds the limit.
+ * `isDross` answers for OTHER cells only — `k` itself is assumed to be Dross,
+ * which lets a caller test a move before committing it.
+ */
+function drossClusterFits(k: string, adj: Map<string, string[]>, isDross: (key: string) => boolean): boolean {
+  const seen = new Set<string>([k]);
+  const stack = [k];
+  let size = 1;
+  while (stack.length) {
+    const cur = stack.pop()!;
+    for (const nb of adj.get(cur) ?? []) {
+      if (seen.has(nb) || !isDross(nb)) continue;
+      seen.add(nb);
+      if (++size > MAX_DROSS_CLUSTER) return false;
+      stack.push(nb);
+    }
+  }
+  return true;
+}
+
 export interface Cell {
   coord: Axial;
   tile: TileVal | null; // null = gap
@@ -152,6 +187,9 @@ export interface GameState {
   adj: Map<string, string[]>; // precomputed neighbours per cell
   hand: TileVal[]; // hand[0] is the visible tile
   startHandSize: number;
+  /** how many of the starting hand were EXTRA GEMS (progression + Easy) — the
+   *  opening animation flies exactly these into the hand. */
+  startExtraGems: number;
 
   // Per-game collapse triggers (a level generator can override these). side-6 collapses
   // to side-5 at collapseAt1 occupied; side-5 collapses to side-4 at collapseAt2. A board
@@ -172,6 +210,9 @@ export interface GameState {
   handRevealed: boolean; // hysteresis: once revealed, stays revealed for the run
   rescueMode: "off" | "easy" | "medium"; // easy = every bust; medium = forced busts only; off = hard
   rescueRevealedUsed: boolean; // medium's ONE revealed-hand board arrangement was spent
+  // the guided boards deal kindly (see NewGameOpts.tutorialRig) — carried on the
+  // state because GLINT RUSH re-reads it mid-run to nudge the undrawn hand
+  tutorialRig: boolean;
   moves: number; // committed placements this run (busts included) — drives the teaching hints
   // end-of-run conversion breakdown (board clear + cash out): unspent lives,
   // free banks and hand minerals turned into points — drives the summary lines
@@ -330,6 +371,10 @@ function stateRng(s: GameState): () => number {
 export interface NewGameOpts {
   side?: number; // 4, 5 or 6 (board size)
   handSize?: number; // default 9
+  /** EXTRA GEMS (progression reward + Easy's bonus): how many of the dealt hand's
+   *  tail are re-rolled as guaranteed-DIFFERENT minerals. handSize already counts
+   *  them; this only pins their identity. */
+  extraGems?: number;
   seed?: number;
   nebulites?: number; // Cores buried on the board at start (default 1)
   dross?: number; // Dross/Glint traps buried on the board at start (default 2)
@@ -356,6 +401,17 @@ export interface NewGameOpts {
   // with a one-tile gap in its middle; filling the gap connects it into 12 (overflow
   // 6 → 1 refine).
   nebuliteRig?: boolean;
+  // TUTORIAL RIG: the guided boards (Level 0's two practice runs, Level 1's
+  // closing board) deal KINDLY. The mineral deal takes the friendliest of eight
+  // candidate shuffles drawn from the same seeded stream (see dealFriendliness),
+  // and the HAND REVEAL — threshold or GLINT RUSH, whichever lands first — quietly
+  // nudges the undrawn hand towards what the board wants (see rigRevealHand, which
+  // runs once per run, before the stack is ever on screen). Both are pure
+  // functions of the seed and the moves, so the anti-cheat
+  // replay derives the identical board — the level number decides it, never the
+  // client. Nothing about the RULES changes; the luck is simply on the beginner's
+  // side while they're learning.
+  tutorialRig?: boolean;
 }
 
 /** Seed a guaranteed MOTHER-LODE setup for one mineral `gem`, CAMOUFLAGED as a
@@ -469,6 +525,38 @@ function seedRefineRigs(
   return allPath;
 }
 
+/** How FRIENDLY a candidate deal's board portion looks: +2 for every adjacent
+ *  pair of equal minerals (a set is already half-built), +1 for every adjacent
+ *  pair of consecutive ones (a straight is one tile away). `boardTiles` is laid
+ *  onto `coords` exactly as newGame lays it — in order, skipping the gap cells,
+ *  so the score reads the board the player would actually see. */
+function dealFriendliness(boardTiles: readonly MineralValue[], coords: Axial[], gapKeys: Set<string>): number {
+  const cellSet = new Set(coords.map(keyOf));
+  const tileAt = new Map<string, number>();
+  let idx = 0;
+  for (const c of coords) {
+    const k = keyOf(c);
+    if (gapKeys.has(k)) continue; // gap cells start empty — the deal skips them
+    const t = boardTiles[idx++];
+    if (typeof t === "number") tileAt.set(k, t);
+  }
+  let score = 0;
+  for (const c of coords) {
+    const k = keyOf(c);
+    const a = tileAt.get(k);
+    if (a === undefined) continue;
+    for (const n of neighbours(c, cellSet)) {
+      const nk = keyOf(n);
+      if (nk <= k) continue; // count each unordered pair once
+      const b = tileAt.get(nk);
+      if (b === undefined) continue;
+      if (a === b) score += 2;
+      else if (Math.abs(a - b) === 1) score += 1;
+    }
+  }
+  return score;
+}
+
 export function newGame(opts: NewGameOpts = {}): GameState {
   const side = opts.side ?? 6;
   const handSize = opts.handSize ?? 9;
@@ -525,6 +613,11 @@ export function newGame(opts: NewGameOpts = {}): GameState {
   // pool of minerals sized to fill board + hand (special tiles bury minerals, so they
   // don't reduce the pool count — every cell still starts with a mineral underneath).
   const specialCount = Math.min(nebulites + dross, totalCells - gaps);
+  // EXTRA GEMS are appended AFTER the deal, so the pool (and therefore the board)
+  // is sized by the BASE hand only: crossing a reward tier must not reshuffle the
+  // level you already know — the gems are purely additive.
+  const extraGems = Math.max(0, Math.min(6, opts.extraGems ?? 0));
+  const baseHand = Math.max(1, handSize - extraGems);
   // build mineral pool proportional to MINERAL_QTY, scaled to need.
   // IMPORTANT: Object.keys returns STRINGS — convert to numbers, or every tile
   // value becomes a string and numeric comparisons (combo detection) silently
@@ -533,7 +626,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
   const mineralValues = Object.keys(MINERAL_QTY).map((k) => Number(k) as MineralValue);
   // Use exact GDD ratios for the canonical 91+9 case; otherwise scale.
   const seededCells = totalCells - gaps; // gap cells start without a gem
-  if (seededCells === 91 && handSize === 9) {
+  if (seededCells === 91 && baseHand === 9) {
     mineralValues.forEach((v) => {
       for (let i = 0; i < MINERAL_QTY[v]; i++) pool.push(v);
     });
@@ -542,7 +635,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     // apportionment): each mineral gets its proportional floor, then the leftover
     // slots go to the largest fractional parts — no padding with a single type, so
     // a smaller board keeps the same balance as the 103-tile full game.
-    const need = seededCells + handSize;
+    const need = seededCells + baseHand;
     const totalRatio = Object.values(MINERAL_QTY).reduce((a, b) => a + b, 0);
     const exact = mineralValues.map((v) => ({ v, x: (MINERAL_QTY[v] / totalRatio) * need }));
     const counts = new Map<MineralValue, number>(exact.map(({ v, x }) => [v, Math.floor(x)]));
@@ -556,15 +649,62 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     });
   }
 
-  const shuffled = shuffle(pool, rng);
+  // TUTORIAL RIG (see NewGameOpts.tutorialRig): deal EIGHT candidate shuffles off
+  // the same seeded stream and keep the friendliest board. Ties go to the earliest
+  // candidate.
+  //
+  // THE ORDER MATTERS. The plain deal spends the stream as shuffle → gaps, so the
+  // rig spends it as candidate 1 → gaps → candidates 2-8: candidate 1 AND the gap
+  // set are then exactly the plain deal's, whatever the gap count, and the scorer
+  // (which must skip precisely the cells the layout will skip) is comparing every
+  // candidate against the board this seed would have produced anyway. The guided
+  // board is therefore provably never worse than the plain one — it just usually
+  // lands better. Draw the candidates up front and the gaps would shift with them,
+  // which quietly voids that promise the moment a level carries gaps.
+  let shuffled: MineralValue[];
+  let riggedGapKeys: Set<string> | null = null;
+  if (opts.tutorialRig) {
+    const candidates: MineralValue[][] = [shuffle(pool, rng)]; // the plain deal, first
+    riggedGapKeys = new Set(shuffle(coords.map(keyOf), rng).slice(0, gaps));
+    for (let i = 1; i < 8; i++) candidates.push(shuffle(pool, rng));
+    let best = 0;
+    let bestScore = -1;
+    candidates.forEach((cand, i) => {
+      const sc = dealFriendliness(cand.slice(0, seededCells), coords, riggedGapKeys!);
+      if (sc > bestScore) { bestScore = sc; best = i; }
+    });
+    shuffled = candidates[best];
+  } else {
+    shuffled = shuffle(pool, rng);
+  }
   const boardTiles = shuffled.slice(0, seededCells);
-  const hand: TileVal[] = shuffled.slice(seededCells, seededCells + handSize) as MineralValue[];
+  const hand: TileVal[] = shuffled.slice(seededCells, seededCells + baseHand) as MineralValue[];
+  // EXTRA GEMS: guaranteed-DIFFERENT bonus minerals appended to the dealt hand
+  // (two of a kind would blunt the gift). Drawn weighted by the same rarity
+  // ladder as the pool, without replacement, off an OWN rng stream derived from
+  // the seed: drawing these must not advance the main stream, or the gaps and
+  // obstacles carved later would shift and the level would lay out differently
+  // the moment a player crossed a reward tier.
+  if (extraGems > 0) {
+    const gemRng = makeRng((seed ^ 0x5eed1e) >>> 0);
+    const bag = (Object.keys(MINERAL_QTY).map(Number) as MineralValue[]).slice();
+    const picks: MineralValue[] = [];
+    for (let i = 0; i < extraGems && bag.length > 0; i++) {
+      const total = bag.reduce((n, v) => n + MINERAL_QTY[v], 0);
+      let r = gemRng() * total;
+      let pick = bag[bag.length - 1];
+      for (const v of bag) { r -= MINERAL_QTY[v]; if (r <= 0) { pick = v; break; } }
+      picks.push(pick);
+      bag.splice(bag.indexOf(pick), 1); // never the same mineral twice
+    }
+    for (const v of picks) hand.push(v);
+  }
 
   const cells = new Map<string, Cell>();
   const order: string[] = [];
   const cellSetLocal = new Set<string>(coords.map(keyOf));
   // which cells start as GAPS (empty but playable)
-  const gapKeys = new Set(shuffle(coords.map(keyOf), rng).slice(0, gaps));
+  const gapKeys = riggedGapKeys ?? new Set(shuffle(coords.map(keyOf), rng).slice(0, gaps));
   let tileIdx = 0;
   coords.forEach((c) => {
     const k = keyOf(c);
@@ -591,11 +731,40 @@ export function newGame(opts: NewGameOpts = {}): GameState {
   // (the buried mineral returns to the player's hand when the special later leaves)
   const specials: TileVal[] = [...Array(dross).fill(GLINT), ...Array(nebulites).fill(CORE)].slice(0, specialCount);
   const occupiedKeys = order.filter((k) => cells.get(k)!.tile !== null && !rigCells.has(k));
-  const targetKeys = shuffle(occupiedKeys, rng).slice(0, specials.length);
-  targetKeys.forEach((k, i) => {
+  const shuffledTargets = shuffle(occupiedKeys, rng);
+  // DROSS FIRST, under the cluster cap (MAX_DROSS_CLUSTER): walk the shuffled
+  // candidates and skip any cell that would make a blob of three. Skipped cells
+  // aren't wasted — they fall through to the Nebulites below. A board with no
+  // violation therefore seeds EXACTLY as it did before this rule existed (same
+  // shuffle, same prefix, same RNG state afterwards); only boards that would
+  // have grown a Dross wall come out different.
+  const drossWanted = specials.filter((v) => v === GLINT).length;
+  const drossKeys: string[] = [];
+  const drossSet = new Set<string>();
+  for (const k of shuffledTargets) {
+    if (drossKeys.length >= drossWanted) break;
+    if (!drossClusterFits(k, adj, (nb) => drossSet.has(nb))) continue;
+    drossKeys.push(k);
+    drossSet.add(k);
+  }
+  // Pathological board (tiny/dense, lots of Dross): if the cap left us unable to
+  // place them all, seed the rest anyway rather than shipping fewer Dross than
+  // the level asked for — the level's difficulty contract wins over the cap.
+  if (drossKeys.length < drossWanted) {
+    for (const k of shuffledTargets) {
+      if (drossKeys.length >= drossWanted) break;
+      if (drossSet.has(k)) continue;
+      drossKeys.push(k);
+      drossSet.add(k);
+    }
+  }
+  // Nebulites take the earliest candidates the Dross didn't use (which, with no
+  // skips, is precisely the slice that followed them before).
+  const coreKeys = shuffledTargets.filter((k) => !drossSet.has(k)).slice(0, specials.length - drossKeys.length);
+  [...drossKeys.map((k) => [k, GLINT] as const), ...coreKeys.map((k) => [k, CORE] as const)].forEach(([k, val]) => {
     const cell = cells.get(k)!;
     cell.buried = cell.tile; // the mineral that was here is now buried
-    cell.tile = specials[i];
+    cell.tile = val;
   });
 
   // ACHIEVEMENT BONUS GEMS: bury Resurrect / Quadriant under plain mineral cells
@@ -620,6 +789,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     adj,
     hand,
     startHandSize: handSize,
+    startExtraGems: extraGems,
     collapseAt1,
     collapseAt2,
     shape,
@@ -640,6 +810,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     handRevealed: false,
     rescueMode: opts.rescueMode ?? "medium",
     rescueRevealedUsed: false,
+    tutorialRig: !!opts.tutorialRig,
     moves: 0,
     endBonus: null,
     gemsLeftPenalty: null,
@@ -1305,6 +1476,9 @@ function maybeShrink(s: GameState, rng: () => number): void {
     order: s.order,
     activatedCombos: s.activatedCombos.map((c) => ({ name: c.name, cells: c.cells })),
     obstacles: s.obstacles,
+    // the collapse must not press Dross into a wall of three either
+    drossValue: GLINT,
+    maxDrossCluster: MAX_DROSS_CLUSTER,
   });
 
   // adopt the new board
@@ -1743,11 +1917,18 @@ function nudgeBoard(s: GameState, rng: () => number): { from: string; to: string
   for (const from of pool) {
     if (taken.has(from)) continue;
     // empty adjacent cells (not activated, currently empty, not already used here)
-    const empties = (s.adj.get(from) ?? []).filter((nb) => {
+    let empties = (s.adj.get(from) ?? []).filter((nb) => {
       if (activated.has(nb)) return false;
       if (taken.has(nb)) return false;
       return s.cells.get(nb)!.tile === null;
     });
+    // A DRIFTING DROSS obeys the cluster cap: it may not settle where it would
+    // complete a blob of three (MAX_DROSS_CLUSTER). Its own origin doesn't count
+    // — it's vacating. Only Dross movement can change Dross adjacency, so no
+    // other tile needs this check. With no option left, it simply stays put.
+    if (s.cells.get(from)!.tile === GLINT) {
+      empties = empties.filter((to) => drossClusterFits(to, s.adj, (nb) => nb !== from && s.cells.get(nb)!.tile === GLINT));
+    }
     if (empties.length === 0) continue; // a prior move boxed it in; it stays put
     const to = empties[Math.floor(rng() * empties.length)];
     const src = s.cells.get(from)!;
@@ -2185,11 +2366,61 @@ function applyClusterZenith(s: GameState, cluster: Iterable<string>): number {
   return bonus;
 }
 
+/** THE GUIDED LEVELS' HAND RIG (see NewGameOpts.tutorialRig): the moment the
+ *  hand wheel reveals, quietly nudge the UNDRAWN stack toward what the board
+ *  wants — at most two swaps to the board's hungriest mineral, then a helpful
+ *  sort. Runs once per run (the reveal is hysteretic), always BEFORE the stack
+ *  is on screen, and is a pure function of the state — the replay derives it. */
+export function rigRevealHand(s: GameState): void {
+  if (!s.tutorialRig) return;
+  const isMineral = (t: TileVal | null | undefined): t is MineralValue => typeof t === "number" && t >= 1 && t <= 6;
+
+  // the board's appetite, per mineral
+  const need = new Map<number, number>();
+  for (let v = 1; v <= 6; v++) need.set(v, 0);
+  for (const k of s.order) {
+    const t = s.cells.get(k)?.tile;
+    if (!isMineral(t)) continue;
+    const paired = (s.adj.get(k) ?? []).some((nb) => s.cells.get(nb)?.tile === t);
+    need.set(t, need.get(t)! + (paired ? 2 : 1));
+  }
+  const needOf = (t: TileVal): number => (isMineral(t) ? need.get(t)! : -1);
+  // the hungriest value (ties → the lower mineral, so the choice never wobbles)
+  let want: MineralValue = 1;
+  for (let v = 2; v <= 6; v++) if (need.get(v)! > need.get(want)!) want = v as MineralValue;
+
+  // slots holding an undrawn mineral — hand[0] is already on its way to the board
+  const slots = s.hand.map((_, i) => i).filter((i) => i > 0 && isMineral(s.hand[i]));
+
+  // at most two swaps: the weakest first (ties → the later slot, which the player
+  // sees last), and only where the hungriest value genuinely beats what's there
+  const weakest = slots.slice().sort((a, b) => needOf(s.hand[a]) - needOf(s.hand[b]) || b - a);
+  let swaps = 0;
+  for (const i of weakest) {
+    if (swaps >= 2) break;
+    if (need.get(want)! <= needOf(s.hand[i])) continue; // no improvement — leave it
+    s.hand[i] = want;
+    swaps++;
+  }
+
+  // helpful order: the minerals sort by appetite (stable, so equals hold their
+  // relative order) and drop back into the SAME slots; everything else stays put
+  const sorted = slots
+    .map((i, rank) => ({ tile: s.hand[i], rank }))
+    .sort((a, b) => needOf(b.tile) - needOf(a.tile) || a.rank - b.rank)
+    .map((x) => x.tile);
+  slots.forEach((i, n) => { s.hand[i] = sorted[n]; });
+}
+
 /** Flip the hand-reveal hysteresis (once true it stays): at the difficulty
- *  threshold, or when GLINT RUSH arms. Pre-rush reveals announce themselves. */
+ *  threshold, or when GLINT RUSH arms. Pre-rush reveals announce themselves. The
+ *  guided levels' hand rig rides this flip — see rigRevealHand: the help has to
+ *  land in the stack the player is about to SEE, whichever reveal gets here
+ *  first, and never once it's on screen. */
 function updateHandReveal(s: GameState) {
   if (s.handRevealed || s.phase !== "playing") return;
   if (s.deathMatch || s.hand.length <= s.revealAt) {
+    rigRevealHand(s); // guided levels only — a kinder stack, arriving with the reveal
     s.handRevealed = true;
     if (!s.deathMatch) {
       pushLog(s, { text: logText("handRevealed"), kind: "info", sticky: logIsSticky("handRevealed") });
