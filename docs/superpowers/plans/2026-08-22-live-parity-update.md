@@ -10,6 +10,10 @@
 
 **Spec:** This plan is its own spec; the source of truth for each port is the named web file/commit. Key commits: `ab35f4f` (Zenith wager), `a61284d` (forfeit + scope-aware dailies), `e05c47e` (daily refine rig), `e55bca2` (daily type wheel), `8552068`..`04a75a2` (YOU VS THE HOUSE + duel rulings), `72e3f55`..`b9f15c7` (faction packs + Themes tab), `656834b`..`3d4520c` (daily characters).
 
+## Progress
+
+- **2026-08-22 — Phase 1 COMPLETE + Task 10 pulled forward.** Task 1 `c23d3b5` (Zenith wager), Task 2 `2805265` (coreLocks), Tasks 3+5(engine)+6 `439c483` (Dross cap, tutorial rig, extraGems, runConfig pulled forward from Task 20), Task 4 `10fa144` (parity batch), Task 7 `40efa46` (daily economy; Task 5's UI/content half still open), Task 8 `e594c6e` (full forfeit — deviation: no server `forfeit` flag, enforcement lands with Task 20 replay), Tasks 9+10 `a8e6d6d` (save envelope v2 with NO-REMAP adaptation — this build was born post-renumbering; never-lose-ground saveSync merge; levels.json synced). Suite 112 green. Companion web fix `00c81d1`: Reddit imports stamped v2 (the v1 remap was shifting imported frontiers +1). NEXT: Phase 2 Tasks 11–12 (content.json merge, collection/factions — fold web's `resolveDailyReward` owned-reward display fix into Task 12), then Phase 3.
+
 ## Global Constraints
 
 - **SKIP LIST (do not port):** three.js/3D Ascent/Book scenes + `public/models3d`; DECOR as a feature (Reddit keeps `decorRaw = []`); `IntroVideo`/`broker_cutscene.mp4`/`public/intro` (14 MB video); Supabase accounts/auth/humanGate; friends graph, inbox, `OnlineLobby`, `netMatch` realtime (Devvit fetch sandbox has no WebSockets); paywall/`tier.ts`/entitlements; `src/admin/*`; telemetry.
