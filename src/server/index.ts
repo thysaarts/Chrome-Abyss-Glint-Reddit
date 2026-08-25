@@ -1,19 +1,40 @@
 import { Hono } from "hono";
 import { isMoveStream, replayDailyScore } from "./verifyDaily";
 import { serve } from "@hono/node-server";
-import { context, createServer, getServerPort, redis, reddit } from "@devvit/web/server";
+import { context, createServer, getServerPort, redis, reddit, settings } from "@devvit/web/server";
 import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCodeResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
 
 // Supabase edge function that parks a save under a one-time code for the web game.
 const REDDIT_EXPORT_URL = "https://kszcacyzyveytvjlrohk.supabase.co/functions/v1/reddit-export";
-// Shared anti-spam token — MUST match the Supabase secret named EXACTLY
-// `REDDIT_IMPORT_SECRET` (upper-case; Deno env lookups are case-sensitive, and a
-// lower-case `reddit_import_secret` is silently invisible to the function). A plain
-// constant (not a Devvit setting, which didn't surface for @devvit/web): it's a
-// low-value token — it only gates "park a save"; redeeming needs a valid one-time
-// code + a signed-in web session that only imports into that player's OWN account.
-// This is a private repo; rotate by editing here + Supabase together.
-const REDDIT_IMPORT_SECRET = "ZQkIhxSPLU0pvRufVtvk";
+
+/**
+ * THE SHARED IMPORT TOKEN — a Devvit GLOBAL APP SETTING (`isSecret`), never a
+ * source constant.
+ *
+ * It used to be hardcoded here under the belief that this repo was private. It
+ * is not — the repo is public, so that value was burned the moment it shipped
+ * and has been rotated out. The setting lives app-side only:
+ *
+ *   devvit settings set redditImportSecret     # prompts, never echoes
+ *
+ * and the SAME value must be the Supabase secret named EXACTLY
+ * `REDDIT_IMPORT_SECRET` (upper-case — Deno env lookups are case-sensitive, and
+ * a lower-case `reddit_import_secret` is silently invisible to the function).
+ *
+ * Unset is a SAFE state: every route below fails closed (401 / "not
+ * configured") rather than falling back to a default. The schema forbids a
+ * defaultValue on a secret setting, which is what we want — there is no
+ * placeholder left to accidentally ship.
+ */
+const importSecret = async (): Promise<string> => {
+  try {
+    return (await settings.get<string>("redditImportSecret"))?.trim() ?? "";
+  } catch (err) {
+    // a settings read failure must never read as "authorised"
+    console.error("redditImportSecret unavailable", err);
+    return "";
+  }
+};
 
 /**
  * GLINT on Reddit — the server side of the DAILY CHALLENGE.
@@ -207,7 +228,9 @@ app.get("/api/leaderboard", async (c) => {
 app.get("/api/alltime-export", async (c) => {
   try {
     const provided = c.req.header("x-import-secret") ?? c.req.query("secret") ?? "";
-    if (!REDDIT_IMPORT_SECRET || REDDIT_IMPORT_SECRET.startsWith("PASTE_") || provided !== REDDIT_IMPORT_SECRET) {
+    const secret = await importSecret();
+    // unset → nothing can match, so the board stays shut (fail closed)
+    if (!secret || provided !== secret) {
       return c.json<ErrorResponse>({ status: "error", message: "unauthorized" }, 401);
     }
     const entries = await allTimeExport();
@@ -284,13 +307,14 @@ app.post("/api/export-code", async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? null;
     if (!username) return c.json<ErrorResponse>({ status: "error", message: "not signed in" }, 401);
-    if (!REDDIT_IMPORT_SECRET || REDDIT_IMPORT_SECRET.startsWith("PASTE_")) return c.json<ErrorResponse>({ status: "error", message: "import not configured" }, 500);
+    const secret = await importSecret();
+    if (!secret) return c.json<ErrorResponse>({ status: "error", message: "import not configured" }, 500);
     const body = await c.req.json<{ data?: Record<string, string> }>().catch(() => ({}) as { data?: Record<string, string> });
     const payload = body.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : null;
     if (!payload) return c.json<ErrorResponse>({ status: "error", message: "no save to export" }, 400);
     const res = await fetch(REDDIT_EXPORT_URL, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-import-secret": REDDIT_IMPORT_SECRET },
+      headers: { "content-type": "application/json", "x-import-secret": secret },
       body: JSON.stringify({ payload }),
     });
     const j = (await res.json().catch(() => ({}))) as { code?: string; url?: string; error?: string };

@@ -49,6 +49,16 @@
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"
   },
+  "settings": {
+    "global": {
+      "redditImportSecret": {
+        "type": "string",
+        "isSecret": true,
+        "label": "Reddit import secret",
+        "helpText": "Shared token for the save export/import. Must match the Supabase secret named EXACTLY REDDIT_IMPORT_SECRET (upper-case). Set with: devvit settings set redditImportSecret"
+      }
+    }
+  },
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build && node scripts/strip-maps.mjs"
