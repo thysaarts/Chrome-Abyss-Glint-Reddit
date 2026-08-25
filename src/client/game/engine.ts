@@ -314,6 +314,9 @@ export interface GameState {
   finalScore: number;
   endTally: { kind: EndTallyKind; delta: number }[];
   maxBankScore: number; // the largest single bank (combo/chain incl. multiplier) this run
+  /** display only: the tally this run carries on its scoring log lines (see
+   *  NewGameOpts.runningTotal). null for every ordinary run. */
+  runningTotal: RunningTotal | null;
   // BOARD SHAPE (side-6 only): a non-standard shape starts with corner wedges
   // beyond the 91-cell hexagon. The SINGULARITY event (occupancy <= singularityAt,
   // always BEFORE the first collapse) drops every wedge cell into the abyss —
@@ -508,6 +511,51 @@ export interface NewGameOpts {
   // client. Nothing about the RULES changes; the luck is simply on the beginner's
   // side while they're learning.
   tutorialRig?: boolean;
+  /** THE RUNNING TOTAL (display only): append this tally to the log line of the
+   *  event that moves it — " · 4 chains" after the bank that formed the chain.
+   *  A SUFFIX, never a second entry, so the scoring line it reports on is not
+   *  displaced from the floating toast (which always shows the newest entry).
+   *
+   *  The engine stays daily-AGNOSTIC — it knows only "carry this tally"; the
+   *  daily's metric → total mapping lives in daily.ts, its only caller. */
+  runningTotal?: RunningTotal;
+}
+
+/** Which tally a run carries on its scoring lines (see NewGameOpts.runningTotal). */
+export type RunningTotal = "banks" | "chains" | "refined" | "nebulite" | "bankscore";
+
+/** A bank within this much of the best still reports it — so the line goes quiet
+ *  after a big bank and speaks up again only when the player nears it. */
+const BEST_BANK_NEAR = 1000;
+
+const SUFFIX_KEY = {
+  banks: "dailyTotalBanks",
+  chains: "dailyTotalChains",
+  refined: "dailyTotalRefined",
+  nebulite: "dailyTotalNebulite",
+  bankscore: "dailyBestBank",
+} as const;
+
+const chainsBanked = (s: GameState): number =>
+  (s.chainCounts.Convergence ?? 0) + (s.chainCounts.Harmony ?? 0) + (s.chainCounts.Accord ?? 0) + (s.chainCounts.Sweep ?? 0);
+
+/** The suffix for a line whose event moved `kind` — "" unless this run tracks it. */
+function totalSuffix(s: GameState, kind: RunningTotal, n: number): string {
+  if (s.runningTotal !== kind) return "";
+  return " " + logText(SUFFIX_KEY[kind], { n: n.toLocaleString(), s: n === 1 ? "" : "s" });
+}
+
+/** The suffix for a BANK line. Three of the five totals ride here, each with its
+ *  own trigger: banks always, chains only when the bank formed one, and the best
+ *  bank only when this bank set it or came within BEST_BANK_NEAR of it. */
+function bankLineSuffix(s: GameState, amount: number, prevMax: number, chained: boolean): string {
+  switch (s.runningTotal) {
+    case "banks": return totalSuffix(s, "banks", s.banks);
+    case "chains": return chained ? totalSuffix(s, "chains", chainsBanked(s)) : "";
+    case "bankscore":
+      return amount > prevMax || amount >= prevMax - BEST_BANK_NEAR ? totalSuffix(s, "bankscore", s.maxBankScore) : "";
+    default: return "";
+  }
 }
 
 /** How FRIENDLY a candidate deal's board portion looks: +2 for every adjacent
@@ -961,6 +1009,7 @@ export function newGame(opts: NewGameOpts = {}): GameState {
     finalScore: 0,
     endTally: [],
     maxBankScore: 0,
+    runningTotal: opts.runningTotal ?? null,
     deathMatch: false,
     pendingCashout: null,
     zenithUnlocked: !!opts.bonusGems?.zenith,
@@ -2457,6 +2506,7 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
     const scored = scoreBank({ names, multiplier: plan.multiplier, coveredCore, bonusBase: quadBonusBase });
     const zenithBonus = preview ? 0 : applyClusterZenith(s, cluster);
     s.score += scored.total + zenithBonus;
+    const prevMaxBank = s.maxBankScore; // the best BEFORE this bank — the suffix's trigger
     s.maxBankScore = Math.max(s.maxBankScore, scored.total + zenithBonus);
     s.banks += 1;
     for (const n of names) s.comboCounts[n] = (s.comboCounts[n] ?? 0) + 1;
@@ -2585,17 +2635,19 @@ export function place(state: GameState, cellKey: string, choice = 0, opts?: { pr
     const multTxt = plan.multiplier > 1 ? ` ×${plan.multiplier}` : "";
     const chainTxt = scored.chain.name ? ` (${chainLabel(scored.chain.name)})` : "";
     pushLog(s, {
-      text: logText("banked", { combo: comboLabel(names), multiplier: multTxt, chain: chainTxt, points: scored.total }),
+      text: logText("banked", { combo: comboLabel(names), multiplier: multTxt, chain: chainTxt, points: scored.total })
+        + bankLineSuffix(s, scored.total + zenithBonus, prevMaxBank, !!scored.chain.name),
       kind: coveredCore ? "core" : "bank",
     });
-    if (coveredCore) pushLog(s, { text: logText("nebuliteBanked", { bonus: CORE_BONUS }), kind: "core", sticky: logIsSticky("nebuliteBanked") });
+    if (coveredCore) pushLog(s, { text: logText("nebuliteBanked", { bonus: CORE_BONUS }) + totalSuffix(s, "nebulite", s.coresCollected), kind: "core", sticky: logIsSticky("nebuliteBanked") });
     if (overflowCount > 0) {
       const mineral = MINERAL_NAME[placedVal] ?? "tiles";
       if (nebulites > 0) {
         const nebTxt = nebulites === 1 ? "a Nebulite" : `${nebulites} Nebulites`;
         const remTxt = remainder.length > 0 ? ` (+${remainder.length} to hand)` : "";
         pushLog(s, {
-          text: logText("motherLode", { count: overflowCount, mineral, nebulites: nebTxt, remainder: remTxt, bonus: overflowBonus }),
+          text: logText("motherLode", { count: overflowCount, mineral, nebulites: nebTxt, remainder: remTxt, bonus: overflowBonus })
+            + totalSuffix(s, "refined", s.nebulitesRefined),
           kind: "lode", seat: s.coop?.turn, // CO-OP: name whose hand it landed in
         });
       } else {
@@ -3218,6 +3270,7 @@ function forceBankFinalCluster(s: GameState, plan: MovePlan): void {
   const scored = scoreBank({ names, multiplier: 1, coveredCore: false, bonusBase: applyClusterQuadriant(s, cluster) });
   const zenithBonusFC = applyClusterZenith(s, cluster);
   s.score += scored.total + zenithBonusFC;
+  const prevMaxBankFC = s.maxBankScore;
   s.maxBankScore = Math.max(s.maxBankScore, scored.total + zenithBonusFC);
   s.banks += 1;
   for (const n of names) s.comboCounts[n] = (s.comboCounts[n] ?? 0) + 1;
@@ -3238,7 +3291,8 @@ function forceBankFinalCluster(s: GameState, plan: MovePlan): void {
   }
   s.activatedCombos = s.activatedCombos.filter((c) => !c.cells.some((k) => cluster.has(k)));
   s.activatedCells = s.activatedCells.filter((k) => !cluster.has(k));
-  pushLog(s, { text: logText("lastTileBanked", { combo: comboLabel(names), points: scored.total }), kind: "bank", sticky: logIsSticky("lastTileBanked") });
+  pushLog(s, { text: logText("lastTileBanked", { combo: comboLabel(names), points: scored.total })
+    + bankLineSuffix(s, scored.total + zenithBonusFC, prevMaxBankFC, !!scored.chain.name), kind: "bank", sticky: logIsSticky("lastTileBanked") });
   applyResolution(s, stateRng(s));
 }
 
@@ -3307,6 +3361,7 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   const scored = scoreBank({ names, multiplier: 1, coveredCore: false, bonusBase: applyClusterQuadriant(s, cluster) });
   const zenithBonusEB = applyClusterZenith(s, cluster);
   s.score += scored.total + zenithBonusEB;
+  const prevMaxBankEB = s.maxBankScore;
   s.maxBankScore = Math.max(s.maxBankScore, scored.total + zenithBonusEB);
   s.banks += 1;
   for (const n of names) s.comboCounts[n] = (s.comboCounts[n] ?? 0) + 1;
@@ -3332,7 +3387,8 @@ export function bankClusterNow(state: GameState, cellKey: string): GameState {
   s.activatedCells = s.activatedCells.filter((k) => !cluster.has(k));
   if (clusterHadCore && !s.coreRespawnDisabled) s.coreRespawnPending = 1;
 
-  pushLog(s, { text: logText("bankedEarly", { combo: comboLabel(names), points: scored.total }), kind: "bank", sticky: logIsSticky("bankedEarly") });
+  pushLog(s, { text: logText("bankedEarly", { combo: comboLabel(names), points: scored.total })
+    + bankLineSuffix(s, scored.total + zenithBonusEB, prevMaxBankEB, !!scored.chain.name), kind: "bank", sticky: logIsSticky("bankedEarly") });
   applyResolution(s, stateRng(s));
   // collapse + late isolation, looped so a late isolation that crosses the trigger can't
   // defer the collapse to a later move (see settleCollapse)

@@ -1,5 +1,8 @@
 import { Hono } from "hono";
 import { isMoveStream, replayDailyScore } from "./verifyDaily";
+// the metric NAMES live in the shared pure module with the seed/rotation maths,
+// so the server and the client can never disagree about a board's name.
+import { METRIC_LABEL } from "../client/game/daily";
 import { serve } from "@hono/node-server";
 import { context, createServer, getServerPort, redis, reddit, settings } from "@devvit/web/server";
 import type { AllTimeEntry, DailyMetric, DailyResponse, ErrorResponse, ImportCodeResponse, LeaderboardEntry, LeaderboardResponse, SubmitScoreResponse } from "../shared/api";
@@ -68,14 +71,6 @@ const boardKey = (day: string) => `glint:daily:${day}`;
  *  challenge, ~3 days of 7); the other weekdays cycle through the five
  *  specialist metrics by day number, so each one comes around roughly weekly. */
 const SPECIALIST_METRICS: DailyMetric[] = ["bankscore", "refined", "nebulite", "banks", "chains"];
-const METRIC_LABEL: Record<DailyMetric, string> = {
-  score: "Highest score",
-  bankscore: "Highest single bank",
-  refined: "Most Nebulite refined",
-  nebulite: "Most Nebulite banked",
-  banks: "Most banks in one game",
-  chains: "Most chains banked",
-};
 const metricFor = (day: string): DailyMetric => {
   const d = new Date(`${day}T00:00:00Z`);
   const weekday = d.getUTCDay();

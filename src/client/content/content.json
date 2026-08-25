@@ -375,7 +375,12 @@
     "versusTie": "A dead heat — the duel is a tie.",
     "cashoutOffered": "{name} wants to cash out",
     "cashoutBlocked": "{name} blocked the cash-out",
-    "cashoutDeferred": "{blocker} takes one last move — then {offerer} cashes out"
+    "cashoutDeferred": "{blocker} takes one last move — then {offerer} cashes out",
+    "dailyTotalBanks": "· {n} bank{s}",
+    "dailyTotalChains": "· {n} chain{s}",
+    "dailyTotalRefined": "· {n} refined",
+    "dailyTotalNebulite": "· {n} Nebulite{s}",
+    "dailyBestBank": "· best {n}"
   },
   "challenges": {
     "dailyLabel": "DAILY",
@@ -4315,5 +4320,10 @@
     "rematchBody": "{name} wants to play again.",
     "rematchJoin": "Join",
     "rematchDecline": "No thanks"
+  },
+  "dailyResult": {
+    "title": "YOUR SCORE",
+    "forfeitNote": "Busting out forfeits the run.",
+    "forfeitTag": "FORFEITED"
   }
 }

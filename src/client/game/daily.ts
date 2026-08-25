@@ -9,7 +9,22 @@
  * window/localStorage/UI imports — this bundles into the Devvit server.
  */
 import type { DailyMetric } from "../../shared/api";
-import { newGame, GameState, NewGameOpts } from "./engine";
+// re-exported so consumers can take the metric type from this module, the way
+// the web build does — the two builds' daily UI then stays byte-identical.
+export type { DailyMetric };
+import { newGame, GameState, NewGameOpts, type RunningTotal } from "./engine";
+
+/** The player-facing name of each metric. Lives HERE, in the shared pure module,
+ *  so the client, the daily card and the SERVER (src/server/index.ts) can never
+ *  show different names for the same board. */
+export const METRIC_LABEL: Record<DailyMetric, string> = {
+  score: "Highest score",
+  bankscore: "Highest single bank",
+  refined: "Most Nebulite refined",
+  nebulite: "Most Nebulite banked",
+  banks: "Most banks in one game",
+  chains: "Most chains banked",
+};
 
 /** Today's date in UTC as YYYY-MM-DD — the whole world shares one "day". */
 export function utcDay(d: Date = new Date()): string {
@@ -58,8 +73,22 @@ export function dailyGame(seed: number, metric: DailyMetric): NewGameOpts {
     rescueMode: "off",
     handSize: 9,
     ...(metric === "refined" ? { nebuliteRig: true } : {}),
+    // the in-run running total: five of the six metrics never reach the end
+    // summary, so the log line of the event that moves them carries the tally.
+    // `score` is exempt — the HUD already counts it, live, all game.
+    ...(metric === "score" ? {} : { runningTotal: RUNNING_TOTAL[metric] }),
   };
 }
+
+/** daily metric → the engine's display-only running total. The ONE place the
+ *  daily's vocabulary meets the engine's; `score` has no entry (the HUD shows it). */
+const RUNNING_TOTAL: Record<Exclude<DailyMetric, "score">, RunningTotal> = {
+  bankscore: "bankscore",
+  refined: "refined",
+  nebulite: "nebulite",
+  banks: "banks",
+  chains: "chains",
+};
 
 /** The daily's FRESH board — the exact same initial state the client boots (exact
  *  mode: bonus gems forced off). Shared by the client, the replay test, and the

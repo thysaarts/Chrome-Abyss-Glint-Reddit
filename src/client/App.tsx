@@ -46,7 +46,8 @@ import { CollectionPage } from "./ui/CollectionPage";
 import { recordRun, recordVersusWin, todayKey, loadStats, loadDaily, loadDailyPopupSeen, markDailyPopupSeen } from "./game/stats";
 import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnlocked, abilityAchieved, celebratedAbilities, markAbilitiesCelebrated, computeAchievements, SET_BONUS_NEBULITE, extraGemsFor, extraGemsForLevel } from "./game/challenges";
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
-import { dailyGame } from "./game/daily";
+import { dailyGame, dailySnapshot, measureDaily } from "./game/daily";
+import { DailyResultPopup, type DailyResult } from "./ui/DailyResultPopup";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, musicTracks, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
@@ -150,6 +151,9 @@ export default function App() {
   const [tutDone, setTutDone] = useState(tutorialDone());
   // the end-of-Tutorial celebration (grants the first music track, then hands off)
   const [tutorialCompleteOpen, setTutorialCompleteOpen] = useState(false);
+  // THE DAILY BOARD'S RESULT — a short beat before the end card, on every daily
+  // metric except `score` (which the end card already leads with).
+  const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
   // the end-of-ACADEMY celebration (Level 1 — grants the first sticker)
   const [academyCompleteOpen, setAcademyCompleteOpen] = useState<null | { fresh: boolean }>(null);
   // the one-off ASCENT CHEER, played once the Academy's unlock celebration has
@@ -963,7 +967,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, homeTab, celebrate, state.phase, state.moves, abilityRevealOpen]);
   useEffect(() => {
-    if (state.phase === "playing") { recordedRef.current = false; setEndNav(null); setRewards([]); setRevealOpen(false); setAbilityUnlocks([]); setAbilityRevealOpen(false); setPuzzleReveal(null); setPuzzleRevealPending(null); return; }
+    if (state.phase === "playing") { recordedRef.current = false; setEndNav(null); setRewards([]); setRevealOpen(false); setAbilityUnlocks([]); setAbilityRevealOpen(false); setPuzzleReveal(null); setPuzzleRevealPending(null); setDailyResult(null); return; }
     if (recordedRef.current) return;
     recordedRef.current = true;
     // GAME OVER = busted out of lives (not a cash-out). Nothing ACQUIRED in a game-over
@@ -1017,14 +1021,23 @@ export default function App() {
     // DAILY CHALLENGE run -> submit today's METRIC to the subreddit board.
     // A forfeited run submits nothing on ANY metric.
     if (dailyRun.day && !currentLevel) {
-      const chainsBanked = (state.chainCounts.Convergence ?? 0) + (state.chainCounts.Harmony ?? 0) + (state.chainCounts.Accord ?? 0) + (state.chainCounts.Sweep ?? 0);
-      const metricValue = gameOver ? 0
-        : dailyRun.metric === "bankscore" ? state.maxBankScore
-        : dailyRun.metric === "refined" ? Math.max(0, state.nebulitesRefined)
-        : dailyRun.metric === "nebulite" ? Math.max(0, state.coresCollected)
-        : dailyRun.metric === "banks" ? state.banks
-        : dailyRun.metric === "chains" ? chainsBanked
-        : state.finalScore;
+      // the fold + the metric both come from the SHARED module the server
+      // verifier replays through — this block used to re-derive the value by
+      // hand, which is exactly how a client and its verifier drift apart.
+      const snap = dailySnapshot(state);
+      const metricValue = measureDaily(dailyRun.metric, snap);
+      // YOUR SCORE — the board's own number, which only reaches the player here.
+      // `score` is skipped (the end card leads with it); every other metric,
+      // `nebulite` included, gets its moment. A bust-out forfeits to 0, so the
+      // reached value rides along to be shown struck through beside it.
+      if (dailyRun.metric !== "score") {
+        setDailyResult({
+          metric: dailyRun.metric,
+          reached: measureDaily(dailyRun.metric, { ...snap, gameOver: false }),
+          submitted: metricValue,
+          forfeited: snap.gameOver,
+        });
+      }
       // zeros never go up (a forfeited game-over would read as a broken "0" row)
       // the recorded stream rides along — the server replays it and posts the
       // score the replay produces (the metricValue is the legacy fallback)
@@ -1906,7 +1919,7 @@ export default function App() {
           {/* end-of-game modal — when the next level is unlocked, Continue leads
               the way (Play again drops to secondary); a fresh unlock plays the
               level-menu celebration */}
-          {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && !academyCompleteOpen && (
+          {state.phase !== "playing" && !anim.playing && !settling && !revealOpen && !abilityRevealOpen && !puzzleReveal && !puzzleRevealPending && !tutorialCompleteOpen && !academyCompleteOpen && !dailyResult && (
             <EndCard
               state={state}
               champsBySeat={brokerDuel
@@ -2199,6 +2212,10 @@ export default function App() {
             setRevealOpen(false);
           }}
         />
+      )}
+      {/* YOUR SCORE — the daily board's result, ahead of the end card */}
+      {dailyResult && !anim.playing && !settling && (
+        <DailyResultPopup result={dailyResult} onDone={() => setDailyResult(null)} />
       )}
       {tutorialCompleteOpen && !anim.playing && !settling && (() => {
         const m = musicTracks().find((x) => x.key === "interstellar");
