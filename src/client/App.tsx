@@ -48,6 +48,7 @@ import { evalDailyForRun, pickDailyChallenges, crossedMilestoneTiers, abilityUnl
 import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, submitAllTimeScore, submitDailyScore } from "./game/redditDaily";
 import { dailyGame, dailySnapshot, measureDaily } from "./game/daily";
 import { DailyResultPopup, type DailyResult } from "./ui/DailyResultPopup";
+import { useToastQueue } from "./ui/useToastQueue";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, musicTracks, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
@@ -1251,7 +1252,9 @@ export default function App() {
     mq.addEventListener("change", measure);
     return () => { ro.disconnect(); mq.removeEventListener("change", measure); };
   }, [screen]);
-  const toast = state.log[0];
+  // THE TOAST BAND plays each burst in order (see useToastQueue) — it used to
+  // render state.log[0], which showed only the LAST line of a multi-line turn.
+  const { toast, toastId } = useToastQueue(state.log);
 
   // REGION THEME: a campaign level with a region carries its in-game treatment —
   // the atmosphere backdrop plus CSS-variable overrides that re-tint the chrome.
@@ -1469,17 +1472,6 @@ export default function App() {
   useEffect(() => {
     prevRevealRef.current = handRevealed;
   }, [handRevealed]);
-
-  // The most-recent log line floats up as a transient toast. Re-key it whenever a new
-  // entry lands so the float-in/hold/float-out animation replays each time.
-  const [toastId, setToastId] = useState(0);
-  const lastLogRef = useRef<typeof toast | null>(null);
-  useEffect(() => {
-    if (toast && toast !== lastLogRef.current) {
-      lastLogRef.current = toast;
-      setToastId((n) => n + 1);
-    }
-  }, [toast]);
 
   return (
     <>
