@@ -713,11 +713,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         && mapperRef.current?.(r.key))
       .map((r, i) => ({ key: r.key, gem: r.gem as TileVal, delay: i * UNCOVER_STAGGER_MS }));
     if (!items.length) return 0;
-    // A BURST OF PURE LIGHT at each surfacing special (Motion Lab card 8)
+    // A BURST OF PURE LIGHT at each surfacing special (Motion Lab card 8), in
+    // the gem's OWN light — Resurrect pink, Quadriant crimson (Thys, 2026-08-26)
     for (const it of items)
       window.setTimeout(() => {
-        fxBus.emit({ kind: "rays", fromKey: it.key, color: "#e6ccff", n: 14 });
-        fxBus.emit({ kind: "twinkle", fromKey: it.key, color: "#e6ccff", n: 8, spread: 40 });
+        fxBus.emit({ kind: "rays", fromKey: it.key, color: GEM_GLOW[it.gem] ?? "#e6ccff", n: 14 });
+        fxBus.emit({ kind: "twinkle", fromKey: it.key, color: GEM_HUE[it.gem] ?? "#e6ccff", n: 8, spread: 40 });
         sfx.lightBurst();
       }, it.delay);
     for (const it of items) playedUncoversRef.current.add(it.key);
@@ -1856,16 +1857,35 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
               else if (outcome.chainName) { fxBus.emit({ kind: "word", text: pickChainWord() }); sfx.wordPop(); }
             }
             if (outcome.chainName || zenithIn || order.length >= 7) {
-              // micro-shake, ROAR only; the CHAIN ARC links the placed tile to
-              // the cluster's far side
+              // micro-shake, ROAR only. THE CHAIN ARC shows the CONNECTION
+              // (Thys's rule, 2026-08-26): when the placed tile does NOT touch
+              // the cluster, the bolt jumps the gap to the cluster's NEAREST
+              // gem; when it already touches, there is no gap worth drawing, so
+              // the arc dives into the cluster's heart instead — the member
+              // nearest its centre.
               setAnim((a) => ({ ...a, shakeMicro: (a.shakeMicro ?? 0) + 1 }));
               if (outcome.chainName) {
-                const far = [...order].sort((x, y) => {
-                  const px = fxAt(x), py = fxAt(y), p0 = fxAt(cellKey);
-                  if (!px || !py || !p0) return 0;
-                  return Math.hypot(py.x - p0.x, py.y - p0.y) - Math.hypot(px.x - p0.x, px.y - p0.y);
-                })[0];
-                if (far && far !== cellKey) { fxBus.emit({ kind: "bolt", fromKey: cellKey, toKey: far }); sfx.arcZap(); }
+                const p0 = fxAt(cellKey);
+                const members = order.filter((k) => k !== cellKey && fxAt(k));
+                if (p0 && members.length > 0) {
+                  const touching = members.some((k) => placedAdj.has(k));
+                  let target: string;
+                  if (!touching) {
+                    target = [...members].sort((x, y) => {
+                      const px = fxAt(x)!, py = fxAt(y)!;
+                      return Math.hypot(px.x - p0.x, px.y - p0.y) - Math.hypot(py.x - p0.x, py.y - p0.y);
+                    })[0];
+                  } else {
+                    const cx = members.reduce((s, k) => s + fxAt(k)!.x, 0) / members.length;
+                    const cy = members.reduce((s, k) => s + fxAt(k)!.y, 0) / members.length;
+                    target = [...members].sort((x, y) => {
+                      const px = fxAt(x)!, py = fxAt(y)!;
+                      return Math.hypot(px.x - cx, px.y - cy) - Math.hypot(py.x - cx, py.y - cy);
+                    })[0];
+                  }
+                  fxBus.emit({ kind: "bolt", fromKey: cellKey, toKey: target });
+                  sfx.arcZap();
+                }
               }
             }
           }
