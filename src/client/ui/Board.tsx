@@ -116,6 +116,21 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
   const GLOW_R = [0, 0.95, 1.12, 1.32];
   const activatedSet = useMemo(() => new Set(state.activatedCells), [state.activatedCells]);
 
+  // THE SNAKE'S DIM (Thys, 2026-08-26): while the snake runs its lap the
+  // white/gold rings it circles sit at 90% opacity so the full-opacity snake
+  // reads against them; the moment the lap closes they breathe up to 100%.
+  // Timer-driven (never a frame landing in a window) and re-armed on every
+  // snake remount — the gold flip re-keys the overlay and restarts the lap.
+  const [snakeLapDone, setSnakeLapDone] = useState(false);
+  const snakeCellSet = useMemo(() => new Set(snake?.cells ?? []), [snake]);
+  useEffect(() => {
+    setSnakeLapDone(false);
+    if (!snake) return;
+    const t = window.setTimeout(() => setSnakeLapDone(true), snake.lapMs);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snake?.seq, snake?.color, snake?.lapMs]);
+
   // PUZZLE PEEL: as each tile clears, its grey lid peels off to uncover the image
   // beneath. We diff the revealed (emptied) set between renders; every newly
   // emptied cell gets a short staggered peel with a randomised tilt. Only meaningful
@@ -622,10 +637,16 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
           );
         }
         if (!ring) return null;
+        // 90% while the snake is mid-lap (the release lap manages its own fade)
+        const snakeDim = !!snake && !releasing && !snakeLapDone
+          && (ring === "activated" || ring === "banked") && snakeCellSet.has(k);
         return (
           <g key={`ov-${k}${rel ? `-rel${releasing!.seq}` : ""}`}
              className={rel ? "gl-ring-release" : undefined}
-             style={{ pointerEvents: "none", ...(rel ? { animationDelay: `${rel.delay.toFixed(0)}ms` } : {}) }}>
+             style={{ pointerEvents: "none",
+               ...(rel
+                 ? { animationDelay: `${rel.delay.toFixed(0)}ms` }
+                 : { opacity: snakeDim ? 0.9 : 1, transition: "opacity 180ms ease-out" }) }}>
             <RingOverlay path={(f: number) => hexPath(p.x, p.y, HEX * 0.98 * f)} ring={ring} claimColor={claim?.color} />
           </g>
         );
@@ -641,6 +662,7 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
           points={clusterPerimeter(snake.cells, layout)}
           color={snake.color}
           lapMs={snake.lapMs}
+          glowFadeMs={releasing ? releasing.ms : null}
         />
       )}
 
@@ -953,34 +975,58 @@ function clusterPerimeter(cells: string[], layout: BoardLayout): string {
 }
 
 /** One lap of the 1/6 segment around the cluster. Self-driving (rAF); re-keyed
- *  by the hook per lap/colour. Pure decoration — nothing awaits it. */
-function SnakeOverlay({ points, color, lapMs }: { points: string; color: "white" | "gold"; lapMs: number }) {
+ *  by the hook per lap/colour. Pure decoration — nothing awaits it.
+ *
+ *  Two paths share the dash animation: a soft LIT-UP GLOW underlay and the
+ *  crisp segment on top. `glowFadeMs` set (the release lap — the rings are
+ *  going dark) fades the glow 1→0 over that window while the segment itself
+ *  stays full opacity to the end (Thys, 2026-08-26). */
+function SnakeOverlay({ points, color, lapMs, glowFadeMs }: { points: string; color: "white" | "gold"; lapMs: number; glowFadeMs?: number | null }) {
   const ref = useRef<SVGPathElement | null>(null);
+  const glowRef = useRef<SVGPathElement | null>(null);
   useEffect(() => {
-    const path = ref.current;
+    const path = ref.current, glow = glowRef.current;
     if (!path || !points) return;
     const total = path.getTotalLength();
     path.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
+    glow?.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
     let raf: number | null = null;
     const t0 = performance.now();
     const run = () => {
       const u = Math.min((performance.now() - t0) / lapMs, 1);
       path.setAttribute("stroke-dashoffset", String(-total * u));
+      glow?.setAttribute("stroke-dashoffset", String(-total * u));
       if (u < 1) raf = requestAnimationFrame(run);
     };
     raf = requestAnimationFrame(run);
     return () => { if (raf != null) cancelAnimationFrame(raf); };
   }, [points, lapMs]);
   if (!points) return null;
+  const hue = color === "gold" ? "#ffce6a" : "#ffffff";
   return (
-    <path
-      ref={ref}
-      d={points}
-      fill="none"
-      stroke={color === "gold" ? "#ffce6a" : "#ffffff"}
-      strokeWidth={4}
-      strokeLinecap="round"
-      style={{ pointerEvents: "none", filter: color === "gold" ? "drop-shadow(0 0 6px rgba(255,158,46,0.8))" : "drop-shadow(0 0 5px rgba(255,255,255,0.8))" }}
-    />
+    <g style={{ pointerEvents: "none" }}>
+      <path
+        ref={glowRef}
+        d={points}
+        fill="none"
+        stroke={hue}
+        strokeWidth={11}
+        strokeLinecap="round"
+        style={{
+          filter: "blur(6px)",
+          opacity: 0.85,
+          ...(glowFadeMs != null ? { animation: `gl-snake-glow-fade ${glowFadeMs}ms ease-out both` } : {}),
+        }}
+      />
+      <path
+        ref={ref}
+        d={points}
+        fill="none"
+        stroke={hue}
+        strokeWidth={4}
+        strokeLinecap="round"
+        style={{ filter: color === "gold" ? "drop-shadow(0 0 6px rgba(255,158,46,0.8))" : "drop-shadow(0 0 5px rgba(255,255,255,0.8))" }}
+      />
+    </g>
   );
 }

@@ -1497,6 +1497,13 @@ button:disabled:active {
   transform-box: fill-box; transform-origin: center;
 }
 
+/* the snake's lit-up glow lets go with the rings — the underlay fades 1→0
+   over the release lap while the crisp segment stays full opacity */
+@keyframes gl-snake-glow-fade {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
 /* the stage dim — the board steps back while the score ceremony plays; the
    lights coming back up IS the your-turn cue (Motion Lab card G) */
 .gl-fx-veil {
