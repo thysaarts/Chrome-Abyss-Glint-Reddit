@@ -1507,7 +1507,10 @@ button:disabled:active {
 /* the stage dim — the board steps back while the score ceremony plays; the
    lights coming back up IS the your-turn cue (Motion Lab card G) */
 .gl-fx-veil {
-  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  /* bleeds past the board box sideways: the shell's 9px side padding sits
+     outside the box, and un-dimmed it reads as bright strips at the screen
+     edges. The shell's overflow:clip trims the bleed at the viewport edge. */
+  position: absolute; inset: 0 -28px; z-index: 5; pointer-events: none;
   background: radial-gradient(60% 55% at 50% 46%, rgba(4,5,12,0.24), rgba(4,5,12,0.55));
   opacity: 0; transition: opacity 0.3s ease;
 }
