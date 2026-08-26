@@ -1684,9 +1684,6 @@ export default function App() {
               <div className="gl-board-viewport" ref={boardViewportRef}>
                 {/* elliptical cast shadow on the "ground" beneath the tilted surface */}
                 <div style={boardCastShadow} />
-                {/* a slow diagonal light sweep across the glass — the board catches
-                    the light once per cycle (clipped to the viewport) */}
-                <div className="gl-board-glint" aria-hidden />
                 {/* the tilted surface you look down onto, with a slow sway */}
                 <div className="gl-board-tilt" ref={boardTiltRef}>
                   {/* touch-reactive board that FOCUSES on the action: it zooms in when
@@ -1895,10 +1892,14 @@ export default function App() {
             )}
           </div>
 
-            {/* the slow specular sweep — clipped to this sheen area, so it fits exactly
-                between the top bar and the footer */}
+            {/* BOTH light sweeps live in this clip, so they fit exactly between
+                the top bar and the footer's visual top line: the slow wide
+                specular sheen, and the thin fast board glint — which used to be
+                clipped by the board viewport and stopped short of the footer
+                during GLINT RUSH (Thys, 2026-08-26). */}
             <div style={sheenClip}>
               <div className="gl-sheen" style={sheenBar} />
+              <div className="gl-board-glint" aria-hidden />
             </div>
           </div>
           {/* /sheen area */}
