@@ -33,7 +33,7 @@ export type FxEvent =
   | ({ kind: "beam"; color?: string; dur?: number } & Resolve)
   | ({ kind: "comet"; color?: string; dur?: number } & Resolve)
   | ({ kind: "float"; text: string; white?: boolean; color?: string } & Resolve)
-  | { kind: "word"; text: string; cool?: boolean };
+  | { kind: "word"; text: string; cool?: boolean; zenith?: boolean };
 
 /* THE WORD GATE — in Versus, commentary belongs to the player, not the
    opponent: online, only the device whose player made the move speaks; against
@@ -76,7 +76,7 @@ export function GameFxLayer({ mapper, scoreAnchor, handAnchor, opponentAnchor, b
   const partsRef = useRef<Particle[]>([]);
   const rafRef = useRef<number | null>(null);
   const [floats, setFloats] = useState<{ id: number; x: number; y: number; text: string; white?: boolean; color?: string }[]>([]);
-  const [word, setWord] = useState<{ id: number; text: string; cool?: boolean } | null>(null);
+  const [word, setWord] = useState<{ id: number; text: string; cool?: boolean; zenith?: boolean } | null>(null);
   const seq = useRef(0);
   const propsRef = useRef({ mapper, scoreAnchor, handAnchor, opponentAnchor, boardCenter, unit });
   propsRef.current = { mapper, scoreAnchor, handAnchor, opponentAnchor, boardCenter, unit };
@@ -241,7 +241,7 @@ export function GameFxLayer({ mapper, scoreAnchor, handAnchor, opponentAnchor, b
     const on: Listener = (e) => {
       if (e.kind === "word") {
         const id = ++seq.current;
-        setWord({ id, text: e.text, cool: e.cool });
+        setWord({ id, text: e.text, cool: e.cool, zenith: e.zenith });
         setTimeout(() => setWord((w) => (w?.id === id ? null : w)), 1550);
         return;
       }
@@ -294,7 +294,7 @@ export function GameFxLayer({ mapper, scoreAnchor, handAnchor, opponentAnchor, b
         </div>
       ))}
       {word && (
-        <div key={word.id} className={"gl-fx-word" + (word.cool ? " cool" : "")}
+        <div key={word.id} className={"gl-fx-word" + (word.zenith ? " zenith" : word.cool ? " cool" : "")}
           style={{ left: bc.x, top: bc.y - 40, fontSize: 30 * (unit?.() ?? 1) }}>
           {word.text}
         </div>

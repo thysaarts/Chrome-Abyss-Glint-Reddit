@@ -1851,7 +1851,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
                 placedFrozen.cells.get(k)?.tile === CORE && placedAdj.has(k) && !preActivated.has(k));
             const w = fxWords();
             if (wordGateAllows()) { // Versus: only the player's own moves speak
-              if (zenithIn) { fxBus.emit({ kind: "word", text: w.zenithWord, cool: true }); sfx.wordPop(); }
+              if (zenithIn) { fxBus.emit({ kind: "word", text: w.zenithWord, zenith: true }); sfx.wordPop(); }
               else if (nebulousBank) { fxBus.emit({ kind: "word", text: w.nebuliteWord, cool: true }); sfx.wordPop(); }
               else if (outcome.chainName) { fxBus.emit({ kind: "word", text: pickChainWord() }); sfx.wordPop(); }
             }

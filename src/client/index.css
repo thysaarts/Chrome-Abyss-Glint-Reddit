@@ -1451,6 +1451,13 @@ button:disabled:active {
   -webkit-background-clip: text; background-clip: text;
   filter: drop-shadow(0 0 18px rgba(127,233,245,0.5)) drop-shadow(0 2px 3px rgba(0,0,0,0.9));
 }
+.gl-fx-word.zenith {
+  /* the Zenith speaks in its own light — the acid-lime of the gem itself
+     (#e4ff6b, the same glow its score flight wears), not NEBULOUS violet */
+  background: linear-gradient(100deg, #fbffd6, #e4ff6b 45%, #b8f04e);
+  -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 18px rgba(228,255,107,0.55)) drop-shadow(0 2px 3px rgba(0,0,0,0.9));
+}
 @keyframes gl-fx-word {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
   14% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
