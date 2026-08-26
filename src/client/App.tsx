@@ -1654,13 +1654,16 @@ export default function App() {
               top padding IS the HUD→board clearance, so the sweep starts at the bar's
               bottom rather than over it. */}
           <div className="gl-sheen-area" ref={sheenRef}>
+          {/* THE STAGE DIM (Motion Lab card G): lives on the SHEEN AREA —
+              HUD-bottom to footer-top — so the dim fills the whole game window,
+              not just the board box (Thys, 2026-08-26); the footer's raised
+              NOW PLACING paints above it and stays bright. */}
+          <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} />
           <div style={boardPanel}>
             <div style={boardGlow} />
             <div ref={boardBoxRef} style={{ position: "relative" }}
               key={`bb-${anim.shakeMicro ?? 0}`}
               className={anim.shake && visualOptions.screenShake ? "gl-shake" : (anim.shakeMicro ?? 0) > 0 && visualOptions.screenShake ? "gl-shake-micro" : undefined}>
-              {/* THE STAGE DIM (Motion Lab card G) */}
-              <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} />
               {/* The board lives inside a clipping perspective viewport: the press-zoom
                   and the 3D tilt stay inside this window instead of growing the page's
                   scroll area (which used to shift the whole page on mobile). */}
