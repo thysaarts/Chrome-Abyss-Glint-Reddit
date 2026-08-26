@@ -447,10 +447,12 @@ button:disabled:active {
    with the board. Timing functions live per-keyframe: ease-in for the fall,
    ease-out for the settle. */
 @keyframes gl-tile-pop {
-  0% { opacity: 0; transform: translateY(-92px) scale(0.92); animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.55); }
+  /* falls STRETCHED (tall-thin, the Lab's rubber read), squashes on impact,
+     lifts 4px in the rebound, settles */
+  0% { opacity: 0; transform: translateY(-92px) scale(0.94, 1.12); animation-timing-function: cubic-bezier(0.45, 0, 0.85, 0.55); }
   24% { opacity: 1; }
   58% { opacity: 1; transform: translateY(0) scale(1.16, 0.84); animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1); }
-  78% { transform: translateY(0) scale(0.95, 1.06); }
+  76% { transform: translateY(-4px) scale(0.95, 1.06); }
   100% { opacity: 1; transform: translateY(0) scale(1, 1); }
 }
 .gl-tile-pop {

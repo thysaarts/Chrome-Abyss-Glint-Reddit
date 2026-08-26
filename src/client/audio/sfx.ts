@@ -163,6 +163,13 @@ const bankTile = (i: number) => {
   tone({ freq: f * 1.5, type: "sine", dur: 0.08, gain: 0.05 });
 };
 
+// the release lap's falling ticks — the audio mirror of the light-up's rising
+// ones: each ring the snake extinguishes steps DOWN the same pentatonic, soft
+// sine only (the ceremony is winding down, not announcing)
+const releaseTick = (i: number) => {
+  tone({ freq: pentFreq(Math.max(0, 6 - (i % 7)), 74), type: "sine", dur: 0.055, gain: 0.055 });
+};
+
 const bankScore = () => {
   tone({ freq: 400, slideTo: 900, type: "sawtooth", dur: 0.28, gain: 0.09 });
   [72, 76, 79].forEach((m, i) => tone({ freq: midi(m), type: "triangle", dur: 0.34, gain: 0.1, delay: 0.04 + i * 0.02 }));
@@ -606,6 +613,7 @@ export const sfx = {
   openingTune,
   activateTile,
   bankTile,
+  releaseTick,
   bankScore,
   scoreTick,
   scoreTickDown,

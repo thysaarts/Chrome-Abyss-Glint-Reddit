@@ -1562,6 +1562,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // PLACEMENT TWINKLES (Motion Lab card 3) — every landing releases a few,
       // quietly; activations and banks add their own louder pass on top.
       if (outcome.kind !== "bust") fxBus.emit({ kind: "twinkle", fromKey: cellKey, n: 4, spread: 24 });
+      // the landing THUD, timed to the drop's IMPACT (gl-tile-pop hits at ~58%
+      // of 340ms) — the Lab times the squash sound to the hit, not the tap.
+      // `pre` set = the drop starts now; unset = a combo-picker staging already
+      // played the drop (and its thud) when the tile was staged.
+      if (pre) sfxAt(() => sfx.place(), 195);
 
       // ACTIVATE (non-banking): zoom in on the action, animate the covered tile to
       // where it goes (HAND for a mineral/Glint, SCORE for a Core +500), then light
@@ -1980,6 +1985,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         }));
         // once the lap has run, drop the lit rings + snake for good
         window.setTimeout(() => setAnim((a) => ({ ...a, litCells: new Set(), releasing: null, snake: null })), 700);
+        // the release lap's FALLING ticks (Motion Lab card 1): each ring the
+        // snake extinguishes steps down — the mirror of the light-up's rise
+        releaseOrder.forEach((_, i) =>
+          window.setTimeout(() => sfx.releaseTick(i), (i / releaseOrder.length) * 620));
         if (outcome.coveredCore || clusterCores.length > 0) sfx.clearCore();
         // form up + read it…
         await pause(LINEUP_T.fly + nTiles * LINEUP_T.stagger + LINEUP_T.linger);
@@ -2442,6 +2451,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           };
           setAnim({ ...IDLE, playing: true, focused: true, dropCell: cellKey, freezeState: placedFrozen, choice: null });
           sfx.click(); // a soft cue that the placement is staged, awaiting the pick
+          sfxAt(() => sfx.place(), 195); // …and the staged tile still LANDS audibly
           paintChoice();
           armChoiceTimer();
           return;
