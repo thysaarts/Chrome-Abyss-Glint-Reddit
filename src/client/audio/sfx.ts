@@ -531,7 +531,66 @@ const purchase = () => {
   noise({ dur: 0.4, gain: 0.03, filter: 7000, filterSlide: 12000, type: "highpass", delay: 0.08 });
 };
 
+// ============ THE CELEBRATION LAYER (Motion Lab flourishes) ============
+// One voice per beat, named for the event it belongs to — kept SHORT and low in
+// the mix so they layer under the existing fanfares rather than fight them.
+
+// THE GOLD FLIP — the snake touches, everything turns gold together: a bright
+// major triad with a high sparkle. The bank's "discovery" instant.
+const goldFlip = () => {
+  [0, 4, 7].forEach((st, i) => tone({ freq: midi(79 + st), type: "triangle", dur: 0.28, gain: 0.13, delay: i * 0.02 }));
+  noise({ dur: 0.25, gain: 0.09, filter: 5200, filterSlide: 9000, q: 0.8, type: "highpass" });
+};
+// SHOCKWAVE / impact thump — the low end of the gold flip and the big-bank blast.
+const shockThump = () => {
+  noise({ dur: 0.28, gain: 0.26, filter: 220, filterSlide: 60, q: 0.7, type: "lowpass" });
+  tone({ freq: 70, type: "sine", dur: 0.22, gain: 0.2, slideTo: 38 });
+};
+// BLAST — a 7+ bank: the thump plus a wide mid sweep. Roar tier only.
+const bigBlast = () => {
+  shockThump();
+  noise({ dur: 0.2, gain: 0.14, filter: 2600, filterSlide: 900, q: 1 });
+  noise({ dur: 0.4, gain: 0.1, filter: 1600, filterSlide: 300, q: 0.8, delay: 0.03 });
+};
+// COMMENTARY WORD — SPECTACULAR! etc: a two-note upward gliss with air on top.
+const wordPop = () => {
+  tone({ freq: midi(84), type: "triangle", dur: 0.1, gain: 0.13 });
+  tone({ freq: midi(91), type: "triangle", dur: 0.24, gain: 0.15, delay: 0.08 });
+  noise({ dur: 0.3, gain: 0.045, filter: 6800, q: 0.7, type: "highpass", delay: 0.06 });
+};
+// BEAM — energy racing to the score: a fast band sweep upward.
+const beamWhoosh = () => noise({ dur: 0.26, gain: 0.12, filter: 900, filterSlide: 5200, q: 2.4 });
+// COMET — a gem streaking to the hand: the same energy falling instead.
+const cometFall = () => noise({ dur: 0.32, gain: 0.09, filter: 3400, filterSlide: 700, q: 1.6 });
+// COUNTER PUNCH — the score box takes the hit: a short low thock.
+const punchHit = () => {
+  tone({ freq: 196, type: "square", dur: 0.09, gain: 0.2, slideTo: 130 });
+  noise({ dur: 0.07, gain: 0.12, filter: 900, q: 1, type: "lowpass" });
+};
+// BUST SMOKE — a low grey sigh under the existing bust sting.
+const smokePuff = () => noise({ dur: 0.6, gain: 0.1, filter: 420, filterSlide: 150, q: 0.7, type: "lowpass" });
+// CHAIN ARC — a crackle of electricity linking the combos.
+const arcZap = () => {
+  for (let i = 0; i < 5; i++)
+    tone({ freq: 2400 + Math.random() * 2600, type: "square", dur: 0.025, gain: 0.07, delay: i * 0.045 + Math.random() * 0.02 });
+};
+// SPECIAL LIGHT-BURST — a reveal's rising shimmer (under the per-gem stings).
+const lightBurst = () => {
+  for (let i = 0; i < 5; i++) tone({ freq: midi(88 + i * 3), type: "sine", dur: 0.22, gain: 0.07, delay: i * 0.05 });
+  noise({ dur: 0.4, gain: 0.06, filter: 7200, q: 0.7, type: "highpass" });
+};
+
 export const sfx = {
+  goldFlip,
+  shockThump,
+  bigBlast,
+  wordPop,
+  beamWhoosh,
+  cometFall,
+  punchHit,
+  smokePuff,
+  arcZap,
+  lightBurst,
   unlock: () => void getCtx(),
   setMuted: (m: boolean) => {
     muted = m;

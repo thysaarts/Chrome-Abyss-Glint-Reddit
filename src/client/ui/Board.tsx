@@ -1,7 +1,7 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useId, useState } from "react";
 import { GameState, lockedCoreValues } from "../game/engine";
 import { TileGem } from "./TileGem";
-import { computeLayout, HEX_RADIUS } from "./layout";
+import { computeLayout, HEX_RADIUS, type BoardLayout } from "./layout";
 
 interface BoardProps {
   state: GameState;
@@ -22,6 +22,21 @@ interface BoardProps {
   activatedFilter?: Set<string>;
   // The just-placed cell, whose gem plays the drop-in bounce when it appears.
   dropCell?: string;
+  /* ===== THE CELEBRATION LAYER (Motion Lab) ===== */
+  /** bank light-up rings start WHITE (discovery) and only flip gold with the
+   *  snake — when true, lit cells render the activated (white) ring style */
+  litWhite?: boolean;
+  /** THE SNAKE — a 1/6 outline segment travelling the cluster's outer edge.
+   *  `seq` restarts the lap; `color` flips white→gold at the touch. */
+  snake?: { cells: string[]; color: "white" | "gold"; lapMs: number; seq: number } | null;
+  /** THE RELEASE LAP — lit rings let go one by one in clockwise order while the
+   *  gems fly, so the board is dark when the score lands (Motion Lab 1+2). */
+  releasing?: { cells: string[]; ms: number; seq: number } | null;
+  /** family-tinted halos behind activated/lit gems, scaled by combo size */
+  comboGlow?: boolean;
+  /** cells whose white activated ring is hidden (a banked cluster past its gold
+   *  flip — the frozen board's activation must not resurface under the gold) */
+  suppressActivated?: Set<string>;
   // RESHUFFLE: every gem plays the staggered 3D flip while the banner sweeps.
   spinCells?: boolean;
   /** SINGULARITY: these cells (prism + gem) drop off the bottom of the screen */
@@ -62,7 +77,7 @@ interface BoardProps {
   onFractionMapper?: (fn: (key: string) => { fx: number; fy: number } | null) => void;
 }
 
-export function Board({ state, onPlace, interactive, litCells, redCells, hiddenCells, claimRings, claimOffer, activatedFilter, dropCell, spinCells, fallCells, fallGo, fallGemsOnly, hintCells, greyCells, targetCell, focusCell, chipCells, clearAll, dropAll, maxHeightCss, puzzleImage, puzzleFocalX, puzzleFocalY, onMapper, onFractionMapper }: BoardProps) {
+export function Board({ state, onPlace, interactive, litCells, redCells, hiddenCells, claimRings, claimOffer, activatedFilter, dropCell, litWhite, snake, releasing, comboGlow, suppressActivated, spinCells, fallCells, fallGo, fallGemsOnly, hintCells, greyCells, targetCell, focusCell, chipCells, clearAll, dropAll, maxHeightCss, puzzleImage, puzzleFocalX, puzzleFocalY, onMapper, onFractionMapper }: BoardProps) {
   const HEX = HEX_RADIUS;
   const svgRef = useRef<SVGSVGElement | null>(null);
   // load the puzzle image's native size so the on-board crop can honour a focal
@@ -79,6 +94,26 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
   }, [puzzleImage]);
 
   const layout = useMemo(() => computeLayout(state), [state.order, state.side]);
+  // halo gradient ids must be unique PER BOARD INSTANCE (the TileGem lesson:
+  // a shared id binds to the document's first match, which may be hidden)
+  const haloId = useId().replace(/:/g, "");
+  // how big a combo each cell belongs to — drives the halo's size (card 6).
+  // Lit (banking) cells all share the cluster's size; activated cells read
+  // their own combo off the frozen state.
+  const comboSizeOf = useMemo(() => {
+    const size = new Map<string, number>();
+    for (const c of state.activatedCombos) for (const k of c.cells) size.set(k, Math.max(size.get(k) ?? 0, c.cells.length));
+    const litN = litCells?.size ?? 0;
+    return (k: string) => (litCells?.has(k) ? Math.max(litN, size.get(k) ?? 0) : size.get(k) ?? 3);
+  }, [state.activatedCombos, litCells]);
+  /** THE GLOW TIERS (Thys's spec, 2026-08-26): a pair barely registers, Trips
+   *  glow subtly, a Quad clearly, a Pentad is on fire — and 6+ shares the
+   *  Pentad tier, because a Hex banks instantly and the flip celebration owns
+   *  that moment. Tier drives BOTH strength and radius, so the difference is
+   *  visible (the first cut scaled radius alone by ~6% a tile — invisible). */
+  const glowTier = (n: number) => (n <= 2 ? 0 : n === 3 ? 1 : n === 4 ? 2 : 3);
+  const GLOW_ALPHA = [0, 0.3, 0.6, 0.95];
+  const GLOW_R = [0, 0.95, 1.12, 1.32];
   const activatedSet = useMemo(() => new Set(state.activatedCells), [state.activatedCells]);
 
   // PUZZLE PEEL: as each tile clears, its grey lid peels off to uncover the image
@@ -276,6 +311,15 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
       <rect x={layout.minX} y={layout.minY} width={layout.w} height={layout.h} fill="none" pointerEvents="all" />
 
       <defs>
+        {/* GEM GLOW halos — one gradient per mineral family (Motion Lab card 6):
+            a lighter, hotter sibling of the body colour, painted (Safari rule) */}
+        {Object.entries(HALO_GLOW).map(([v, hue]) => (
+          <radialGradient key={v} id={`gl-halo-${haloId}-${v}`}>
+            <stop offset="0%" stopColor={hue} stopOpacity={0.5} />
+            <stop offset="55%" stopColor={hue} stopOpacity={0.22} />
+            <stop offset="100%" stopColor={hue} stopOpacity={0} />
+          </radialGradient>
+        ))}
         <radialGradient id="gl-bloom-grad">
           <stop offset="0%" stopColor="rgba(230,240,255,0.32)" />
           <stop offset="70%" stopColor="rgba(230,240,255,0)" />
@@ -449,7 +493,7 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
           const cell = state.cells.get(k)!;
           if (cell.tile === null || hiddenCells?.has(k)) return null;
           const p = layout.pos.get(k)!;
-          const isActivated = activatedSet.has(k) && (!activatedFilter || activatedFilter.has(k));
+          const isActivated = activatedSet.has(k) && !suppressActivated?.has(k) && (!activatedFilter || activatedFilter.has(k));
           const isLit = litCells?.has(k);
           const joker = jokerCoreValues.get(k);
           const ring = redCells?.has(k) || isLit || isActivated;
@@ -470,6 +514,27 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
               className={doomed ? (fallGo ? "gl-abyss-fall" : "gl-abyss-doom") : undefined}
               style={doomed && fallGo ? { animationDelay: `${(i % 9) * 50}ms` } : undefined}
             >
+              {/* GEM GLOW (Motion Lab card 6): a painted halo in the mineral's own
+                  family — radius scales with the combo it belongs to. A painted
+                  gradient, never a CSS filter (the Safari clipping rule). */}
+              {comboGlow && cell.tile !== null &&
+                (isLit || (activatedSet.has(k) && !suppressActivated?.has(k) && (!activatedFilter || activatedFilter.has(k)))) &&
+                glowTier(comboSizeOf(k)) > 0 && (() => {
+                  // gold (banked) settles to tier-1 strength; activated combos
+                  // carry the full ladder so the build-up is the show
+                  const tier = isLit && !litWhite ? 1 : glowTier(comboSizeOf(k));
+                  return (
+                    <ellipse
+                      cx={p.x}
+                      cy={p.y - HEX * 0.15}
+                      rx={HEX * GLOW_R[tier]}
+                      ry={HEX * GLOW_R[tier] * 0.94}
+                      fill={`url(#gl-halo-${haloId}-${cell.tile})`}
+                      opacity={GLOW_ALPHA[tier]}
+                      style={{ pointerEvents: "none", transition: "opacity 0.25s" }}
+                    />
+                  );
+                })()}
               <g
                 transform={`translate(${p.x}, ${baseY}) scale(1, ${STAND}) translate(${-HEX * 0.66}, ${-HEX * 1.32})`}
                 style={{
@@ -522,21 +587,28 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
       {drawOrder.map((k) => {
         const cell = state.cells.get(k)!;
         const p = layout.pos.get(k)!;
-        const isActivated = activatedSet.has(k) && (!activatedFilter || activatedFilter.has(k));
+        const isActivated = activatedSet.has(k) && !suppressActivated?.has(k) && (!activatedFilter || activatedFilter.has(k));
         const isLit = litCells?.has(k);
         const isRed = redCells?.has(k);
         const isHidden = hiddenCells?.has(k);
         const claim = claimRings?.find((c) => c.cells.has(k)) ?? null;
 
-        // ring state precedence: danger > banked(lit) > claim > activated
+        // ring state precedence: danger > banked(lit) > claim > activated.
+        // During the WHITE-FIRST reveal a lit cell still wears the activated
+        // (white) ring — the gold arrives only with the snake's touch.
         const ring: "danger" | "banked" | "claim" | "activated" | null = isRed
           ? "danger"
           : isLit
-          ? "banked"
+          ? (litWhite ? "activated" : "banked")
           : claim
           ? "claim"
           : isActivated
           ? "activated"
+          : null;
+        // THE RELEASE LAP: this ring is letting go — fade it on its clockwise
+        // slot so the board darkens the way the snake travels.
+        const rel = releasing && releasing.cells.includes(k)
+          ? { delay: (releasing.cells.indexOf(k) / releasing.cells.length) * releasing.ms }
           : null;
 
         // freshly bust-placed tile: a red outline for one turn (a normal tile
@@ -551,11 +623,26 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
         }
         if (!ring) return null;
         return (
-          <g key={`ov-${k}`} style={{ pointerEvents: "none" }}>
+          <g key={`ov-${k}${rel ? `-rel${releasing!.seq}` : ""}`}
+             className={rel ? "gl-ring-release" : undefined}
+             style={{ pointerEvents: "none", ...(rel ? { animationDelay: `${rel.delay.toFixed(0)}ms` } : {}) }}>
             <RingOverlay path={(f: number) => hexPath(p.x, p.y, HEX * 0.98 * f)} ring={ring} claimColor={claim?.color} />
           </g>
         );
       })}
+
+      {/* THE SNAKE — the discovery segment running the cluster's outer edge.
+          Perimeter at FULL hex radius (the drawn tiles are 0.98 with a mortar
+          gap, so only the full lattice shares vertices) with signed-zero-safe
+          keys — both lessons from the Motion Lab's own perimeter bug. */}
+      {snake && snake.cells.length > 0 && (
+        <SnakeOverlay
+          key={`snake-${snake.seq}-${snake.color}`}
+          points={clusterPerimeter(snake.cells, layout)}
+          color={snake.color}
+          lapMs={snake.lapMs}
+        />
+      )}
 
       {/* placement impact — a bright ring snaps outward from the just-placed
           cell (keyed to the cell so it replays on every placement) */}
@@ -774,9 +861,12 @@ function RingOverlay({ path, ring, claimColor }: { path: (f: number) => string; 
     );
   }
   if (ring === "activated") {
-    // the ring pops in (scale 1.35 -> 1) when it first mounts during the reveal
+    // the ring pops in (scale 1.35 -> 1) when it first mounts during the reveal.
+    // The faint fill is Motion Lab card 3's face-light: the tile itself glows
+    // a touch under the ring, so the combo reads as lit rather than outlined.
     return (
       <g className="gl-ring-pop" style={{ filter: "drop-shadow(0 0 4px rgba(255,255,255,0.85))" }}>
+        <polygon points={path(1.0)} fill="#ffffff" opacity={0.07} />
         <polygon points={path(1.0)} fill="none" stroke="#ffffff" strokeWidth={3} opacity={0.95} />
         <polygon points={path(1.1)} fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.3} />
         <polygon points={path(1.2)} fill="none" stroke="#dffaff" strokeWidth={1.6} opacity={0.14} />
@@ -802,5 +892,95 @@ function RingOverlay({ path, ring, claimColor }: { path: (f: number) => string; 
       <polygon points={path(1.0)} fill="none" stroke="#ff5a76" strokeWidth={3} opacity={0.95} />
       <polygon points={path(1.1)} fill="none" stroke="#ff5a76" strokeWidth={2} opacity={0.3} />
     </g>
+  );
+}
+
+/* ===== THE SNAKE (Motion Lab cards 1+2) ===== */
+
+/** The halo families — a lighter, hotter sibling per mineral (keys = TileVal). */
+const HALO_GLOW: Record<number, string> = {
+  1: "#e8eef8", 2: "#ffd98a", 3: "#eef3fa", 4: "#8affc4", 5: "#d9a6ff", 6: "#a6f2ff",
+  0: "#ffe9a8", 7: "#e0bbff", 8: "#ffb3c2", 9: "#ffb3bd", 10: "#f0ffb0",
+};
+
+/** The cluster's outer edge as a closed point loop. Computed at FULL hex radius
+ *  (the drawn tiles are 0.98·HEX with a mortar gap, so only the full lattice
+ *  shares vertices) with signed-zero-safe keys — both were real bugs in the
+ *  Motion Lab's first perimeter. Clockwise on screen (y-down positive area). */
+function clusterPerimeter(cells: string[], layout: BoardLayout): string {
+  const R = HEX_RADIUS;
+  const kv = (x: number, y: number) => `${(Math.round(x * 10) + 0) / 10}_${(Math.round(y * 10) + 0) / 10}`;
+  const verts = (cx: number, cy: number): [number, number][] => {
+    const v: [number, number][] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      v.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+    }
+    return v;
+  };
+  const edges = new Map<string, [[number, number], [number, number]]>();
+  for (const k of cells) {
+    const p = layout.pos.get(k);
+    if (!p) continue;
+    const v = verts(p.x, p.y);
+    for (let i = 0; i < 6; i++) {
+      const a = v[i], b = v[(i + 1) % 6];
+      const key = [kv(a[0], a[1]), kv(b[0], b[1])].sort().join("|");
+      if (edges.has(key)) edges.delete(key);
+      else edges.set(key, [a, b]);
+    }
+  }
+  const rem = [...edges.values()];
+  if (rem.length === 0) return "";
+  const loop: [number, number][] = [rem[0][0], rem[0][1]];
+  rem.shift();
+  while (rem.length) {
+    const tail = loop[loop.length - 1];
+    const tk = kv(tail[0], tail[1]);
+    const i = rem.findIndex(([a, b]) => kv(a[0], a[1]) === tk || kv(b[0], b[1]) === tk);
+    if (i < 0) break;
+    const [a, b] = rem.splice(i, 1)[0];
+    loop.push(kv(a[0], a[1]) === tk ? b : a);
+  }
+  loop.pop();
+  let area = 0;
+  for (let i = 0; i < loop.length; i++) {
+    const a = loop[i], b = loop[(i + 1) % loop.length];
+    area += a[0] * b[1] - b[0] * a[1];
+  }
+  if (area < 0) loop.reverse();
+  return "M" + loop.map((pt) => `${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join("L") + "Z";
+}
+
+/** One lap of the 1/6 segment around the cluster. Self-driving (rAF); re-keyed
+ *  by the hook per lap/colour. Pure decoration — nothing awaits it. */
+function SnakeOverlay({ points, color, lapMs }: { points: string; color: "white" | "gold"; lapMs: number }) {
+  const ref = useRef<SVGPathElement | null>(null);
+  useEffect(() => {
+    const path = ref.current;
+    if (!path || !points) return;
+    const total = path.getTotalLength();
+    path.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
+    let raf: number | null = null;
+    const t0 = performance.now();
+    const run = () => {
+      const u = Math.min((performance.now() - t0) / lapMs, 1);
+      path.setAttribute("stroke-dashoffset", String(-total * u));
+      if (u < 1) raf = requestAnimationFrame(run);
+    };
+    raf = requestAnimationFrame(run);
+    return () => { if (raf != null) cancelAnimationFrame(raf); };
+  }, [points, lapMs]);
+  if (!points) return null;
+  return (
+    <path
+      ref={ref}
+      d={points}
+      fill="none"
+      stroke={color === "gold" ? "#ffce6a" : "#ffffff"}
+      strokeWidth={4}
+      strokeLinecap="round"
+      style={{ pointerEvents: "none", filter: color === "gold" ? "drop-shadow(0 0 6px rgba(255,158,46,0.8))" : "drop-shadow(0 0 5px rgba(255,255,255,0.8))" }}
+    />
   );
 }

@@ -257,7 +257,11 @@ export const sheenClip: React.CSSProperties = {
   top: 0,
   left: 0,
   right: 0,
-  bottom: -FOOTER_POKE, // reach down to the footer box's top line (behind the raised focal point)
+  // reach PAST the footer's poke band (34px solo, 52px in versus) so the sweep
+  // covers the whole visual play area down to the footer card's top line — it
+  // used to stop -FOOTER_POKE short on desktop, ending above NOW PLACING. Any
+  // overshoot hides beneath the footer, which renders above (zIndex 6 > 5).
+  bottom: -(FOOTER_POKE + 28),
   pointerEvents: "none",
   overflow: "hidden",
   zIndex: 5,
@@ -268,7 +272,8 @@ export const sheenBar: React.CSSProperties = {
   left: 0,
   width: "38%",
   height: "130%",
-  background: "linear-gradient(95deg, transparent, rgba(196,214,255,0.09), transparent)",
+  // quieter since the celebration layer landed — a glimmer, not a scan
+  background: "linear-gradient(95deg, transparent, rgba(196,214,255,0.055), transparent)",
 };
 export const overlayCentre: React.CSSProperties = {
   position: "absolute",

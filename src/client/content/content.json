@@ -4325,5 +4325,17 @@
     "title": "YOUR SCORE",
     "forfeitNote": "Busting out forfeits the run.",
     "forfeitTag": "FORFEITED"
+  },
+  "fx": {
+    "chainWords": [
+      "SPECTACULAR!",
+      "BRILLIANT!",
+      "DAZZLING!",
+      "RADIANT!",
+      "GLEAMING!",
+      "FLAWLESS!"
+    ],
+    "zenithWord": "LUMINOUS!",
+    "nebuliteWord": "NEBULOUS!"
   }
 }

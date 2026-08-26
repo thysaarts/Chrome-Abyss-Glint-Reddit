@@ -439,11 +439,13 @@ button:disabled:active {
 
 /* Place & activate — the placed gem drops in with an overshoot bounce (SVG-safe:
    scale/opacity only, around the gem centre). */
+/* SQUASH & SETTLE (Motion Lab card A): the drop-in now lands wide-and-flat and
+   springs back — weight on every placement, same 100ms-scale beat as before. */
 @keyframes gl-tile-pop {
-  0% { opacity: 0; transform: scale(0.4); }
-  55% { opacity: 1; transform: scale(1.12); }
-  75% { transform: scale(0.96); }
-  100% { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; transform: scale(0.4, 0.5) translateY(-10px); }
+  55% { opacity: 1; transform: scale(1.18, 0.82) translateY(0); }
+  75% { transform: scale(0.94, 1.08); }
+  100% { opacity: 1; transform: scale(1, 1); }
 }
 .gl-tile-pop {
   transform-box: fill-box;
@@ -473,7 +475,8 @@ button:disabled:active {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 42%, rgba(223,250,255,0.14) 50%, transparent 58%);
+  /* quieter since the celebration layer landed — a glimmer, not a scan */
+  background: linear-gradient(105deg, transparent 42%, rgba(223,250,255,0.085) 50%, transparent 58%);
   transform: translateX(-130%);
   animation: gl-board-glint 9s ease-in-out infinite;
 }
@@ -1415,3 +1418,83 @@ button:disabled:active {
 @media (prefers-reduced-motion: reduce) { .gl-decor * { animation: none !important; } }
 :root[data-motion="reduced"] .gl-decor *,
 :root[data-ambient="off"] .gl-decor * { animation: none !important; }
+
+/* ============ THE CELEBRATION LAYER (Motion Lab flourishes) ============ */
+
+/* floating score — grows out of the tile, rises, fades. Chakra italic gold. */
+.gl-fx-float {
+  position: absolute; z-index: 6; pointer-events: none;
+  font-family: 'Chakra Petch', system-ui, sans-serif; font-weight: 700; font-style: italic;
+  font-size: 21px; color: #ffce6a; white-space: nowrap;
+  text-shadow: 0 0 14px rgba(232,181,63,0.65), 0 2px 4px rgba(0,0,0,0.8);
+  animation: gl-fx-float 1.35s cubic-bezier(0.2,0.7,0.3,1) both;
+}
+@keyframes gl-fx-float {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.55); }
+  18% { opacity: 1; transform: translate(-50%, -6px) scale(1.06); }
+  30% { transform: translate(-50%, -10px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -52px) scale(1); }
+}
+
+/* chain commentary — SPECTACULAR! and friends, centred over the board */
+.gl-fx-word {
+  position: absolute; z-index: 7; pointer-events: none; white-space: nowrap;
+  font-family: 'Chakra Petch', system-ui, sans-serif; font-weight: 700; font-style: italic;
+  font-size: 30px; letter-spacing: 0.06em;
+  background: linear-gradient(100deg, #ffe9b0, #ffce6a 45%, #ff9e2e);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 18px rgba(255,158,46,0.55)) drop-shadow(0 2px 3px rgba(0,0,0,0.9));
+  animation: gl-fx-word 1.5s cubic-bezier(0.2,0.8,0.25,1) both;
+}
+.gl-fx-word.cool {
+  background: linear-gradient(100deg, #dffaff, #7fe9f5 45%, #9d7bff);
+  -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 18px rgba(127,233,245,0.5)) drop-shadow(0 2px 3px rgba(0,0,0,0.9));
+}
+@keyframes gl-fx-word {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  24% { transform: translate(-50%, -50%) scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -58%) scale(1.02); }
+}
+[data-motion="reduced"] .gl-fx-word { animation-duration: 0.9s; }
+
+/* micro-shake — chains and Rush banks only, 2.5px for 260ms; hard-off with
+   reduced motion (gated in App alongside visualOptions.screenShake). */
+@keyframes gl-shake-micro {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(2.5px, -2.5px); }
+  40% { transform: translate(-2.5px, 2.5px); }
+  60% { transform: translate(2.5px, 0); }
+  80% { transform: translate(-1.5px, 1.5px); }
+}
+.gl-shake-micro { animation: gl-shake-micro 0.26s linear; }
+
+/* counter punch — the score box takes the hit as the bank lands */
+@keyframes gl-score-punch {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+.gl-score-punch { animation: gl-score-punch 0.34s cubic-bezier(0.2,0.8,0.3,1); }
+
+/* release lap — a lit ring lets go: quick fade+shrink, delay set per tile in
+   clockwise order so the board goes dark the way the snake travels */
+@keyframes gl-ring-release {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+.gl-ring-release {
+  animation: gl-ring-release 0.22s ease-in both;
+  transform-box: fill-box; transform-origin: center;
+}
+
+/* the stage dim — the board steps back while the score ceremony plays; the
+   lights coming back up IS the your-turn cue (Motion Lab card G) */
+.gl-fx-veil {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 46%, rgba(4,5,12,0.24), rgba(4,5,12,0.55));
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.gl-fx-veil.on { opacity: 1; }

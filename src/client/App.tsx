@@ -49,6 +49,7 @@ import { communityPopupSeenDay, dailyRun, fetchDaily, markCommunityPopupSeen, su
 import { dailyGame, dailySnapshot, measureDaily } from "./game/daily";
 import { DailyResultPopup, type DailyResult } from "./ui/DailyResultPopup";
 import { useToastQueue } from "./ui/useToastQueue";
+import { GameFxLayer, setWordGate } from "./ui/gameFx";
 import { CommunityDailyPopup } from "./ui/CommunityDailyPopup";
 import type { DailyMetric, DailyResponse } from "../shared/api";
 import { reconcileGrants, earnItem, grant, ownedMusic, stickers, musicTracks, rewardTarget, factionPacks, factionForRegion, factionOwned, factionTheme, factionMusic } from "./game/collection";
@@ -775,6 +776,23 @@ export default function App() {
 
   // SPECTATING her turn: taps on the board are hers, not yours
   const spectating = !!brokerDuel && !!state.versus && state.versus.turn === brokerSeatOf(state);
+  // THE WORD GATE (Thys 2026-08-26): the commentary belongs to the player —
+  // the Broker is silenced (both hands share one viewport). The only versus on
+  // this build IS the duel, so the rule is that simple. At word time the turn
+  // has not yet passed, so state.versus.turn is the mover's seat.
+  const wordCtxRef = useRef({ turn: null as number | null, playerSeat: null as number | null, isDuel: false });
+  wordCtxRef.current = {
+    turn: state.versus?.turn ?? null,
+    playerSeat: brokerDuel ? duelPlayerSeatOf(state) : null,
+    isDuel: !!brokerDuel && !!state.versus,
+  };
+  useEffect(() => {
+    setWordGate(() => {
+      const c = wordCtxRef.current;
+      return !c.isDuel || (c.playerSeat !== null && c.turn === c.playerSeat);
+    });
+    return () => setWordGate(() => true);
+  }, []);
   // Restart in a duel RE-STAKES the table: the same bet if the wallet covers it,
   // else the minimum stake, else the button greys out (web 9d4a7a8)
   const duelRestartBet = !brokerDuel ? null
@@ -1615,7 +1633,12 @@ export default function App() {
       {/* HUD (the top bar) — the BANK NOW button overlays it (covering SCORE/BANKS/BUSTS)
           when a bankable combo is live, so nothing needs reserving above the footer. */}
       <div style={{ position: "relative" }}>
-        <HUD state={state} scoreRef={scoreRef} bustRef={bustRef} banksRef={banksRef} />
+        {/* VERSUS HUD TINT: the engine swaps the displayed numbers on every
+            hand-over (hot-seat), so the boxes wear the ACTIVE seat's colour,
+            like the footer. No online versus on this build — no masked-HUD
+            case (see web App.tsx for that asymmetry). Co-op stays neutral. */}
+        <HUD state={state} scoreRef={scoreRef} bustRef={bustRef} banksRef={banksRef} scorePunch={anim.scorePunch}
+          seatColor={state.versus ? (state.versus.turn === 0 ? COOP_GREEN : COOP_PURPLE) : undefined} />
         {earlyBankOffer && (
           <div style={hudBankOverlay}>
             <EarlyBankButton onBank={bankNow} />
@@ -1633,7 +1656,11 @@ export default function App() {
           <div className="gl-sheen-area" ref={sheenRef}>
           <div style={boardPanel}>
             <div style={boardGlow} />
-            <div ref={boardBoxRef} style={{ position: "relative" }} className={anim.shake && visualOptions.screenShake ? "gl-shake" : undefined}>
+            <div ref={boardBoxRef} style={{ position: "relative" }}
+              key={`bb-${anim.shakeMicro ?? 0}`}
+              className={anim.shake && visualOptions.screenShake ? "gl-shake" : (anim.shakeMicro ?? 0) > 0 && visualOptions.screenShake ? "gl-shake-micro" : undefined}>
+              {/* THE STAGE DIM (Motion Lab card G) */}
+              <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} />
               {/* The board lives inside a clipping perspective viewport: the press-zoom
                   and the 3D tilt stay inside this window instead of growing the page's
                   scroll area (which used to shift the whole page on mobile). */}
@@ -1714,6 +1741,11 @@ export default function App() {
                           // best-hint's placement cell (bestPlacementHint returns it first)
                           focusCell={anim.choice?.key ?? (autoHint ? [...autoHint][0] : null)}
                           litCells={anim.litCells}
+                          litWhite={anim.litWhite}
+                          snake={anim.snake}
+                          releasing={anim.releasing}
+                          suppressActivated={anim.suppressActivated ?? undefined}
+                          comboGlow
                           claimRings={state.versus ? (state.versus.claims
                             .map((c, i) => (c ? { cells: new Set(c.cells), color: i === 0 ? COOP_GREEN : COOP_PURPLE } : null))
                             .filter(Boolean) as { cells: Set<string>; color: string }[]) : undefined}
@@ -1952,6 +1984,17 @@ export default function App() {
             />
           )}
 
+          {/* THE CELEBRATION LAYER — same mapper/anchors as the flights */}
+          <GameFxLayer
+            mapper={mapperRef.current}
+            scoreAnchor={() => anchorOf(scoreRef)() ?? null}
+            handAnchor={() => anchorOf(handRef)() ?? null}
+            boardCenter={() => boardCenter() ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }}
+            unit={() => {
+              const el = boardTiltRef.current;
+              return el ? Math.min(1.6, Math.max(0.85, el.getBoundingClientRect().width / 400)) : 1;
+            }}
+          />
           <FlyingOverlay
             flying={anim.flying}
             mapper={mapperRef.current}

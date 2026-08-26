@@ -31,7 +31,9 @@ import { applyNetMove, NetMove } from "../net/moves";
 import { seatForEntry, isMyTurn, Entry } from "../net/seats";
 import type { MatchMode } from "../net/netMatch";
 import type { BoardShape } from "../game/hex";
-import { logText, chainLabel } from "../content/content";
+import { logText, chainLabel, CONTENT, DEFAULT_CONTENT } from "../content/content";
+import { fxBus, GEM_GLOW, GEM_HUE, wordGateAllows } from "./gameFx";
+import { SEAT_COLORS } from "../theme/theme";
 import { sfx } from "../audio/sfx";
 import { haptic } from "../game/haptics";
 import { gameOptions } from "./settings";
@@ -132,6 +134,18 @@ interface AnimState {
   activateReveal: Set<string> | null;
   // The just-placed cell — its gem plays the drop-in bounce.
   dropCell: string | null;
+  /* ===== THE CELEBRATION LAYER (Motion Lab) ===== */
+  litWhite?: boolean; // bank rings start white; gold arrives with the snake
+  snake?: { cells: string[]; color: "white" | "gold"; lapMs: number; seq: number } | null;
+  releasing?: { cells: string[]; ms: number; seq: number } | null; // the release lap
+  dim?: boolean; // the stage dim while the score ceremony plays
+  scorePunch?: number; // re-keyed per bank — the counter takes the hit
+  shakeMicro?: number; // re-keyed micro-shake — chains / 7+ / Zenith only
+  /** cells whose white ACTIVATED ring is suppressed for the rest of the bank —
+   *  once the gold has flipped, the frozen board's activation must never
+   *  resurface under it (the leftover Thys spotted). NOT activateReveal: that
+   *  set also drives the focus zoom, and other combos must not widen it. */
+  suppressActivated?: Set<string> | null;
   flying: FlyingTile[];
   // a SEPARATE channel for the opening bonus-gem swirl, so it can run alongside
   // the mineral rain / special drops (which own `flying`) without clashing
@@ -203,6 +217,11 @@ const IDLE: AnimState = {
   seedFlying: [],
   activateReveal: null,
   dropCell: null,
+  litWhite: false,
+  snake: null,
+  releasing: null,
+  suppressActivated: null,
+  dim: false,
   flying: [],
   freezeState: null,
   multiplierLabel: null,
@@ -267,6 +286,26 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
   };
 
   const mapperRef = useRef<Mapper | null>(null);
+  /* ===== THE CELEBRATION LAYER (Motion Lab) — beat emitters =====
+     All decoration: positions resolve through the same mapper the flying
+     overlay uses, and NOTHING in the choreography ever awaits these. */
+  const fxSeq = useRef(0);
+  const fxAt = (key: string) => mapperRef.current?.(key) ?? null;
+  const fxCentroid = (keys: string[]) => {
+    let x = 0, y = 0, n = 0;
+    for (const k of keys) { const p = fxAt(k); if (p) { x += p.x; y += p.y; n++; } }
+    return n ? { x: x / n, y: y / n } : null;
+  };
+  const fxWords = () => (CONTENT as typeof DEFAULT_CONTENT).fx ?? DEFAULT_CONTENT.fx;
+  // the chain words draw at random, but never the SAME word twice in a row
+  const lastWordRef = useRef<string | null>(null);
+  const pickChainWord = () => {
+    const list = fxWords().chainWords;
+    const pool = list.length > 1 ? list.filter((w) => w !== lastWordRef.current) : list;
+    const w = pool[Math.floor(Math.random() * pool.length)] ?? "BRILLIANT!";
+    lastWordRef.current = w;
+    return w;
+  };
   const busyRef = useRef(false);
   // cells whose buried bonus gem has already taken its UNCOVER bow in THIS
   // resolve — the choreography plays it at the seam, commitFinal's net skips it
@@ -674,6 +713,13 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         && mapperRef.current?.(r.key))
       .map((r, i) => ({ key: r.key, gem: r.gem as TileVal, delay: i * UNCOVER_STAGGER_MS }));
     if (!items.length) return 0;
+    // A BURST OF PURE LIGHT at each surfacing special (Motion Lab card 8)
+    for (const it of items)
+      window.setTimeout(() => {
+        fxBus.emit({ kind: "rays", fromKey: it.key, color: "#e6ccff", n: 14 });
+        fxBus.emit({ kind: "twinkle", fromKey: it.key, color: "#e6ccff", n: 8, spread: 40 });
+        sfx.lightBurst();
+      }, it.delay);
     for (const it of items) playedUncoversRef.current.add(it.key);
     const keys = new Set(items.map((i) => i.key));
     // the cover has gone and the gem was never a tile: the cell reads EMPTY under
@@ -974,16 +1020,38 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // the lit gems simply DISAPPEAR from the board. The collapse / reshuffle and
       // final commit still play, in sync with the active device.
       if (spectateVersus) {
+        // THE WATCHED BANK NOW (Thys 2026-08-26): the already-activated cluster
+        // flips gold with the snake, values float in the opponent's colour, the
+        // gems comet to their box. No particles, no shock, no word, no dim.
         const committedV = bankClusterNow(st, cellKey);
         const resV = committedV.lastResolved;
+        const seatColV = SEAT_COLORS[(st.versus?.turn ?? 0) === 0 ? 0 : 1];
+        setAnim((a) => ({ ...a, playing: true, freezeState: st,
+          litCells: new Set(clusterOrder), litWhite: false, suppressActivated: new Set(clusterOrder),
+          snake: { cells: [...clusterOrder], color: "gold", lapMs: 620, seq: ++fxSeq.current } }));
+        await pause(420);
+        {
+          const cV = fxCentroid(clusterOrder);
+          const isoPtsV = resV.isolatedToScore.reduce((n, t) => n + (t.points ?? 0), 0);
+          const bankValV = committedV.score - st.score - isoPtsV;
+          if (cV && bankValV > 0) fxBus.emit({ kind: "float", fromXY: { x: cV.x, y: cV.y - 14 }, text: `+${bankValV.toLocaleString()}`, color: seatColV });
+          for (const [ii, t] of resV.isolatedToScore.entries())
+            window.setTimeout(() => fxBus.emit({ kind: "float", fromKey: t.key, text: `+${(t.points ?? 0).toLocaleString()}`, color: seatColV }), ii * 70 + 160);
+        }
+        setAnim((a) => ({ ...a, releasing: { cells: [...clusterOrder], ms: 560, seq: ++fxSeq.current } }));
+        clusterOrder.forEach((k, i) => {
+          const v = st.cells.get(k)?.tile;
+          window.setTimeout(() => { fxBus.emit({ kind: "comet", fromKey: k, to: "opp", color: GEM_GLOW[v ?? 4] ?? "#7fe9f5", dur: 480 }); sfx.cometFall(); }, i * 70);
+        });
         const goneV = new Set<string>([
           ...clusterOrder,
           ...resV.isolatedToScore.map((t) => t.key),
           ...resV.strandToHand.map((t) => t.key),
           ...resV.pairToHand.map((t) => t.key),
         ]);
-        setAnim((a) => ({ ...a, playing: true, freezeState: st, litCells: new Set(), hiddenCells: goneV, flying: [], comboLineup: null }));
-        await pause(280);
+        setAnim((a) => ({ ...a, hiddenCells: goneV, flying: [], comboLineup: null }));
+        window.setTimeout(() => setAnim((a) => ({ ...a, litCells: new Set(), releasing: null, snake: null })), 640);
+        await pause(660);
         const cwV = withLateTiles(committedV);
         // SYNC: the watcher's quick disappear finished sooner than the active
         // player's full fly-to-score, so a collapse / singularity would fire too
@@ -1042,11 +1110,21 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         litCells: new Set(),
         hiddenCells: new Set([...cleared].filter((k) => !ebBuriedKeys.has(k))),
         flying: ebCores,
+        suppressActivated: new Set(clusterOrder), // no white ring under the lifted cluster
         bankedPlate: `BANKED ×${clusterOrder.length}`,
         comboLineup: { rows, chain },
       }));
       await pause(LINEUP_T.fly + nTiles * LINEUP_T.stagger + LINEUP_T.linger);
       sfx.bankScore(); // the lineup dives into the score
+      // the bank's worth at the bank + the counter takes the hit (cards 5/9/B)
+      {
+        const c = fxCentroid(clusterOrder);
+        const isoPtsEB = committed.lastResolved.isolatedToScore.reduce((n, t) => n + (t.points ?? 0), 0);
+        const bankValEB = committed.score - st.score - isoPtsEB;
+        if (c && bankValEB > 0) fxBus.emit({ kind: "float", fromXY: { x: c.x, y: c.y - 14 }, text: `+${bankValEB.toLocaleString()}` });
+        if (c) { fxBus.emit({ kind: "beam", fromXY: c, to: "score", dur: 450 }); sfx.beamWhoosh(); }
+      }
+      window.setTimeout(() => { setAnim((a) => ({ ...a, scorePunch: (a.scorePunch ?? 0) + 1 })); sfx.punchHit(); }, 440);
       await pause(LINEUP_T.dive + nTiles * LINEUP_T.diveStagger + 150);
       setAnim((a) => ({ ...a, comboLineup: null }));
 
@@ -1059,6 +1137,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       }));
       if (isoFly.length > 0) {
         for (const t of res.isolatedToScore) cleared.add(t.key);
+        // the isolated pay-out shows itself where it happened (Motion Lab card 4)
+        for (const [ii, t] of res.isolatedToScore.entries())
+          window.setTimeout(() => {
+            fxBus.emit({ kind: "float", fromKey: t.key, text: `+${(t.points ?? 0).toLocaleString()}`, white: true });
+            if (t.value !== CORE) fxBus.emit({ kind: "beam", fromKey: t.key, to: "score", dur: 420 });
+          }, ii * 70 + 160);
         playClearSounds(res.isolatedToScore);
         // reveal buried minerals under departing specials (see the bank path)
         const buriedKeys = new Set(res.buriedToHand.map((t) => t.key));
@@ -1472,6 +1556,9 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
       // returns to the hand, so the count never really changes — updating early
       // would show a one-beat dip to a number that was never true.
       if (!remote && !(outcome.kind === "activate" && outcome.coveredToHand)) hudCommit((s) => ({ hand: s.hand.slice(1) }));
+      // PLACEMENT TWINKLES (Motion Lab card 3) — every landing releases a few,
+      // quietly; activations and banks add their own louder pass on top.
+      if (outcome.kind !== "bust") fxBus.emit({ kind: "twinkle", fromKey: cellKey, n: 4, spread: 24 });
 
       // ACTIVATE (non-banking): zoom in on the action, animate the covered tile to
       // where it goes (HAND for a mineral/Glint, SCORE for a Core +500), then light
@@ -1532,7 +1619,11 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           for (const kk of next.activatedCells) if (!order.includes(kk)) order.push(kk); // safety
 
           const reveal = new Set<string>(prevActivated);
-          setAnim((a) => ({ ...a, focused: true, playing: true, freezeState: next, flying: [], hiddenCells: new Set(), activateReveal: new Set(reveal) }));
+          // ACTIVATION with the white snake (Motion Lab 1+2): the segment runs
+          // the combo's edge while the tile-by-tile reveal plays; it stays white
+          // — an activation never pretends to be a bank.
+          setAnim((a) => ({ ...a, focused: true, playing: true, freezeState: next, flying: [], hiddenCells: new Set(), activateReveal: new Set(reveal),
+            snake: { cells: order, color: "white", lapMs: order.length * T.activateStep + T.activateHold + 150, seq: ++fxSeq.current } }));
           await pause(120);
           let lit = 0;
           for (const kk of order) {
@@ -1543,6 +1634,7 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
             await pause(T.activateStep);
           }
           await pause(T.activateHold); // hold the completed combo a beat before zooming out
+          setAnim((a) => ({ ...a, snake: null }));
         }
 
         // An activation can still clear a Glint (covering it / isolating it), which
@@ -1584,26 +1676,61 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         // final commit carries the (active player's) score, which this device's HUD
         // masks with its own total. The name-tagged log says what they scored.
         if (spectateVersus) {
+          // THE WATCHED BANK (Thys 2026-08-26): the toned-down ceremony — the
+          // white-first reveal, the snake and the gold flip play so the watcher
+          // sees WHAT happened, but no particles, no shock, no word, no dim: the
+          // celebration belongs to the player who earned it. The banked gems
+          // then COMET to the opponent's footer box (their score lives there on
+          // this device), and the values float on the board in THEIR colour.
           const placedV = withTileAt(state, cellKey, tile);
           const committedV = place(state, cellKey, choiceIdx);
           const resV = committedV.lastResolved;
-          setAnim({ ...IDLE, playing: true, focused: true, dropCell: cellKey, freezeState: placedV });
+          const orderV = outcome.bankOrder;
+          const seatColV = SEAT_COLORS[(state.versus?.turn ?? 0) === 0 ? 0 : 1];
+          const preActV = new Set(state.activatedCells);
+          let flipAtV = Math.min(5, orderV.length - 1);
+          for (let fi = 1; fi < orderV.length; fi++) {
+            if (preActV.has(orderV[fi])) { flipAtV = Math.min(flipAtV, fi); break; }
+          }
+          setAnim({ ...IDLE, playing: true, focused: true, dropCell: cellKey, freezeState: placedV,
+            litWhite: true,
+            snake: { cells: [...orderV], color: "white", lapMs: T.bankHoldGlow + orderV.length * T.bankLightStep + 150, seq: ++fxSeq.current } });
           await pause(T.bankHoldGlow);
           const litV = new Set<string>();
-          for (let i = 0; i < outcome.bankOrder.length; i++) {
-            litV.add(outcome.bankOrder[i]);
+          for (let i = 0; i < orderV.length; i++) {
+            litV.add(orderV[i]);
             sfx.bankTile(i);
             setAnim((a) => ({ ...a, playing: true, freezeState: placedV, litCells: new Set(litV) }));
+            if (i === flipAtV) setAnim((a) => ({ ...a, litWhite: false,
+              snake: a.snake ? { ...a.snake, color: "gold" } : null, suppressActivated: new Set(orderV) }));
             await pause(T.bankLightStep);
           }
+          // the values, on the board, in the OPPONENT's colour
+          {
+            const cV = fxCentroid(orderV);
+            const isoPtsV = resV.isolatedToScore.reduce((n, t) => n + (t.points ?? 0), 0);
+            const bankValV = committedV.score - state.score - isoPtsV;
+            if (cV && bankValV > 0) fxBus.emit({ kind: "float", fromXY: { x: cV.x, y: cV.y - 14 }, text: `+${bankValV.toLocaleString()}`, color: seatColV });
+            for (const [ii, t] of resV.isolatedToScore.entries())
+              window.setTimeout(() => fxBus.emit({ kind: "float", fromKey: t.key, text: `+${(t.points ?? 0).toLocaleString()}`, color: seatColV }), ii * 70 + 160);
+          }
+          // the banked gems comet to the opponent's box; rings release with the lap
+          const relOrderV = [...orderV];
+          setAnim((a) => ({ ...a, releasing: { cells: relOrderV, ms: 620, seq: ++fxSeq.current },
+            snake: { cells: [...orderV], color: "gold", lapMs: 680, seq: ++fxSeq.current } }));
+          orderV.forEach((k, i) => {
+            const v = placedV.cells.get(k)?.tile;
+            window.setTimeout(() => { fxBus.emit({ kind: "comet", fromKey: k, to: "opp", color: GEM_GLOW[v ?? 4] ?? "#7fe9f5", dur: 480 }); sfx.cometFall(); }, i * 70);
+          });
           const goneV = new Set<string>([
-            ...outcome.bankOrder,
+            ...orderV,
             ...resV.isolatedToScore.map((t) => t.key),
             ...resV.strandToHand.map((t) => t.key),
             ...resV.pairToHand.map((t) => t.key),
           ]);
-          setAnim((a) => ({ ...a, playing: true, freezeState: placedV, litCells: new Set(), hiddenCells: goneV, flying: [], comboLineup: null }));
-          await pause(300);
+          setAnim((a) => ({ ...a, playing: true, freezeState: placedV, hiddenCells: goneV, flying: [], comboLineup: null }));
+          window.setTimeout(() => setAnim((a) => ({ ...a, litCells: new Set(), releasing: null, snake: null })), 700);
+          await pause(720);
           const cwV = withLateTiles(committedV);
           if (resV.shrunk || resV.singularity) await pause(SPECTATE_SYNC_MS); // sync the collapse w/ the active side
           const preShrinkV = await singularityBeat(boardWithout(placedV, goneV), resV);
@@ -1659,7 +1786,12 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           });
         }
 
-        // Phase A: show placed tile (drops in) + glow; lift the multiplier to its parked spot.
+        // Phase A: show placed tile (drops in, squash & settle) + glow; lift the
+        // multiplier to its parked spot. WHITE-FIRST (Motion Lab 1+2): the rings
+        // open as an activation while the snake runs the cluster's outer edge —
+        // the gold arrives only at the touch, so the game and the player find
+        // the bank out together.
+        const snakeLapMs = T.bankHoldGlow + order.length * T.bankLightStep + 150;
         setAnim({
           ...IDLE,
           playing: true,
@@ -1667,16 +1799,76 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           dropCell: cellKey,
           flying: parked,
           freezeState: placedFrozen,
+          litWhite: true,
+          snake: { cells: [...order], color: "white", lapMs: snakeLapMs, seq: ++fxSeq.current },
           multiplierLabel: hasMult ? `×${outcome.multiplier}` : null,
         });
         await pause(T.bankHoldGlow);
+        // THE FLIP POINT: the 6th gem, or the first tile that was already part
+        // of a pre-existing activated combo — whichever the light-up reaches
+        // first (the "touch" of the Motion Lab's snake).
+        const preActivated = new Set(state.activatedCells);
+        let flipAt = Math.min(5, order.length - 1);
+        for (let fi = 1; fi < order.length; fi++) {
+          if (preActivated.has(order[fi])) { flipAt = Math.min(flipAt, fi); break; }
+        }
 
-        // Phase B: light up cells one-by-one from the placed tile outward.
+        // Phase B: light up cells one-by-one from the placed tile outward —
+        // white until the flip, then EVERYTHING turns gold together.
         const lit = new Set<string>();
         for (let i = 0; i < order.length; i++) {
           lit.add(order[i]);
           sfx.bankTile(i);
           setAnim((a) => ({ ...a, litCells: new Set(lit) }));
+          if (i === flipAt) {
+            // THE GOLD FLIP — discovery. Shockwave from the placed tile, a burst
+            // in the banked minerals' own colours, the snake turns gold.
+            const hues = [...new Set(order.map((k) => placedFrozen.cells.get(k)?.tile).filter((v) => v != null))] as number[];
+            const flipColors = hues.flatMap((v) => [GEM_HUE[v] ?? "#ffce6a", GEM_GLOW[v] ?? "#ffe9b0"]);
+            setAnim((a) => ({ ...a, litWhite: false, snake: a.snake ? { ...a.snake, color: "gold" } : null,
+              // from the flip onward the cluster is GOLD's — its old white
+              // activation ring must never show again this bank
+              suppressActivated: new Set(order) }));
+            fxBus.emit({ kind: "wave", fromKey: cellKey });
+            fxBus.emit({ kind: "burst", fromKey: cellKey, colors: flipColors, n: order.length >= 7 ? 34 : 22, sp: order.length >= 7 ? 3.6 : 2.8 });
+            sfx.goldFlip();
+            if (order.length >= 7) { fxBus.emit({ kind: "rays", fromKey: cellKey, n: 12 }); sfx.bigBlast(); } else sfx.shockThump();
+            // ROAR tier — a chain, a Zenith, or a freshly-USED Nebulite speaks.
+            // NEBULOUS! is earned, not stumbled into (Thys's rule, 2026-08-26):
+            // it fires only when THIS placement sat down NEXT TO a Nebulite,
+            // recruited it into the combo, and the combo/chain banked in the
+            // same turn. Covering a Nebulite is not using it; a Nebulite that
+            // was already in a pre-existing combo the chain absorbed brought
+            // nothing new; an activation that merely lights one stays quiet.
+            const zenithIn = order.some((k) => placedFrozen.cells.get(k)?.tile === ZENITH);
+            const placedAdj = new Set(state.adj.get(cellKey) ?? []);
+            const nebulousBank =
+              // the player PLACED a Nebulite from the hand and it banked …
+              tile === CORE ||
+              // … or this placement sat down next to a board Nebulite and
+              // recruited it fresh into the banking combo
+              order.some((k) =>
+                placedFrozen.cells.get(k)?.tile === CORE && placedAdj.has(k) && !preActivated.has(k));
+            const w = fxWords();
+            if (wordGateAllows()) { // Versus: only the player's own moves speak
+              if (zenithIn) { fxBus.emit({ kind: "word", text: w.zenithWord, cool: true }); sfx.wordPop(); }
+              else if (nebulousBank) { fxBus.emit({ kind: "word", text: w.nebuliteWord, cool: true }); sfx.wordPop(); }
+              else if (outcome.chainName) { fxBus.emit({ kind: "word", text: pickChainWord() }); sfx.wordPop(); }
+            }
+            if (outcome.chainName || zenithIn || order.length >= 7) {
+              // micro-shake, ROAR only; the CHAIN ARC links the placed tile to
+              // the cluster's far side
+              setAnim((a) => ({ ...a, shakeMicro: (a.shakeMicro ?? 0) + 1 }));
+              if (outcome.chainName) {
+                const far = [...order].sort((x, y) => {
+                  const px = fxAt(x), py = fxAt(y), p0 = fxAt(cellKey);
+                  if (!px || !py || !p0) return 0;
+                  return Math.hypot(py.x - p0.x, py.y - p0.y) - Math.hypot(px.x - p0.x, px.y - p0.y);
+                })[0];
+                if (far && far !== cellKey) { fxBus.emit({ kind: "bolt", fromKey: cellKey, toKey: far }); sfx.arcZap(); }
+              }
+            }
+          }
           await pause(T.bankLightStep);
         }
         // Continue the count straight into the OVERFLOW tiles — same beat, but a RED
@@ -1740,11 +1932,23 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         const lineupBuried = res.buriedToHand.filter((t) => orderSet.has(t.key));
         const bankBuriedKeys = new Set(lineupBuried.map((t) => t.key));
         const hiddenNow = () => new Set([...cleared].filter((k) => !bankBuriedKeys.has(k)));
+        // THE RELEASE LAP + STAGE DIM (Motion Lab 1+2 and G): as the gems lift
+        // to the lineup, the snake makes its gold lap and every ring it passes
+        // goes dark; the board dims under the ceremony and only brightens when
+        // input unlocks — the lights coming up ARE the your-turn cue.
+        const releaseOrder = [...order].sort((x, y) => {
+          const px = fxAt(x), py = fxAt(y), c = fxCentroid(order);
+          if (!px || !py || !c) return 0;
+          return Math.atan2(px.y - c.y, px.x - c.x) - Math.atan2(py.y - c.y, py.x - c.x);
+        });
         setAnim((a) => ({
           ...a,
           hiddenCells: hiddenNow(),
           redCells: new Set(overflowRed),
           flying: [...parked, ...coreFly],
+          dim: true,
+          releasing: { cells: releaseOrder, ms: 620, seq: ++fxSeq.current },
+          snake: { cells: [...order], color: "gold", lapMs: 680, seq: ++fxSeq.current },
           bankedPlate: hasMult ? `BANKED ×${outcome.multiplier}` : `BANKED ×${order.length}`,
           comboLineup: { rows, chain: outcome.chainName, quadriant: quadLine },
           // from the lineup onward the hand already shows the NEXT tile — the
@@ -1752,10 +1956,23 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
           // of waiting for it (strand/Mother Lode arrivals land on top later).
           freezeState: revealBuried({ ...placedFrozen, hand: committed.hand }, lineupBuried),
         }));
+        // once the lap has run, drop the lit rings + snake for good
+        window.setTimeout(() => setAnim((a) => ({ ...a, litCells: new Set(), releasing: null, snake: null })), 700);
         if (outcome.coveredCore || clusterCores.length > 0) sfx.clearCore();
         // form up + read it…
         await pause(LINEUP_T.fly + nTiles * LINEUP_T.stagger + LINEUP_T.linger);
         sfx.bankScore(); // …then the lineup dives into the score
+        // THE BANK'S WORTH, AT THE BANK (Motion Lab card 5 + 9 + B): the value
+        // rises from where the combo lived, a beam races it to the counter, and
+        // the counter takes the hit as the dive lands.
+        {
+          const c = fxCentroid(order);
+          const isoPts = res.isolatedToScore.reduce((n, t) => n + (t.points ?? 0), 0);
+          const bankVal = committed.score - state.score - isoPts;
+          if (c && bankVal > 0) fxBus.emit({ kind: "float", fromXY: { x: c.x, y: c.y - 14 }, text: `+${bankVal.toLocaleString()}` });
+          if (c) { fxBus.emit({ kind: "beam", fromXY: c, to: "score", dur: 450 }); sfx.beamWhoosh(); }
+        }
+        window.setTimeout(() => { setAnim((a) => ({ ...a, scorePunch: (a.scorePunch ?? 0) + 1 })); sfx.punchHit(); }, 440);
         await pause(LINEUP_T.dive + nTiles * LINEUP_T.diveStagger + 150);
         setAnim((a) => ({ ...a, comboLineup: null }));
 
@@ -1785,8 +2002,10 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
         if (strandFly.length > 0) {
           // the strand tiles are already red (shown during the light-up); peel them off
-          // to the hand now. Keep any refined tiles red until the Mother Lode fusion.
+          // to the hand now — as COMETS with fading trails (Motion Lab card 9/F).
           for (const t of res.strandToHand) cleared.add(t.key);
+          for (const [ci, t] of res.strandToHand.entries())
+            window.setTimeout(() => { fxBus.emit({ kind: "comet", fromKey: t.key, to: "hand", color: GEM_GLOW[t.value] ?? "#7fe9f5", dur: T.toHandFly + 90 }); sfx.cometFall(); }, ci * 70);
           playHandSounds(res.strandToHand);
           const stillRed = new Set(res.motherLode?.refinedCells ?? []);
           setAnim((a) => ({ ...a, hiddenCells: hiddenNow(), redCells: stillRed, flying: strandFly }));
@@ -1796,6 +2015,13 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
 
         if (isoFly.length > 0) {
           for (const t of res.isolatedToScore) cleared.add(t.key);
+          // FACE VALUE RISES FROM THE TILE (Motion Lab card 4): the isolated
+          // pay-out finally shows itself where it happened, in the white voice.
+          for (const [ii, t] of res.isolatedToScore.entries())
+            window.setTimeout(() => {
+              fxBus.emit({ kind: "float", fromKey: t.key, text: `+${(t.points ?? 0).toLocaleString()}`, white: true });
+              if (t.value !== CORE) fxBus.emit({ kind: "beam", fromKey: t.key, to: "score", dur: 420 });
+            }, ii * 70 + 160);
           playClearSounds(res.isolatedToScore);
           // a departing special lifts off its buried mineral: that cell keeps
           // SHOWING the gem underneath (instead of going dark) until the gem
@@ -1941,6 +2167,8 @@ export function useNebuliteGame(initialSide: 4 | 5 | 6) {
         await pause(300);
         await settleOut(); // the BUST stamp (and everything after) runs zoomed OUT
         sfx.bust();
+        sfx.smokePuff();
+        fxBus.emit({ kind: "smoke", fromKey: cellKey });
         haptic("bust");
         setAnim((a) => ({ ...a, banner: "BUST", shake: true }));
         beat("BUST stamp", { view: "placedFrozen" });

@@ -21,9 +21,13 @@ export function HUD({
   bustRef,
   banksRef,
   seatColor,
+  scorePunch,
 }: {
   state: GameState;
   scoreRef?: React.RefObject<HTMLDivElement>;
+  /** COUNTER PUNCH (Motion Lab card B): re-keyed per bank so the score box
+   *  physically takes the hit as the points land. */
+  scorePunch?: number;
   bustRef?: React.RefObject<HTMLDivElement>;
   banksRef?: React.RefObject<HTMLDivElement>;
   // VERSUS: tint the SCORE/BANKS/BUSTS card outlines with THIS player's seat colour
@@ -34,7 +38,7 @@ export function HUD({
   return (
     <div style={hudWrap}>
       <div className="gl-card-tilt" style={{ ...statBox, ...seatEdge, flex: 1.6 }} ref={scoreRef}>
-        <div style={cardLift}>
+        <div key={scorePunch || 0} className={scorePunch ? "gl-score-punch" : undefined} style={cardLift}>
           <div style={statLabel}>{CONTENT.hud.score}</div>
           <ScoreValue value={state.score} />
         </div>
