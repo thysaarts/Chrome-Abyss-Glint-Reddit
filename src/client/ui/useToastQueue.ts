@@ -49,48 +49,93 @@ export function newEntries(prevTop: LogEntry | null, log: readonly LogEntry[], m
 }
 
 /**
+ * The queue's brain, framework-free so its sequencing is testable. The hook
+ * wires it to React state and the stagger timer; the core decides WHAT shows
+ * WHEN:
+ *
+ * - `collect(log)` folds a log snapshot in. A new burst supersedes whatever is
+ *   still queued from an earlier move (a fast player must never watch a toast
+ *   from two placements ago), but a burst is one move's story and always plays
+ *   IN FULL — truncating it would drop the "Banked …" line, which is the whole
+ *   reason this queue exists.
+ * - `needsTimer(line)` — a STICKY line with nothing queued behind it holds the
+ *   band with NO timer ("holds until the next entry", engine.ts). The core
+ *   remembers that hold, and the next collect DISPLACES it. This displacement
+ *   is load-bearing: without it the final sticky of a finished run (BOARD
+ *   CLEARED) deadlocked the band — no timer running, and collect refused to
+ *   advance because a line was "showing" — so the stale line survived into the
+ *   whole of the NEXT game (Thys's bug, 2026-08-26).
+ * - `tick()` — the stagger timer fired; release the next line.
+ */
+export class ToastQueueCore {
+  private pending: LogEntry[] = [];
+  private prevTop: LogEntry | null = null;
+  private showing = false;
+  private stickyHold = false; // a sticky is on the band with NO timer armed
+  constructor(private emit: (t: LogEntry) => void) {}
+
+  collect(log: readonly LogEntry[]): void {
+    const added = newEntries(this.prevTop, log);
+    this.prevTop = log[0] ?? null;
+    if (added.length === 0) return;
+    this.pending = added.slice(-MAX_PENDING);
+    // start the drain if the band is free — or if a sticky is holding it, in
+    // which case this burst IS "the next entry" that ends the sticky's reign.
+    // A non-sticky line keeps its full beat: its timer is already running.
+    if (!this.showing || this.stickyHold) {
+      this.stickyHold = false;
+      this.advance();
+    }
+  }
+
+  /** Whether the just-shown line needs the stagger timer. False = it is a
+   *  sticky holding the band until the next collect displaces it. */
+  needsTimer(current: LogEntry): boolean {
+    if (current.sticky && this.pending.length === 0) {
+      this.stickyHold = true;
+      return false;
+    }
+    return true;
+  }
+
+  tick(): void {
+    this.advance();
+  }
+
+  private advance(): void {
+    const next = this.pending.shift();
+    if (!next) {
+      this.showing = false;
+      return;
+    }
+    this.showing = true;
+    this.emit(next);
+  }
+}
+
+/**
  * The line the band should show, and a key that changes per line so the
  * float-in / hold / float-out animation replays for each.
  */
 export function useToastQueue(log: readonly LogEntry[]): { toast: LogEntry | null; toastId: number } {
   const [toast, setToast] = useState<LogEntry | null>(null);
   const [toastId, setToastId] = useState(0);
-  const pending = useRef<LogEntry[]>([]);
-  const prevTop = useRef<LogEntry | null>(null);
-  const showing = useRef(false);
-
-  // collect: fold each burst into the queue, newest work winning if we overflow
-  useEffect(() => {
-    const added = newEntries(prevTop.current, log);
-    prevTop.current = log[0] ?? null;
-    if (added.length === 0) return;
-    // A NEW BURST SUPERSEDES whatever is still queued from an earlier move: a
-    // fast player must never watch a toast from two placements ago. But a burst
-    // is one move's story and always plays IN FULL — truncating it would drop
-    // the "Banked …" line, which is the whole reason this queue exists.
-    // (When log entries are released per animation beat, "burst" becomes "beat"
-    // and this rule needs revisiting — beats of the SAME move must not discard
-    // each other.)
-    pending.current = added.slice(-MAX_PENDING);
-    if (!showing.current) advance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [log]);
-
-  // release: one line, then the next
-  function advance() {
-    const next = pending.current.shift();
-    if (!next) { showing.current = false; return; }
-    showing.current = true;
-    setToast(next);
-    setToastId((n) => n + 1);
+  const core = useRef<ToastQueueCore | null>(null);
+  if (!core.current) {
+    core.current = new ToastQueueCore((t) => {
+      setToast(t);
+      setToastId((n) => n + 1);
+    });
   }
 
   useEffect(() => {
-    if (!showing.current) return;
-    // a STICKY line holds the band until something displaces it — but only when
-    // nothing is waiting, or it would swallow the rest of its own burst
-    if (toast?.sticky && pending.current.length === 0) return;
-    const t = window.setTimeout(advance, STAGGER_MS);
+    core.current!.collect(log);
+  }, [log]);
+
+  useEffect(() => {
+    if (!toast) return;
+    if (!core.current!.needsTimer(toast)) return; // sticky: held until displaced
+    const t = window.setTimeout(() => core.current!.tick(), STAGGER_MS);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toastId]);
