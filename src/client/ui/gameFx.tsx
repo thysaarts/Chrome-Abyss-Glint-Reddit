@@ -31,7 +31,7 @@ export type FxEvent =
   | ({ kind: "smoke"; n?: number } & Resolve)
   | ({ kind: "bolt"; toKey?: string } & Resolve)
   | ({ kind: "beam"; color?: string; dur?: number } & Resolve)
-  | ({ kind: "comet"; color?: string; dur?: number } & Resolve)
+  | ({ kind: "comet"; color?: string; dur?: number; arc?: number } & Resolve)
   | ({ kind: "float"; text: string; white?: boolean; color?: string } & Resolve)
   | { kind: "word"; text: string; cool?: boolean; zenith?: boolean };
 
@@ -216,12 +216,14 @@ export function GameFxLayer({ mapper, scoreAnchor, handAnchor, opponentAnchor, b
         }
         ctx.globalAlpha = 1;
       } });
-    const comet = (x1: number, y1: number, x2: number, y2: number, color: string, dur: number) => {
+    const comet = (x1: number, y1: number, x2: number, y2: number, color: string, dur: number, arc = 18) => {
       const trail: XY[] = [];
       add({ life: dur + 260, draw(ctx, u) {
         const uu = Math.min((u * (dur + 260)) / dur, 1);
         const e = 1 - Math.pow(1 - uu, 2.4);
-        const px = x1 + (x2 - x1) * e, py = y1 + (y2 - y1) * e - Math.sin(e * Math.PI) * 18;
+        // arc = 0 flies the straight line — used when the comet CARRIES a gem
+        // whose own flight is a straight CSS transition (the lineup)
+        const px = x1 + (x2 - x1) * e, py = y1 + (y2 - y1) * e - Math.sin(e * Math.PI) * arc;
         if (uu < 1) { trail.push({ x: px, y: py }); if (trail.length > 14) trail.shift(); }
         for (let i = 1; i < trail.length; i++) {
           ctx.globalAlpha = (i / trail.length) * 0.5 * (uu < 1 ? 1 : 1 - (u * (dur + 260) - dur) / 260);
@@ -267,7 +269,7 @@ export function GameFxLayer({ mapper, scoreAnchor, handAnchor, opponentAnchor, b
         if (to) beam(from.x, from.y, to.x, to.y, e.color ?? "#ffce6a", e.dur ?? 450);
       } else if (e.kind === "comet") {
         const to = resolveTo(e);
-        if (to) comet(from.x, from.y, to.x, to.y, e.color ?? "#7fe9f5", e.dur ?? 450);
+        if (to) comet(from.x, from.y, to.x, to.y, e.color ?? "#7fe9f5", e.dur ?? 450, e.arc ?? 18);
       }
     };
     listeners.add(on);

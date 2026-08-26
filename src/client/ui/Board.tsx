@@ -114,6 +114,27 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
   const glowTier = (n: number) => (n <= 2 ? 0 : n === 3 ? 1 : n === 4 ? 2 : 3);
   const GLOW_ALPHA = [0, 0.3, 0.6, 0.95];
   const GLOW_R = [0, 0.95, 1.12, 1.32];
+  // SMALL-SCREEN GLOW BOOST (Thys, 2026-08-26): the halo is proportional to the
+  // board, so on a phone the fringe past the gem is a handful of physical
+  // pixels and reads as a rim, not a glow. Measure the rendered px-per-hex and
+  // widen/strengthen the halo as the board shrinks; at desktop sizes the boost
+  // is exactly 1 and nothing changes.
+  const [pxPerHex, setPxPerHex] = useState(40);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const measure = () => {
+      const v = (el.clientWidth / layout.w) * HEX_RADIUS;
+      setPxPerHex((prev) => (Math.abs(v - prev) > 0.5 && v > 0 ? v : prev));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [layout.w]);
+  const glowBoost = Math.min(1.5, Math.max(1, 34 / pxPerHex));
+  const glowR = (tier: number) => GLOW_R[tier] * (1 + (glowBoost - 1) * 0.8);
+  const glowAlpha = (tier: number) => Math.min(1, GLOW_ALPHA[tier] * (1 + (glowBoost - 1) * 0.55));
   const activatedSet = useMemo(() => new Set(state.activatedCells), [state.activatedCells]);
 
   // THE SNAKE'S DIM (Thys, 2026-08-26): while the snake runs its lap the
@@ -542,10 +563,10 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
                     <ellipse
                       cx={p.x}
                       cy={p.y - HEX * 0.15}
-                      rx={HEX * GLOW_R[tier]}
-                      ry={HEX * GLOW_R[tier] * 0.94}
+                      rx={HEX * glowR(tier)}
+                      ry={HEX * glowR(tier) * 0.94}
                       fill={`url(#gl-halo-${haloId}-${cell.tile})`}
-                      opacity={GLOW_ALPHA[tier]}
+                      opacity={glowAlpha(tier)}
                       style={{ pointerEvents: "none", transition: "opacity 0.25s" }}
                     />
                   );
@@ -673,7 +694,9 @@ export function Board({ state, onPlace, interactive, litCells, redCells, hiddenC
         if (!p) return null;
         return (
           <g key={`shock-${dropCell}`} style={{ pointerEvents: "none", filter: "drop-shadow(0 0 4px rgba(223,250,255,0.7))" }}>
-            <polygon className="gl-shock" points={hexPath(p.x, p.y, HEX * 0.98)} fill="none" stroke="#dffaff" strokeWidth={2.2} />
+            {/* delayed to the drop's IMPACT (58% of gl-tile-pop's 340ms) — the
+                ring belongs to the landing, not the fade-in above the cell */}
+            <polygon className="gl-shock" style={{ animationDelay: "195ms" }} points={hexPath(p.x, p.y, HEX * 0.98)} fill="none" stroke="#dffaff" strokeWidth={2.2} />
           </g>
         );
       })()}

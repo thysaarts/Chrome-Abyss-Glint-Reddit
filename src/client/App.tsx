@@ -197,6 +197,16 @@ export default function App() {
   // decides what "Got it — Play" does.
   const [tutorial, setTutorial] = useState<null | "start" | "game">(null);
   const [boardPressed, setBoardPressed] = useState(false);
+  // micro-shake driver — replays gl-shake-micro per counter bump WITHOUT
+  // re-keying the board box (a remount snapped the focus zoom back to rest;
+  // see the comment at the box). animationend clears the class for the next hit.
+  const [microShake, setMicroShake] = useState(false);
+  const microShakeSeen = useRef(0);
+  useEffect(() => {
+    const n = anim.shakeMicro ?? 0;
+    if (n > 0 && n !== microShakeSeen.current) { microShakeSeen.current = n; setMicroShake(true); }
+    if (n === 0) microShakeSeen.current = 0;
+  }, [anim.shakeMicro]);
   // bug027: the board's max height is MEASURED, not estimated — the fit layout
   // (mobile) flexes the sheen area to the leftover viewport space; the board may
   // use all of it minus the toast band. null = desktop flow layout (64vh cap).
@@ -1661,9 +1671,13 @@ export default function App() {
           <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} />
           <div style={boardPanel}>
             <div style={boardGlow} />
+            {/* micro-shake via class + animationend, NEVER a key remount: re-keying
+                this box tears down the zoom transform div mid-transition, so the
+                camera SNAPPED back to rest when commitFinal reset the counter in
+                the same render that dropped `focused` (Thys's bug, 2026-08-26). */}
             <div ref={boardBoxRef} style={{ position: "relative" }}
-              key={`bb-${anim.shakeMicro ?? 0}`}
-              className={anim.shake && visualOptions.screenShake ? "gl-shake" : (anim.shakeMicro ?? 0) > 0 && visualOptions.screenShake ? "gl-shake-micro" : undefined}>
+              onAnimationEnd={(e) => { if (e.animationName === "gl-shake-micro") setMicroShake(false); }}
+              className={anim.shake && visualOptions.screenShake ? "gl-shake" : microShake && visualOptions.screenShake ? "gl-shake-micro" : undefined}>
               {/* The board lives inside a clipping perspective viewport: the press-zoom
                   and the 3D tilt stay inside this window instead of growing the page's
                   scroll area (which used to shift the whole page on mobile). */}

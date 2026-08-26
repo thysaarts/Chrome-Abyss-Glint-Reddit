@@ -90,7 +90,9 @@ const SPECTATE_SYNC_MS = 2000;
 // COMBO LINEUP timings — shared with the overlay component (App.tsx), which runs
 // its own matching timeline: fly to the slots → linger (names shown) → dive in.
 export const LINEUP_T = {
-  fly: 550, // board cell → lineup slot (movement trimmed; the read-it beat is kept)
+  fly: 420, // board cell → lineup slot — quick enough that the comet riding
+  // each gem (ComboLineupOverlay) reads as CARRYING it, the Lab finale illusion
+  // (Thys, 2026-08-26); the read-it beat is kept in `linger`
   stagger: 45, // per-tile start offset while forming up
   linger: 950, // hold the formed combos + names (the user-facing "read it" beat)
   dive: 400, // lineup slot → score box

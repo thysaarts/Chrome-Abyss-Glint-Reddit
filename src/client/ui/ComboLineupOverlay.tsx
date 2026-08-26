@@ -3,6 +3,7 @@ import { theme } from "../theme/theme";
 import { TileGem } from "./TileGem";
 import { LINEUP_T, Mapper } from "./useNebuliteGame";
 import { TileVal } from "../game/engine";
+import { fxBus, GEM_GLOW } from "./gameFx";
 
 /**
  * COMBO LINEUP — the banked tiles' "show your hand" moment. Instead of diving
@@ -205,8 +206,21 @@ function LineupPiece({
   const [arrived, setArrived] = useState(tile.ghost ? false : start === tile.slot);
 
   useEffect(() => {
-    // fly to the slot, staggered by the tile's global index
+    // fly to the slot, staggered by the tile's global index. Each REAL tile
+    // rides a comet (Motion Lab finale, Thys 2026-08-26): the streak launches
+    // the same instant on the same path with the same duration, so the gem
+    // reads as being CARRIED to the lineup rather than teleporting there.
     const t = window.setTimeout(() => {
+      if (!tile.ghost && tile.from) {
+        fxBus.emit({
+          kind: "comet",
+          fromXY: tile.from,
+          to: { x: tile.slot.x, y: tile.slot.y },
+          color: GEM_GLOW[tile.value] ?? "#ffe9b0",
+          dur: LINEUP_T.fly,
+          arc: 0, // ride the gem's straight line, not the default lob
+        });
+      }
       setPos(tile.slot);
       setArrived(true);
     }, 30 + tile.idx * LINEUP_T.stagger);
@@ -228,7 +242,9 @@ function LineupPiece({
         height: TILE,
         transition: diving
           ? `left ${LINEUP_T.dive}ms cubic-bezier(0.5,0,0.8,0.4) ${tile.idx * LINEUP_T.diveStagger}ms, top ${LINEUP_T.dive}ms cubic-bezier(0.5,0,0.8,0.4) ${tile.idx * LINEUP_T.diveStagger}ms, transform ${LINEUP_T.dive}ms ease ${tile.idx * LINEUP_T.diveStagger}ms, opacity ${LINEUP_T.dive}ms ease ${tile.idx * LINEUP_T.diveStagger}ms`
-          : `left ${LINEUP_T.fly}ms cubic-bezier(0.35,0,0.25,1), top ${LINEUP_T.fly}ms cubic-bezier(0.35,0,0.25,1), opacity 0.4s ease`,
+          // fly easing ~ the comet's 1-(1-u)^2.4 ease-out, so the streak's head
+          // stays ON the gem for the whole flight (the carried-by-a-comet read)
+          : `left ${LINEUP_T.fly}ms cubic-bezier(0.22,0.61,0.36,1), top ${LINEUP_T.fly}ms cubic-bezier(0.22,0.61,0.36,1), opacity 0.4s ease`,
         opacity: gone ? 0 : diving ? 0.15 : tile.ghost ? (arrived && phase !== "fly" ? 0.42 : 0) : 1,
         transform: diving ? "scale(0.45)" : "scale(1)",
         filter: tile.ghost
