@@ -974,28 +974,40 @@ function clusterPerimeter(cells: string[], layout: BoardLayout): string {
   return "M" + loop.map((pt) => `${pt[0].toFixed(1)},${pt[1].toFixed(1)}`).join("L") + "Z";
 }
 
+/** The glow is PAINTED, never filtered: concentric strokes at falling opacity
+ *  approximate the gaussian falloff. WebKit (iOS Safari, iOS Chrome, WKWebView,
+ *  the Devvit webview) silently drops CSS blur/drop-shadow filters on SVG and
+ *  renders a bare thick stroke instead — the project's standing Safari rule. */
+const SNAKE_GLOW_LAYERS = [
+  { w: 26, o: 0.06 },
+  { w: 19, o: 0.11 },
+  { w: 13, o: 0.18 },
+  { w: 8, o: 0.28 },
+];
+
 /** One lap of the 1/6 segment around the cluster. Self-driving (rAF); re-keyed
  *  by the hook per lap/colour. Pure decoration — nothing awaits it.
  *
- *  Two paths share the dash animation: a soft LIT-UP GLOW underlay and the
- *  crisp segment on top. `glowFadeMs` set (the release lap — the rings are
- *  going dark) fades the glow 1→0 over that window while the segment itself
- *  stays full opacity to the end (Thys, 2026-08-26). */
+ *  The painted LIT-UP GLOW underlay shares the dash animation with the crisp
+ *  segment on top. `glowFadeMs` set (the release lap — the rings are going
+ *  dark) fades the glow 1→0 over that window while the segment itself stays
+ *  full opacity to the end (Thys, 2026-08-26). */
 function SnakeOverlay({ points, color, lapMs, glowFadeMs }: { points: string; color: "white" | "gold"; lapMs: number; glowFadeMs?: number | null }) {
   const ref = useRef<SVGPathElement | null>(null);
-  const glowRef = useRef<SVGPathElement | null>(null);
+  const glowGroupRef = useRef<SVGGElement | null>(null);
   useEffect(() => {
-    const path = ref.current, glow = glowRef.current;
+    const path = ref.current;
     if (!path || !points) return;
+    const glows = glowGroupRef.current ? Array.from(glowGroupRef.current.querySelectorAll("path")) : [];
+    const all = [path, ...glows];
     const total = path.getTotalLength();
-    path.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
-    glow?.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
+    for (const p of all) p.setAttribute("stroke-dasharray", `${total / 6} ${total}`);
     let raf: number | null = null;
     const t0 = performance.now();
     const run = () => {
       const u = Math.min((performance.now() - t0) / lapMs, 1);
-      path.setAttribute("stroke-dashoffset", String(-total * u));
-      glow?.setAttribute("stroke-dashoffset", String(-total * u));
+      const off = String(-total * u);
+      for (const p of all) p.setAttribute("stroke-dashoffset", off);
       if (u < 1) raf = requestAnimationFrame(run);
     };
     raf = requestAnimationFrame(run);
@@ -1005,19 +1017,17 @@ function SnakeOverlay({ points, color, lapMs, glowFadeMs }: { points: string; co
   const hue = color === "gold" ? "#ffce6a" : "#ffffff";
   return (
     <g style={{ pointerEvents: "none" }}>
-      <path
-        ref={glowRef}
-        d={points}
-        fill="none"
-        stroke={hue}
-        strokeWidth={11}
-        strokeLinecap="round"
+      <g
+        ref={glowGroupRef}
         style={{
-          filter: "blur(6px)",
           opacity: 0.85,
           ...(glowFadeMs != null ? { animation: `gl-snake-glow-fade ${glowFadeMs}ms ease-out both` } : {}),
-        }}
-      />
+        }}>
+        {SNAKE_GLOW_LAYERS.map((l, i) => (
+          <path key={i} d={points} fill="none" stroke={hue}
+            strokeWidth={l.w} strokeOpacity={l.o} strokeLinecap="round" />
+        ))}
+      </g>
       <path
         ref={ref}
         d={points}
@@ -1025,7 +1035,6 @@ function SnakeOverlay({ points, color, lapMs, glowFadeMs }: { points: string; co
         stroke={hue}
         strokeWidth={4}
         strokeLinecap="round"
-        style={{ filter: color === "gold" ? "drop-shadow(0 0 6px rgba(255,158,46,0.8))" : "drop-shadow(0 0 5px rgba(255,255,255,0.8))" }}
       />
     </g>
   );
