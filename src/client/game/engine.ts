@@ -2311,6 +2311,28 @@ function reshuffleHand(s: GameState, rng: () => number): boolean {
  * ONE cell into a random EMPTY adjacent cell. A tile with no empty neighbour stays
  * put. Buried tiles move with their carrier. Records the moves for the UI.
  */
+/** How many occupied groups of size ≤ 2 the board currently holds — the shapes
+ *  the isolation rules act on. Used to keep the nudge isolation-neutral. */
+function strandedGroups(s: GameState): number {
+  const seen = new Set<string>();
+  let n = 0;
+  for (const start of s.order) {
+    if (seen.has(start) || s.cells.get(start)!.tile === null) continue;
+    let size = 0;
+    const queue = [start];
+    seen.add(start);
+    while (queue.length) {
+      const k = queue.pop()!;
+      size++;
+      for (const nb of s.adj.get(k) ?? []) {
+        if (!seen.has(nb) && s.cells.get(nb)!.tile !== null) { seen.add(nb); queue.push(nb); }
+      }
+    }
+    if (size <= 2) n++;
+  }
+  return n;
+}
+
 function nudgeBoard(s: GameState, rng: () => number): { from: string; to: string }[] {
   const moves: { from: string; to: string }[] = [];
   const activated = new Set(s.activatedCells);
@@ -2345,6 +2367,24 @@ function nudgeBoard(s: GameState, rng: () => number): { from: string; to: string
     // other tile needs this check. With no option left, it simply stays put.
     if (s.cells.get(from)!.tile === GLINT) {
       empties = empties.filter((to) => drossClusterFits(to, s.adj, (nb) => nb !== from && s.cells.get(nb)!.tile === GLINT));
+    }
+    // THE NUDGE IS ISOLATION-NEUTRAL (Thys's ruling, 2026-08-26). The drift is
+    // cosmetic drama — it must never MANUFACTURE strays for the wake to sweep.
+    // The bug it fixes: bust beside a lone Dross → the forced tile reconnects it
+    // (a mixed pair, correctly untouchable) → the nudge then drifted one of the
+    // pair away → the wake saw two singles and discarded BOTH. A destination is
+    // legal only if the move does not increase the number of stranded (size ≤ 2)
+    // occupied groups. Reducing strays remains allowed.
+    {
+      const before = strandedGroups(s);
+      empties = empties.filter((to) => {
+        const src = s.cells.get(from)!;
+        const dst = s.cells.get(to)!;
+        dst.tile = src.tile; src.tile = null;          // simulate
+        const after = strandedGroups(s);
+        src.tile = dst.tile; dst.tile = null;          // revert
+        return after <= before;
+      });
     }
     if (empties.length === 0) continue; // a prior move boxed it in; it stays put
     const to = empties[Math.floor(rng() * empties.length)];
