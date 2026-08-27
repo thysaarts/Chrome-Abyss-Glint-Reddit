@@ -73,6 +73,53 @@ describe("the solo autopilot (DEV TOOLS › AI player)", () => {
     expect(chooseSoloAction(duel, seededRng(1))).toBeNull();
   });
 
+  // OPENING DISCIPLINE (Thys field report 2026-08-27): pre-collapse the AI must
+  // play TWO-STEP — activate setups and bank what it BUILT, not flash instant
+  // 6+ banks from scratch. Before the instant/built split the profile over
+  // these seeds was 61 instant / 21 built / 33 activations (a bank-chaser);
+  // after, 3 / 67 / 76. This pins the shape, with margin.
+  it("pre-collapse it sets up and builds — instant banks stay rare", () => {
+    const preBuilt = (s: GameState, cell: string): number => {
+      const act = new Set(s.activatedCells);
+      const seen = new Set<string>();
+      const stack = [...(s.adj.get(cell) ?? [])].filter((k) => act.has(k));
+      for (const k of stack) seen.add(k);
+      while (stack.length) {
+        const c = stack.pop()!;
+        for (const nb of s.adj.get(c) ?? []) if (act.has(nb) && !seen.has(nb)) { seen.add(nb); stack.push(nb); }
+      }
+      return seen.size;
+    };
+    let instant = 0, built = 0, activations = 0;
+    for (const seed of [7, 19, 42, 101, 333, 555, 777, 901, 1234, 4321]) {
+      let s: GameState = newGame({ seed, side: 6 });
+      const rng = seededRng(seed * 3 + 1);
+      let turns = 0;
+      while (s.phase === "playing" && turns < 400) {
+        const a = chooseSoloAction(s, rng);
+        if (!a) break;
+        const before = s;
+        if (a.kind === "cashout") s = cashOut(s);
+        else {
+          const i = a.rotateTo ?? 0;
+          const rs = i > 0 ? { ...s, hand: [...s.hand.slice(i), ...s.hand.slice(0, i)] } : s;
+          const opening = rs.side === 6 && !rs.deathMatch;
+          const pb = opening ? preBuilt(rs, a.cell!) : -1;
+          s = place(rs, a.cell!, 0);
+          if (opening) {
+            if (s.banks > rs.banks) { if (pb < 3) instant++; else built++; }
+            else if (s.activatedCells.length > rs.activatedCells.length) activations++;
+          }
+        }
+        if (s === before) break;
+        turns++;
+      }
+    }
+    expect(instant).toBeLessThanOrEqual(10); // was 61 as a bank-chaser
+    expect(activations).toBeGreaterThanOrEqual(40); // setups dominate the opening
+    expect(built).toBeGreaterThanOrEqual(instant * 3); // banks complete INVESTMENTS
+  }, 300_000);
+
   // HONEST HANDS (Thys 2026-08-27): until the hand is revealed a human can only
   // place the FRONT tile — the AI must never rotate to a hidden one. Checked
   // across whole playthroughs, solo AND versus (the Broker cheated too).

@@ -131,8 +131,25 @@ function familyCount(s: GameState, drift: boolean): number {
   return n;
 }
 
-/** score a candidate next-state from the acting seat's perspective. */
-function evaluate(prev: GameState, next: GameState, cfg: TierCfg): number {
+/** how much ALREADY-ACTIVATED cluster the placed cell connects to — the size of
+ *  the prior investment a resulting bank completes. 0–2 = a bank flashed from
+ *  scratch (instant); 3+ = the second step of a genuine two-step setup. */
+function preBuiltAt(s: GameState, cell: string): number {
+  const act = new Set(s.activatedCells);
+  const seen = new Set<string>();
+  const stack: string[] = [];
+  for (const nb of s.adj.get(cell) ?? []) if (act.has(nb) && !seen.has(nb)) { seen.add(nb); stack.push(nb); }
+  while (stack.length) {
+    const c = stack.pop()!;
+    for (const nb of s.adj.get(c) ?? []) if (act.has(nb) && !seen.has(nb)) { seen.add(nb); stack.push(nb); }
+  }
+  return seen.size;
+}
+
+/** score a candidate next-state from the acting seat's perspective.
+ *  `placedCell` (when the candidate is a placement) lets the opening read
+ *  distinguish an INSTANT bank from a BUILT one — see below. */
+function evaluate(prev: GameState, next: GameState, cfg: TierCfg, placedCell?: string): number {
   const term = terminalValue(next, (prev.versus?.turn ?? 0) as 0 | 1);
   // a CLEAR ending is a tier-3 read: below clearIQ she doesn't recognise that
   // finishing the board ends (and likely wins) the game — the move scores like
@@ -145,7 +162,19 @@ function evaluate(prev: GameState, next: GameState, cfg: TierCfg): number {
   // convenient). Chasing instant 6+ combos early drains the hand. After
   // collapse 1 the discount lifts and normal greed returns.
   const opening = prev.side === 6 && !prev.deathMatch;
-  v += (next.score - prev.score) * (opening ? 0.22 : 1); // points I banked this action
+  // INSTANT vs BUILT banks (the fix behind Thys's 2026-08-27 field report: a
+  // flat discount could never restrain 600–6,000-point auto-banks — 22% of a
+  // Hex chain still dwarfed every activation, so the AI stayed a bank-chaser).
+  // A bank that completes a cluster the AI already INVESTED in (placed cell
+  // touches 3+ previously-activated cells) is the second step of two-step play
+  // — it keeps the discounted value. A bank flashed from SCRATCH is capped
+  // BELOW a 3-cell activation (168), so any real setup option outranks it and
+  // it's only ever taken when nothing better exists.
+  let scoreGain = (next.score - prev.score) * (opening ? 0.22 : 1);
+  if (opening && placedCell !== undefined && next.banks > prev.banks && preBuiltAt(prev, placedCell) < 3) {
+    scoreGain = Math.min(scoreGain, 120);
+  }
+  v += scoreGain; // points I banked this action
   if (next.livesLeft < prev.livesLeft) v -= W_BUST * (prev.livesLeft - next.livesLeft);
   v += W_ACT * (opening ? 4 : 1) * Math.max(0, next.activatedCells.length - prev.activatedCells.length);
   // DRIFT-FIRST (opening only): a fresh sequence combo keeps the board's values
@@ -268,7 +297,7 @@ export function chooseBrokerAction(state: GameState, tier: BrokerTier, rng: () =
       if (!isLegalTarget(rs, cell)) continue;
       try {
         const after = place(rs, cell, 0);
-        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg), after });
+        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell), after });
       } catch { /* skip pathological placements */ }
     }
   }
@@ -288,7 +317,7 @@ export function chooseBrokerAction(state: GameState, tier: BrokerTier, rng: () =
         try {
           const after = place(rs, cell, 0);
           if (after === rs) continue;
-          cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg), after });
+          cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell), after });
         } catch { /* truly unplaceable cell */ }
       }
     }
@@ -310,7 +339,7 @@ export function chooseBrokerAction(state: GameState, tier: BrokerTier, rng: () =
         for (const nb of state.adj.get(c) ?? []) if (act.has(nb) && !seenGroup.has(nb)) { seenGroup.add(nb); stack.push(nb); }
       }
       const after = bankClusterNow(state, cell);
-      if (after !== state) cands.push({ action: { kind: "bank", cell }, value: evaluate(state, after, cfg), after });
+      if (after !== state) cands.push({ action: { kind: "bank", cell }, value: evaluate(state, after, cfg, cell), after });
     }
   }
 
@@ -387,7 +416,7 @@ export function chooseSoloAction(state: GameState, rng: () => number = Math.rand
       if (!isLegalTarget(rs, cell)) continue;
       try {
         const after = place(rs, cell, 0);
-        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg) });
+        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell) });
       } catch { /* skip pathological placements */ }
     }
   }
@@ -408,7 +437,7 @@ export function chooseSoloAction(state: GameState, rng: () => number = Math.rand
         try {
           const after = place(rs, cell, 0);
           if (after === rs) continue;
-          cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg) });
+          cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell) });
         } catch { /* truly unplaceable cell */ }
       }
     }
