@@ -131,6 +131,20 @@ function familyCount(s: GameState, drift: boolean): number {
   return n;
 }
 
+/** after a move, how many of the six mineral values still have at least one
+ *  legal (non-busting) build on the board? Public board information — needs no
+ *  hand knowledge, so it's fair pre-reveal too. 0–6. */
+function optionCoverage(s: GameState): number {
+  let covered = 0;
+  for (let val = 1; val <= 6; val++) {
+    const probe = { ...s, hand: [val as TileVal, ...s.hand.slice(1)] };
+    for (const cell of s.order) {
+      if (isLegalTarget(probe, cell)) { covered++; break; }
+    }
+  }
+  return covered;
+}
+
 /** how much ALREADY-ACTIVATED cluster the placed cell connects to — the size of
  *  the prior investment a resulting bank completes. 0–2 = a bank flashed from
  *  scratch (instant); 3+ = the second step of a genuine two-step setup. */
@@ -185,14 +199,31 @@ function evaluate(prev: GameState, next: GameState, cfg: TierCfg, placedCell?: s
     v += 60 * Math.max(0, familyCount(next, true) - familyCount(prev, true));
     v -= 30 * Math.max(0, familyCount(next, false) - familyCount(prev, false));
   }
-  // SURVIVAL (any phase, every tier): with 4 or fewer minerals in hand, staying
-  // alive outranks points — reward moves that GAIN minerals (overflow refills,
-  // which also justify a big bank when the overflow is guaranteed), sweep
-  // Dross, or resolve Nebulite.
-  if (prev.hand.length <= 4 && next.phase === "playing") {
-    v += 320 * Math.max(0, next.hand.length - prev.hand.length);
-    v += 260 * Math.max(0, (next.drossCleared ?? 0) - (prev.drossCleared ?? 0));
-    v += 220 * Math.max(0, (next.nebulitesRefined ?? 0) - (prev.nebulitesRefined ?? 0) + (next.coresCollected - prev.coresCollected));
+  // GEM ECONOMY (Thys 2026-08-27, second field report: the AI still ran dry
+  // too early — it only valued gems once the hand hit 4, and a COVER (replace
+  // a board gem, collect it into the hand) earned no credit at all, so an
+  // empty-cell placement and a collecting placement scored the same. A human
+  // hoards ALL game). Always on now: a placement spends one tile, so anything
+  // that comes BACK — the covered gem, an isolated pair's returned twin, an
+  // overflow refill, a recovery from under a swept special — is a gem GAINED.
+  // Dross sweeps and Nebulite resolutions ride along. Weights escalate when
+  // the hand runs low (survival). The engine simulation is the truth: every
+  // gem-returning mechanic lands in next.hand, so one term values them all.
+  if (next.phase === "playing") {
+    const survival = prev.hand.length <= 4;
+    const gemDelta = placedCell !== undefined
+      ? next.hand.length - prev.hand.length + 1 // the spent tile is the baseline
+      : next.hand.length - prev.hand.length; // banks spend nothing
+    v += (survival ? 320 : 130) * Math.max(0, gemDelta);
+    v += (survival ? 260 : 170) * Math.max(0, (next.drossCleared ?? 0) - (prev.drossCleared ?? 0));
+    v += (survival ? 220 : 150) * Math.max(0, (next.nebulitesRefined ?? 0) - (prev.nebulitesRefined ?? 0) + (next.coresCollected - prev.coresCollected));
+    // BOARD VARIETY (Thys): don't strip the board of future options — after
+    // the move, how many of the six minerals still have at least one legal
+    // build somewhere? (isLegalTarget already encodes echo partners, Trips
+    // and Drift continuations, so no per-mineral special cases are needed.)
+    // A big bank that wipes options pays for what it removes; weaker after
+    // collapse 1, and off in the rush (the endgame spends the board down).
+    if (!prev.deathMatch) v += (opening ? 55 : 30) * optionCoverage(next);
   }
   // threats I leave on the table: groups one-or-two tiles from a bankable six.
   // Softened in the opening — the two-step CLAIM (the live driver claims fresh
@@ -391,6 +422,37 @@ const SOLO_CFGS: Record<BrokerTier, TierCfg> = {
   3: { noise: 0, threatW: 0, replyW: 0, cashoutIQ: true, flexW: 1.4, clearIQ: true },
 };
 
+/** SECOND-STEP LOOKAHEAD (post-reveal): the best follow-up this board leaves
+ *  ME — over my now-KNOWN hand, the strongest next placement measured in gem
+ *  gain, activation progress and a bank finish. This is what makes the
+ *  autopilot PLAN replacements: a move that leaves a board where my remaining
+ *  gems can collect and build outranks one that leaves me stranded. Honest
+ *  hands: only called once the hand is revealed. Cell sampling keeps it fast. */
+function bestFollowUp(board: GameState): number {
+  let best = 0;
+  const seen = new Set<string>();
+  for (let i = 0; i < board.hand.length; i++) {
+    const t = board.hand[i];
+    const key = String(t);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const rs = rotated(board, i);
+    let tried = 0;
+    for (const cell of board.order) {
+      if (!isLegalTarget(rs, cell)) continue;
+      if (++tried > 20) break;
+      try {
+        const after = place(rs, cell, 0);
+        const gems = Math.max(0, after.hand.length - rs.hand.length + 1);
+        const acts = Math.max(0, after.activatedCells.length - rs.activatedCells.length);
+        const val = 130 * gems + 40 * acts + (after.banks > rs.banks ? 60 : 0);
+        if (val > best) best = val;
+      } catch { /* pathological placement — skip */ }
+    }
+  }
+  return best;
+}
+
 /** Choose the autopilot's next action in a SOLO run (and CO-OP, where the
  *  partners share one score — the solo maths IS the cooperative maths).
  *  Placements only — banking goes through the live BANK NOW window
@@ -401,7 +463,7 @@ export function chooseSoloAction(state: GameState, rng: () => number = Math.rand
   if (state.phase !== "playing" || state.versus) return null;
   state = fairView(state); // no peeking at buried bonus gems in the sims
   const cfg = SOLO_CFGS[tier];
-  const cands: { action: BrokerAction; value: number }[] = [];
+  const cands: { action: BrokerAction; value: number; after?: GameState }[] = [];
 
   // HONEST HANDS: face-down stack → only the front tile is playable (see header)
   const pickable = state.handRevealed ? state.hand.length : Math.min(1, state.hand.length);
@@ -416,7 +478,7 @@ export function chooseSoloAction(state: GameState, rng: () => number = Math.rand
       if (!isLegalTarget(rs, cell)) continue;
       try {
         const after = place(rs, cell, 0);
-        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell) });
+        cands.push({ action: { kind: "place", rotateTo: i, cell }, value: evaluate(state, after, cfg, cell), after });
       } catch { /* skip pathological placements */ }
     }
   }
@@ -445,6 +507,19 @@ export function chooseSoloAction(state: GameState, rng: () => number = Math.rand
 
   if (cands.length === 0) return null;
   cands.sort((a, b) => b.value - a.value);
+  // SECOND-STEP LOOKAHEAD (Thys 2026-08-27): once the hand is REVEALED the
+  // autopilot plans one move ahead — the top candidates are re-ranked by the
+  // best follow-up they leave for my known remaining gems (replacements to
+  // collect, combos to chase next). Pre-rush only: the rush endgame is spend-
+  // down, and honest hands forbids planning over a face-down stack.
+  if (state.handRevealed && !state.deathMatch && cands.length > 1) {
+    const K = Math.min(5, cands.length);
+    for (let i = 0; i < K; i++) {
+      const c = cands[i];
+      if (c.after && c.after.phase === "playing") c.value += 0.6 * bestFollowUp(c.after);
+    }
+    cands.sort((a, b) => b.value - a.value);
+  }
   if (cfg.noise > 0 && cands.length > 1 && rng() < cfg.noise) {
     const near = cands.filter((c) => c.value >= cands[0].value * 0.8 && cands[0].value - c.value < 300).slice(0, 3);
     return near[Math.floor(rng() * near.length)]?.action ?? cands[0].action;

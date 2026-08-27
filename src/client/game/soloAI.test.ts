@@ -90,11 +90,11 @@ describe("the solo autopilot (DEV TOOLS › AI player)", () => {
       }
       return seen.size;
     };
-    let instant = 0, built = 0, activations = 0;
+    let instant = 0, built = 0, activations = 0, rushReached = 0;
     for (const seed of [7, 19, 42, 101, 333, 555, 777, 901, 1234, 4321]) {
       let s: GameState = newGame({ seed, side: 6 });
       const rng = seededRng(seed * 3 + 1);
-      let turns = 0;
+      let turns = 0, sawRush = false;
       while (s.phase === "playing" && turns < 400) {
         const a = chooseSoloAction(s, rng);
         if (!a) break;
@@ -111,13 +111,19 @@ describe("the solo autopilot (DEV TOOLS › AI player)", () => {
             else if (s.activatedCells.length > rs.activatedCells.length) activations++;
           }
         }
+        if (s.deathMatch) sawRush = true;
         if (s === before) break;
         turns++;
       }
+      if (sawRush || s.phase === "won") rushReached++;
     }
     expect(instant).toBeLessThanOrEqual(10); // was 61 as a bank-chaser
     expect(activations).toBeGreaterThanOrEqual(40); // setups dominate the opening
     expect(built).toBeGreaterThanOrEqual(instant * 3); // banks complete INVESTMENTS
+    // GEM ECONOMY (second field report): the AI must not starve out early —
+    // with the always-on gem terms + coverage + lookahead it reaches GLINT
+    // RUSH (or clears) in 10/10 of these games; was 7/10 before the fix
+    expect(rushReached).toBeGreaterThanOrEqual(9);
   }, 300_000);
 
   // HONEST HANDS (Thys 2026-08-27): until the hand is revealed a human can only
