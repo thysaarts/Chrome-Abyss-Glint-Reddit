@@ -47,10 +47,19 @@ interface TierCfg {
   clearIQ: boolean;
 }
 
+// replyW is OPPONENT DENIAL (Thys 2026-08-27): charge each strong candidate
+// with the player's best possible reply on the board it leaves behind. A move
+// that leaves an open Hex (worse: one with overflow, seizable by covering a
+// Nuracite) eats a large penalty — so the greedy seizure of a lucrative open
+// bank OUTRANKS quiet setup play exactly when something big is at stake, and
+// never otherwise. Tier 1 stays oblivious (part of her charm at the 10 table).
 const TIERS: Record<BrokerTier, TierCfg> = {
+  // (0.35/0.6 made tier 3 over-paranoid — the worst-case bound is harsh, so a
+  // heavy weight buys phantom safety at the cost of development, and t3 LOST
+  // to t2 6:14 in self-play. 0.2/0.35 keeps the ladder monotone.)
   1: { noise: 0.5, threatW: 0.35, replyW: 0, cashoutIQ: false, flexW: 0, clearIQ: false },
-  2: { noise: 0.15, threatW: 1, replyW: 0, cashoutIQ: true, flexW: 0.7, clearIQ: false },
-  3: { noise: 0, threatW: 1.15, replyW: 0, cashoutIQ: true, flexW: 1.4, clearIQ: true },
+  2: { noise: 0.15, threatW: 1, replyW: 0.2, cashoutIQ: true, flexW: 0.7, clearIQ: false },
+  3: { noise: 0, threatW: 1.15, replyW: 0.35, cashoutIQ: true, flexW: 1.4, clearIQ: true },
 };
 
 export const tierForBet = (bet: number): BrokerTier => (bet >= 30 ? 3 : bet >= 20 ? 2 : 1);
@@ -184,9 +193,15 @@ function evaluate(prev: GameState, next: GameState, cfg: TierCfg, placedCell?: s
   // — it keeps the discounted value. A bank flashed from SCRATCH is capped
   // BELOW a 3-cell activation (168), so any real setup option outranks it and
   // it's only ever taken when nothing better exists.
-  let scoreGain = (next.score - prev.score) * (opening ? 0.22 : 1);
+  // VERSUS GREED (Thys 2026-08-27): with an opponent at the table, points I
+  // don't take are points I leave takeable — the opening stays disciplined but
+  // a shade greedier than solo (discount 0.3 vs 0.22, instant cap 160 vs 120).
+  // The real denial instinct is replyW below, which prices what a candidate
+  // LEAVES for the opponent.
+  const versus = !!prev.versus;
+  let scoreGain = (next.score - prev.score) * (opening ? (versus ? 0.3 : 0.22) : 1);
   if (opening && placedCell !== undefined && next.banks > prev.banks && preBuiltAt(prev, placedCell) < 3) {
-    scoreGain = Math.min(scoreGain, 120);
+    scoreGain = Math.min(scoreGain, versus ? 160 : 120);
   }
   v += scoreGain; // points I banked this action
   if (next.livesLeft < prev.livesLeft) v -= W_BUST * (prev.livesLeft - next.livesLeft);
@@ -390,18 +405,25 @@ export function chooseBrokerAction(state: GameState, tier: BrokerTier, rng: () =
   if (cands.length === 0) return null;
 
   // tier 3: charge each strong candidate with the player's best possible reply
-  if (cfg.replyW > 0) {
-    cands.sort((a, b) => b.value - a.value);
-    const K = Math.min(6, cands.length);
-    for (let i = 0; i < K; i++) {
-      const c = cands[i];
+  cands.sort((a, b) => b.value - a.value);
+  if (cfg.replyW > 0 && cands.length > 1) {
+    // OPPONENT DENIAL: what does each strong candidate LEAVE for the player?
+    // (Raw points, worst-cased over gem values — the paranoid fair bound. A
+    // candidate that SEIZES the open bank leaves nothing, so seizure wins by
+    // the full denied amount.) The penalty re-ranks WITHIN the top-K only —
+    // penalising the head and then re-sorting globally let the unpenalised
+    // 5th-best leapfrog every turn (the bug that made replyW LOWER a tier's
+    // strength when it was first enabled). K/sample kept small: live per move.
+    const K = Math.min(4, cands.length);
+    const head = cands.slice(0, K);
+    for (const c of head) {
       if (c.after.phase !== "playing") continue; // terminal — no reply exists
       const handed = versusEndTurn(c.after); // the board as the player receives it
-      c.value -= cfg.replyW * bestReplyGain(handed, 40);
+      c.value -= cfg.replyW * bestReplyGain(handed, 14);
     }
+    head.sort((a, b) => b.value - a.value);
+    cands.splice(0, K, ...head);
   }
-
-  cands.sort((a, b) => b.value - a.value);
   // tier 1: a light human wobble — sometimes take a near-best line instead
   if (cfg.noise > 0 && cands.length > 1 && rng() < cfg.noise) {
     const near = cands.filter((c) => c.value >= cands[0].value * 0.8 && cands[0].value - c.value < 300).slice(0, 3);
