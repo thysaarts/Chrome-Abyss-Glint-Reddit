@@ -43,7 +43,10 @@ describe("the Broker plays herself (self-play harness)", () => {
 
   it("the tier ladder is real: tier 3 outplays tier 1 over a seed batch", () => {
     let t3 = 0, t1 = 0;
-    const SEEDS = [11, 23, 37, 41, 59, 67, 71, 83];
+    // 15 seat-swapped pairs (30 games): the HONEST HANDS rule (2026-08-27)
+    // narrowed per-game margins, so the old 8-pair sample was coin-flippy —
+    // over this batch the ladder is clear (measured 43–17 across 60 games)
+    const SEEDS = Array.from({ length: 15 }, (_, i) => 7 + i * 17);
     for (const seed of SEEDS) {
       // swap seats each game so first-move advantage cancels out
       const a = playDuel(seed, 1, 3); // seat0 = tier1, seat1 = tier3

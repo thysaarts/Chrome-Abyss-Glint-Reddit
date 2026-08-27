@@ -69,7 +69,7 @@ import { ShopPage } from "./ui/ShopPage";
 import { loadWallet, saveWallet } from "./game/wallet";
 import { BrokerPromoPopup, brokerPromoSeenAt, markBrokerPromoSeen } from "./ui/BrokerPromo";
 import { DUEL_MIN_BET } from "./ui/HouseDuel";
-import { chooseBrokerAction, shouldBankNow, tierForBet, type BrokerTier } from "./game/brokerAI";
+import { chooseBrokerAction, shouldBankNowVersus, tierForBet, type BrokerTier } from "./game/brokerAI";
 import type { Avatar } from "./game/avatars";
 import { AvatarGem } from "./ui/AvatarGem";
 import { fmt } from "./content/content";
@@ -665,15 +665,31 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brokerDuel, screen, state, anim.playing, settling, earlyBankOffer, claimOffer]);
 
-  // her BANK NOW window: bank when the maths says so, else let it lapse
+  // her BANK NOW window: bank when the maths says so, else let it lapse.
+  // TWO-STEP OPENING (web parity, 2026-08-27): pre-collapse only a ripe
+  // cluster (5+) banks early — smaller setups get CLAIMED below instead.
   useEffect(() => {
     if (!brokerDuel || !state.versus || state.versus.turn !== brokerSeatOf(state) || !earlyBankOffer) return;
     const t = window.setTimeout(() => {
-      if (shouldBankNow(stateRef2.current, earlyBankOffer.cellKey, brokerDuel.tier)) bankNow();
+      if (shouldBankNowVersus(stateRef2.current, earlyBankOffer.cellKey, brokerDuel.tier)) bankNow();
     }, 700);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brokerDuel, earlyBankOffer, state.versus?.turn]);
+
+  // VERSUS TWO-STEP CLAIMS (web parity, 2026-08-27): before the first collapse
+  // the Broker CLAIMS the combo she just set up, walling it off so the player
+  // can't take it. Fires AFTER the bank decision (700ms): a ripe cluster banks
+  // (bankNow closes this window), an unripe SETUP gets claimed here instead.
+  // After collapse 1 the two-step focus ends and the offer lapses as before.
+  useEffect(() => {
+    if (!claimOffer || screen !== "game" || !state.versus || !brokerDuel) return;
+    if (state.side !== 6 || state.deathMatch) return; // two-step phase only
+    if (state.versus.turn !== brokerSeatOf(state)) return;
+    const t = window.setTimeout(() => onPlace(claimOffer.cellKey), 950);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claimOffer, screen, brokerDuel]);
 
   // a completed daily becomes a DAILY CLEARED slide and pays its reward —
   // shared by the run-end path and the duel settle (web parity)
@@ -1668,7 +1684,12 @@ export default function App() {
               HUD-bottom to footer-top — so the dim fills the whole game window,
               not just the board box (Thys, 2026-08-26); the footer's raised
               NOW PLACING paints above it and stays bright. */}
-          <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} />
+          {/* the dim must reach the footer's VISUAL top line, not stop at the
+              sheen area's bottom: the footer container opens with a transparent
+              poke band (34px solo — NOW PLACING; 52px in a duel — the floating
+              YOUR TURN / opponent-box strip) that the veil extends through. The
+              footer itself renders above (zIndex 6 > 5), so nothing overlaps. */}
+          <div className={"gl-fx-veil" + (anim.dim ? " on" : "")} style={{ bottom: -(together ? 52 : FOOTER_POKE) }} />
           <div style={boardPanel}>
             <div style={boardGlow} />
             {/* micro-shake via class + animationend, NEVER a key remount: re-keying
@@ -1852,7 +1873,10 @@ export default function App() {
               the WHOLE game window the player perceives: to the screen edges (past
               the shell's 9px side padding) and DOWN past NOW PLACING to the footer's
               visual top line (−FOOTER_POKE), with no gaps. Their content stays centred. */}
-          <div style={{ position: "absolute", top: 0, left: -9, right: -9, bottom: -FOOTER_POKE, zIndex: 30, pointerEvents: "none" }}>
+          {/* bled to the WHOLE game window: screen edges past the shell's 9px
+              side padding, and DOWN to the footer's VISUAL top line — the poke
+              band is 34px solo but 52px in a duel (overlay sweep, 2026-08-27) */}
+          <div style={{ position: "absolute", top: 0, left: -9, right: -9, bottom: -(together ? 52 : FOOTER_POKE), zIndex: 30, pointerEvents: "none" }}>
             {anim.banner && <BigBanner text={anim.banner} />}
             {anim.countdown && <CountdownOverlay value={anim.countdown} anchor={boardCenter()} />}
             {eyeShow && <EyeOverlay anchor={boardCenter()} />}

@@ -255,8 +255,11 @@ export const hudBankOverlay: React.CSSProperties = {
 export const sheenClip: React.CSSProperties = {
   position: "absolute",
   top: 0,
-  left: 0,
-  right: 0,
+  // bleed past the shell's 9px side padding — the sweeps cover the WHOLE game
+  // window with no side gutters (overlay sweep, Thys 2026-08-27); the shell's
+  // overflow: clip trims the bleed at the screen / capture-frame edge
+  left: -9,
+  right: -9,
   // reach PAST the footer's poke band (34px solo, 52px in versus) so the sweep
   // covers the whole visual play area down to the footer card's top line — it
   // used to stop -FOOTER_POKE short on desktop, ending above NOW PLACING. Any
