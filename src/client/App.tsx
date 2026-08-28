@@ -1994,6 +1994,7 @@ export default function App() {
                 ? (brokerSeatOf(state) === 1 ? [null, "broker"] : ["broker", null])
                 : null}
               localSeat={brokerDuel ? duelPlayerSeatOf(state) : state.versus?.turn ?? 0}
+              localIsYou={!!brokerDuel}
               onExit={brokerDuel ? () => { setCelebrate(null); forceTabRef.current = "challenges"; setScreen("levels"); } : undefined}
               onPlayAgain={
                 brokerDuel ? () => {
@@ -2598,7 +2599,7 @@ const TALLY_META: Record<EndTallyKind, { label: string; color: string }> = {
   tiles: { label: "Tiles on board", color: theme.color.bad },
 };
 
-function EndCard({ state, onPlayAgain, onContinue, onExit, challenge, onShare, shareLabel, onFreshBoard = null, challengePrimary = false, localSeat = 0, hud, champsBySeat = null, gemsBySeat = null }: { state: GameState; /** champion avatars for the face-off columns, by SEAT (online only) */ champsBySeat?: [string | null, string | null] | null; /** account GEM avatars for champion-less columns (the duel's player side) */ gemsBySeat?: [Avatar | null, Avatar | null] | null; onPlayAgain: () => void; onContinue?: () => void; onExit?: () => void; challenge?: { name: string; target: number } | null; onShare?: (() => void) | null; shareLabel?: string; /** daily runs: Play again re-deals the SAME board, so this offers the quick-play escape */ onFreshBoard?: (() => void) | null; /** the run just RANKED on today's board: Challenge a friend leads, replays follow */ challengePrimary?: boolean; localSeat?: number; /** pre-blurred HUD stand-in — the game shell is hidden while this card is up */ hud?: React.ReactNode }) {
+function EndCard({ state, onPlayAgain, onContinue, onExit, challenge, onShare, shareLabel, onFreshBoard = null, challengePrimary = false, localSeat = 0, localIsYou = false, hud, champsBySeat = null, gemsBySeat = null }: { state: GameState; /** champion avatars for the face-off columns, by SEAT (online only) */ champsBySeat?: [string | null, string | null] | null; /** account GEM avatars for champion-less columns (the duel's player side) */ gemsBySeat?: [Avatar | null, Avatar | null] | null; onPlayAgain: () => void; onContinue?: () => void; onExit?: () => void; challenge?: { name: string; target: number } | null; onShare?: (() => void) | null; shareLabel?: string; /** daily runs: Play again re-deals the SAME board, so this offers the quick-play escape */ onFreshBoard?: (() => void) | null; /** the run just RANKED on today's board: Challenge a friend leads, replays follow */ challengePrimary?: boolean; localSeat?: number; /** true when localSeat is the HUMAN player (the duel) */ localIsYou?: boolean; /** pre-blurred HUD stand-in — the game shell is hidden while this card is up */ hud?: React.ReactNode }) {
   // TWO slides in versus AND co-op: first the score summary (single-player style,
   // live-calculated), a Continue, then the face-to-face / contribution comparison.
   const vres = state.versus?.result ?? null;
@@ -2764,6 +2765,10 @@ function EndCard({ state, onPlayAgain, onContinue, onExit, challenge, onShare, s
           >
             {vres.winner === -1
               ? CONTENT.friends.versusTieTitle
+              // the LOCAL player's win says so in the second person (web parity
+              // 2026-08-28) — "You WINS" was not a clear win announcement
+              : localIsYou && vres.winner === localSeat
+              ? CONTENT.friends.versusYouWonTitle
               : CONTENT.friends.versusWinnerTitle.replace("{name}", state.versus!.names[vres.winner])}
           </div>
         )}

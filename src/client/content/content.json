@@ -4233,6 +4233,7 @@
     "versusRitualTitle": "HIGHEST GEM OPENS",
     "versusRitualBody": "{name} opens — green moves first.",
     "versusWinnerTitle": "{name} WINS",
+    "versusYouWonTitle": "YOU WON",
     "versusTieTitle": "DEAD HEAT",
     "versusRowScore": "Score",
     "versusRowMaxBank": "Highest bank",
