@@ -2986,13 +2986,17 @@ function CoopFooterHud({ state, spectate, connectivity, champs, say, mySeat, due
           top: 2,
           zIndex: 8,
           pointerEvents: "none",
+          // COLUMN layout (web parity 2026-08-28): the NAME gets its own
+          // full-width top row so a long name (THE BROKER, …) overflows ABOVE
+          // the NEXT-gem + hex pair instead of WIDENING the box; the bottom
+          // row (NEXT · hex · status/score) bottom-aligns level with the
+          // score. The box can NEVER cover the centred NOW PLACING: width is
+          // hard-capped at half the footer minus the label's half-width.
           display: "flex",
-          // the box reads inward: NEXT gem left, hex count centre, the player's
-          // name/status/score RIGHT-aligned under their floating champion
-          // (flipped 2026-08-20 with the champions feature)
-          flexDirection: "row-reverse",
-          alignItems: "center",
-          gap: 9,
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: 3,
+          maxWidth: "min(176px, calc(50% - 54px))",
           // one height in BOTH modes: versus fills it with the score line,
           // co-op simply breathes — and both get the same footer overlap
           minHeight: 62,
@@ -3006,30 +3010,32 @@ function CoopFooterHud({ state, spectate, connectivity, champs, say, mySeat, due
           boxShadow: `0 4px 14px rgba(0,0,0,0.35)`,
         }}
       >
-        <div style={{ minWidth: 0, textAlign: "right" }}>
-          <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 14.5, color: boxCol, maxWidth: 78, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {coop.names[boxIdx]}
-          </div>
-          <div style={{ fontFamily: theme.fonts.mono, fontSize: 7.5, letterSpacing: "0.2em", color: connectivity === "async" ? theme.color.gold : theme.color.dim }}>
-            {connectivity === "async" ? CONTENT.friends.connAway : spectate ? CONTENT.friends.coopPlaying : CONTENT.friends.coopWaiting}
-          </div>
-          {boxScore !== null && (
-            <div style={{ fontFamily: theme.fonts.mono, fontSize: 9, letterSpacing: "0.08em", color: boxCol, marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
-              {boxScore.toLocaleString()}
-            </div>
-          )}
+        <div style={{ fontFamily: theme.fonts.disp, fontWeight: 700, fontSize: 13, color: boxCol, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {coop.names[boxIdx]}
         </div>
-        <svg width="27" height="27" viewBox="0 0 27 27">
-          <polygon points={hexPts(13.5, 13.5, 11.5)} fill="rgba(0,0,0,0.4)" stroke={boxCol} strokeWidth="1.4" />
-          <text x="13.5" y="17" textAnchor="middle" fontFamily={theme.fonts.mono} fontSize="10.5" fill={boxCol}>
-            {boxTiles}
-          </text>
-        </svg>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-          <span style={{ fontFamily: theme.fonts.mono, fontSize: 7, letterSpacing: "0.2em", color: theme.color.dim }}>
-            {CONTENT.friends.coopTheirNext}
-          </span>
-          {boxNext !== null ? <MiniGem value={boxNext} /> : <span style={{ color: theme.color.faint, fontSize: 11 }}>—</span>}
+        <div style={{ display: "flex", flexDirection: "row-reverse", alignItems: "flex-end", gap: 8 }}>
+          <div style={{ minWidth: 0, textAlign: "right" }}>
+            <div style={{ fontFamily: theme.fonts.mono, fontSize: 7.5, letterSpacing: "0.18em", color: connectivity === "async" ? theme.color.gold : theme.color.dim, whiteSpace: "nowrap" }}>
+              {connectivity === "async" ? CONTENT.friends.connAway : spectate ? CONTENT.friends.coopPlaying : CONTENT.friends.coopWaiting}
+            </div>
+            {boxScore !== null && (
+              <div style={{ fontFamily: theme.fonts.mono, fontSize: 9, letterSpacing: "0.08em", color: boxCol, marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
+                {boxScore.toLocaleString()}
+              </div>
+            )}
+          </div>
+          <svg width="27" height="27" viewBox="0 0 27 27" style={{ flex: "none" }}>
+            <polygon points={hexPts(13.5, 13.5, 11.5)} fill="rgba(0,0,0,0.4)" stroke={boxCol} strokeWidth="1.4" />
+            <text x="13.5" y="17" textAnchor="middle" fontFamily={theme.fonts.mono} fontSize="10.5" fill={boxCol}>
+              {boxTiles}
+            </text>
+          </svg>
+          <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+            <span style={{ fontFamily: theme.fonts.mono, fontSize: 7, letterSpacing: "0.2em", color: theme.color.dim }}>
+              {CONTENT.friends.coopTheirNext}
+            </span>
+            {boxNext !== null ? <MiniGem value={boxNext} /> : <span style={{ color: theme.color.faint, fontSize: 11 }}>—</span>}
+          </div>
         </div>
       </div>
     </>
